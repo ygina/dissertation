@@ -1,0 +1,151 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Template for USENIX papers.
+%
+% History:
+%
+% - TEMPLATE for Usenix papers, specifically to meet requirements of
+%   USENIX '05. originally a template for producing IEEE-format
+%   articles using LaTeX. written by Matthew Ward, CS Department,
+%   Worcester Polytechnic Institute. adapted by David Beazley for his
+%   excellent SWIG paper in Proceedings, Tcl 96. turned into a
+%   smartass generic template by De Clarke, with thanks to both the
+%   above pioneers. Use at your own risk. Complaints to /dev/null.
+%   Make it two column with no page numbering, default is 10 point.
+%
+% - Munged by Fred Douglis <douglis@research.att.com> 10/97 to
+%   separate the .sty file from the LaTeX source template, so that
+%   people can more easily include the .sty file into an existing
+%   document. Also changed to more closely follow the style guidelines
+%   as represented by the Word sample file.
+%
+% - Note that since 2010, USENIX does not require endnotes. If you
+%   want foot of page notes, don't include the endnotes package in the
+%   usepackage command, below.
+% - This version uses the latex2e styles, not the very ancient 2.09
+%   stuff.
+%
+% - Updated July 2018: Text block size changed from 6.5" to 7"
+%
+% - Updated Dec 2018 for ATC'19:
+%
+%   * Revised text to pass HotCRP's auto-formatting check, with
+%     hotcrp.settings.submission_form.body_font_size=10pt, and
+%     hotcrp.settings.submission_form.line_height=12pt
+%
+%   * Switched from \endnote-s to \footnote-s to match Usenix's policy.
+%
+%   * \section* => \begin{abstract} ... \end{abstract}
+%
+%   * Make template self-contained in terms of bibtex entires, to allow
+%     this file to be compiled. (And changing refs style to 'plain'.)
+%
+%   * Make template self-contained in terms of figures, to
+%     allow this file to be compiled.
+%
+%   * Added packages for hyperref, embedding fonts, and improving
+%     appearance.
+%
+%   * Removed outdated text.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\synctex=1
+\documentclass[letterpaper,twocolumn,10pt,table]{article}
+\usepackage{usenix-2020-09}
+
+% to be able to draw some self-contained figs
+\usepackage{tikz}
+\usepackage{amsmath}
+
+% custom imports
+\usepackage[english]{babel}
+\usepackage{blindtext}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{cleveref}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage[compact]{titlesec}
+% \usepackage[tight]{subfigure}
+
+%-------------------------------------------------------------------------------
+\begin{document}
+%-------------------------------------------------------------------------------
+
+\newcommand{\sys}{sidekick\xspace}
+\newcommand{\Sys}{Sidekick\xspace}
+\newcommand{\michael}[1]{\textcolor{red}{{\sf (MW: #1)}}}
+\newcommand{\keith}[1]{\textcolor{red}{{\sf (KW: #1)}}}
+\newcommand{\masot}[1]{\textcolor{red}{{\sf (MS: #1)}}}
+\newcommand{\gina}[1]{\textcolor{red}{\sf {(GY: #1)}}}
+\newcommand{\dm}[1]{\textcolor{red}{\sf (DM: #1)}}
+% \newcommand{\michael}[1]{\textcolor{red}{}}
+% \newcommand{\masot}[1]{\textcolor{red}{}}
+% \newcommand{\gina}[1]{\textcolor{purple}{}}
+% \newcommand{\todo}[1]{\textcolor{red}{}}
+
+%don't want date printed
+\date{}
+
+% make title bold and 14 pt font (Latex default is non-bold, 16 pt)
+\title{\Sys: In-Network Assistance for Secure End-to-End Transport Protocols}
+
+%for single author (just remove % characters)
+\author{
+{\rm Gina Yuan}\\
+Stanford University
+\and
+{\rm Matthew Sotoudeh}\\
+Stanford University
+\and
+{\rm David K. Zhang}\\
+Stanford University
+\and
+{\rm Michael Welzl}\\
+University of Oslo
+\and
+{\rm David Mazières}\\
+Stanford University
+\and
+{\rm Keith Winstein}\\
+Stanford University
+} % end author
+
+\hyphenation{clear-text}
+
+\maketitle
+
+\pagestyle{empty}
+
+%-------------------------------------------------------------------------------
+\input{sections/abstract.tex}
+%-------------------------------------------------------------------------------
+
+\input{sections/intro.tex}
+\input{sections/protocols.tex}
+\input{sections/quack.tex}
+\input{sections/design.tex}
+\input{sections/implementation.tex}
+\input{sections/evaluation.tex}
+\input{sections/limitations.tex}
+\input{sections/conclusion.tex}
+\input{sections/acks.tex}
+
+%-------------------------------------------------------------------------------
+\bibliographystyle{abbrv}
+\bibliography{reference}
+
+\newpage
+\appendix
+\input{sections/appendix.tex}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%  LocalWords:  endnotes includegraphics fread ptr nobj noindent
+%%  LocalWords:  pdflatex acks

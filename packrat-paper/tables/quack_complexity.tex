@@ -1,0 +1,19 @@
+\begin{table}[t]
+    \centering
+    \begin{tabular}{r l l}
+        \toprule
+        \bf & Power Sum~\cite{yuan2024sidekick} & IBLT \\
+        \midrule
+        Encode & $O(t)$ & $O(\log(t))$ \\
+        Decode & $O(Nt)$ & $O(m\log(t))$ \\
+        $t=$Size & $O(m)$ & $O(m)$ \\
+        \bottomrule
+    \end{tabular}
+    \caption{The computational complexity of the encoding and decoding
+    operations of each type of eACK, and the number of symbols. The IBLT
+    is theoretically better or the same in all regards, but it
+    incurs constant overheads in the size and in hashing.
+    $N$ is the number of packets at the proxy, $m < N$ is the number of
+     missing packets, and $t$ is the number of symbols.}
+    \label{tab:quack-complexity}
+\end{table}

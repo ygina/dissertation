@@ -1,0 +1,81 @@
+\newtcolorbox{protopayload}[2][]{
+  colback=yellow!20,
+  colframe=black,
+  boxrule=0.5pt,
+  arc=1pt,
+  fontupper=\ttfamily,
+  width=\linewidth,
+  fonttitle=\small\bfseries,
+  top=-1.5mm,
+  bottom=-1.5mm,
+  left=2mm,
+  right=2mm,
+  title={#2},
+  #1
+}
+
+\begin{figure}[t]
+    % \centering
+    % Client payloads
+    \begin{subfigure}[b]{0.48\linewidth}
+        % \begin{protopayload}{\texttt{Discover}}
+        %  \begin{lstlisting}
+        %  \end{lstlisting}
+        % \end{protopayload}
+        \begin{protopayload}{\texttt{Init}}
+            \begin{lstlisting}[language=Rust,basicstyle=\footnotesize]
+epoch: u32;
+base_conn: [u8; 12];
+eack_ty: u8;
+num_symbols: u8;
+id_offset: u16;
+mem_bytes: u32;
+            \end{lstlisting}
+        \end{protopayload}
+        \begin{protopayload}{\texttt{eACK}}
+            \begin{lstlisting}[language=Rust,basicstyle=\footnotesize]
+count: u32;
+last_identifier: u32;
+code: Vec<Symbol>;
+            \end{lstlisting}
+        \end{protopayload}
+        \caption{Client payloads.}
+        \label{fig:payloads:client}
+    \end{subfigure}
+    \hfill
+    % Proxy payloads
+    \begin{subfigure}[b]{0.48\linewidth}
+%         \begin{protopayload}{\texttt{DiscoverACK}}
+%          \begin{lstlisting}[language=Rust,basicstyle=\footnotesize]
+% mem_bytes: usize;
+%          \end{lstlisting}
+%         \end{protopayload}
+        \begin{protopayload}{\texttt{InitACK}}
+            \begin{lstlisting}[language=Rust,basicstyle=\footnotesize]
+epoch: u32;
+udp_port: u16;
+errno: u32;
+            \end{lstlisting}
+        \end{protopayload}
+        \begin{protopayload}{\texttt{Reset}}
+            \begin{lstlisting}[language=Rust,basicstyle=\footnotesize]
+epoch: u32;
+errno: u32;
+            \end{lstlisting}
+        \end{protopayload}
+        \begin{protopayload}{\texttt{Retransmit}}
+            \begin{lstlisting}[language=Rust,basicstyle=\footnotesize]
+udp_payload: Vec<u8>;
+            \end{lstlisting}
+        \end{protopayload}
+        \caption{Proxy payloads.}
+        \label{fig:payloads:proxy}
+    \end{subfigure}
+  % Caption
+  \caption{\Sys protocol messages to initialize the connection and generate
+   retransmissions. There are two types of eACKS: the IBLT eACK
+   we introduce in \Cref{sec:eack:iblt} and an equivalent implementation of the
+   power sum quACK from \cite{yuan2024sidekick}. The \texttt{Symbol}
+   uses 5 and 4 bytes in each type, respectively.}
+  \label{fig:payloads}
+\end{figure}

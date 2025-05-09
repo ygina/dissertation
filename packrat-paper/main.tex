@@ -1,0 +1,205 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Template for USENIX papers.
+%
+% History:
+%
+% - TEMPLATE for Usenix papers, specifically to meet requirements of
+%   USENIX '05. originally a template for producing IEEE-format
+%   articles using LaTeX. written by Matthew Ward, CS Department,
+%   Worcester Polytechnic Institute. adapted by David Beazley for his
+%   excellent SWIG paper in Proceedings, Tcl 96. turned into a
+%   smartass generic template by De Clarke, with thanks to both the
+%   above pioneers. Use at your own risk. Complaints to /dev/null.
+%   Make it two column with no page numbering, default is 10 point.
+%
+% - Munged by Fred Douglis <douglis@research.att.com> 10/97 to
+%   separate the .sty file from the LaTeX source template, so that
+%   people can more easily include the .sty file into an existing
+%   document. Also changed to more closely follow the style guidelines
+%   as represented by the Word sample file.
+%
+% - Note that since 2010, USENIX does not require endnotes. If you
+%   want foot of page notes, don't include the endnotes package in the
+%   usepackage command, below.
+% - This version uses the latex2e styles, not the very ancient 2.09
+%   stuff.
+%
+% - Updated July 2018: Text block size changed from 6.5" to 7"
+%
+% - Updated Dec 2018 for ATC'19:
+%
+%   * Revised text to pass HotCRP's auto-formatting check, with
+%     hotcrp.settings.submission_form.body_font_size=10pt, and
+%     hotcrp.settings.submission_form.line_height=12pt
+%
+%   * Switched from \endnote-s to \footnote-s to match Usenix's policy.
+%
+%   * \section* => \begin{abstract} ... \end{abstract}
+%
+%   * Make template self-contained in terms of bibtex entires, to allow
+%     this file to be compiled. (And changing refs style to 'plain'.)
+%
+%   * Make template self-contained in terms of figures, to
+%     allow this file to be compiled.
+%
+%   * Added packages for hyperref, embedding fonts, and improving
+%     appearance.
+%
+%   * Removed outdated text.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[letterpaper,dvipsnames,twocolumn,10pt]{article}
+\usepackage{usenix}
+
+% to be able to draw some self-contained figs
+\usepackage{nopageno}
+\usepackage{tikz}
+\usepackage{cite}[sort]
+\usepackage{amsmath}
+\usepackage[labelfont=bf]{caption}
+
+% \usepackage{titlesec}
+\usepackage[compact]{titlesec}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{xspace}
+
+% figures
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{cleveref}
+\usepackage{amssymb}
+\usepackage{tcolorbox}
+\usepackage{stfloats}
+\usepackage[section]{placeins}
+
+% Listings
+\usepackage[scaled=0.85]{beramono}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{xcolor}
+
+\newfloat{lstfloat}{htbp}{lop}
+\floatname{lstfloat}{Listing}
+\def\lstfloatautorefname{Listing} % needed for hyperref/auroref
+
+\makeatletter
+\newcommand{\nospaceS}{\S\@gobble}
+\makeatother
+\Crefname{section}{\nospaceS}{\nospaceS}
+\Crefname{figure}{Fig.}{Figs.}
+\Crefname{table}{Tab.}{Tabs.}
+\Crefname{listing}{Lst.}{Lsts.}
+\crefalias{lstlisting}{listing}
+
+\newcommand\code[1]{\lstinline$#1$}
+
+\lstdefinelanguage{PythonDiff} {
+ keywords={for, in},
+ keywordstyle=\color{BrickRed}\bfseries,
+ ndkeywords={transfer},
+ ndkeywordstyle=\color{NavyBlue}\bfseries,
+ basicstyle=\footnotesize\ttfamily,
+ identifierstyle=\color{black},
+ sensitive=false,
+ comment=[l]{+},
+ commentstyle=\color{ForestGreen}\ttfamily\bfseries,
+ showstringspaces=false,
+ string=[s]{\#}{\.},
+ stringstyle=\color{gray}\ttfamily,
+}
+
+\lstdefinelanguage{Python} {
+ keywords={class, def, return, instanceof, if},
+ keywordstyle=\color{BrickRed}\bfseries,
+ ndkeywords={DataFrameSplit, NdArraySplit, SplitType, CPU, GPU, @oa, @oa_alloc},
+ ndkeywordstyle=\color{NavyBlue}\bfseries,
+ basicstyle=\footnotesize\ttfamily,
+ identifierstyle=\color{black},
+ sensitive=false,
+ comment=[l]{\#},
+ commentstyle=\color{gray}\ttfamily\bfseries,
+ showstringspaces=false,
+ string=[s]{"}{"},
+ stringstyle=\color{ForestGreen}\ttfamily,
+}
+
+\lstdefinelanguage{Rust} {
+ keywords={fn, trait, struct, bool, u32, u64, u16, u8, usize},
+ keywordstyle=\color{BrickRed}\bfseries,
+ ndkeywords={QuACK, Quacker, ClientQuacker, Quack},
+ ndkeywordstyle=\color{NavyBlue}\bfseries,
+ basicstyle=\footnotesize\ttfamily,
+ identifierstyle=\color{black},
+ sensitive=false,
+ comment=[l]{///},
+ commentstyle=\color{gray}\ttfamily\bfseries,
+ showstringspaces=false,
+ string=[s]{"}{"},
+ stringstyle=\color{ForestGreen}\ttfamily,
+}
+
+\lstset{language=Python}
+
+\renewcommand{\topfraction}{0.95}
+\renewcommand{\bottomfraction}{0.95}
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\floatpagefraction}{0.95}
+
+\newcommand{\Sys}{Packrat\xspace}
+\newcommand{\sys}{packrat\xspace}
+
+\usepackage{microtype}
+
+%-------------------------------------------------------------------------------
+\begin{document}
+%-------------------------------------------------------------------------------
+
+\newcommand{\keith}[1]{\textcolor{red}{{\sf (KW: #1)}}}
+\newcommand{\thea}[1]{\textcolor{red}{{\sf (TR: #1)}}}
+\newcommand{\gina}[1]{\textcolor{red}{\sf {(GY: #1)}}}
+\newcommand{\michael}[1]{\textcolor{red}{\sf {(MW: #1)}}}
+
+%don't want date printed
+\date{}
+
+% make title bold and 14 pt font (Latex default is non-bold, 16 pt)
+\title{\Large \bf In-Network Retransmissions for Encrypted Transport Protocols}
+
+%for single author (just remove % characters)
+\author{
+Anonymous
+% \and
+% {\rm Second Name}\\
+% Stanford University
+% copy the following lines to add more authors
+% \and
+% {\rm Name}\\
+%Name Institution
+} % end author
+
+\maketitle
+
+\input{abstract}
+\input{introduction}
+\input{background}
+% \input{motivating}
+\input{sidekick}
+\input{quack}
+\input{implementation}
+\input{evaluation}
+% \input{discussion}
+\input{conclusion}
+% \input{acknowledgments}
+
+%-------------------------------------------------------------------------------
+\bibliographystyle{plain}
+\bibliography{nsdi26.bib}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%  LocalWords:  endnotes includegraphics fread ptr nobj noindent
+%%  LocalWords:  pdflatex acks

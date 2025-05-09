@@ -1,0 +1,14 @@
+%-------------------------------------------------------------------------------
+\section{Discussion}
+%-------------------------------------------------------------------------------
+Another is thinking about future implications for encrypted transport protocols.
+As transport protocols like QUIC develop is it bad if we can't split their
+connections given how much performance can benefit?
+
+Fairness, discussion on while ISPs have deployed these there hasn't been much
+analysis into its fairness. In particular, relative to end-to-end congestion
+control algorithms.
+It is known that connection-splitting PEPs improve performance for that
+connection, but what is the implication of its performance on competing flows?
+But how much bandwidth does it save by reducing retransmissions by buffering at
+the proxy?

@@ -1,0 +1,40 @@
+% Stanford University PhD thesis style -- modifications to the report style
+% This is unofficial so you should always double check against the
+% Registrar's office rules
+% See http://library.stanford.edu/research/bibliography-management/latex-and-bibtex
+% 
+% Example of use below
+% See the suthesis-2e.sty file for documentation
+%
+\documentclass{report}
+\usepackage{suthesis-2e}
+\dept{Computer Science}
+
+\begin{document}
+\title{In-Network Assistance for Secure Transport Protocols}
+\author{Gina Yuan}
+\principaladviser{Keith Winstein}
+\firstreader{David Mazières}
+\secondreader{Dan Boneh}
+% \thirdreader{Matei Zaharia} %if needed
+% \fourthreader{Severus Snape} %if needed
+ 
+\beforepreface
+\prefacesection{Abstract}
+This thesis tells you all you need to know about...
+\prefacesection{Acknowledgments}
+I would like to thank...
+\afterpreface
+
+\input{introduction}
+\input{quack}
+\input{sidekick}
+\input{packrat}
+\input{heuristic}
+\input{conclusion}
+
+% \appendix
+% \input{appendix}
+\bibliographystyle{plain}
+\bibliography{mybib}
+\end{document}

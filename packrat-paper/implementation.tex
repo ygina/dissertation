@@ -1,0 +1,226 @@
+%-------------------------------------------------------------------------------
+\section{Implementation}
+\label{sec:implementation}
+%-------------------------------------------------------------------------------
+
+We now describe our implementation of the \Sys protocol, which includes
+the \texttt{eack} library (\Cref{sec:eack:microbenchmarks}),
+a \texttt{packrat} library used for three client integrations,
+and a \Sys proxy. We also describe the implementations of the
+applications and baselines we use to evaluate \Sys.
+
+\subsection{Applications}
+
+We evaluate the \Sys protocol in three applications with different performance
+metrics to explore the versatility of in-network retransmissions:
+a high-throughput HTTP/3 file download, a low-latency media stream with forward
+error correction, and a reliable multicast stream whose server has limited
+capacity to handle end-to-end unicast retransmissions.
+
+\paragraph{HTTP/3 file download.}
+
+The HTTP/3 benchmark uses the default client and server in the Picoquic QUIC
+implementation~\cite{picoquic}. Picoquic is an implementation of QUIC in C
+based on the IETF standard used for experimentation on extensions to QUIC in
+the IETF, with simplicity and correctness as its goals. Both endpoints use
+CUBIC for congestion control.
+
+% We modified the server to pre-cache data in memory and for the client to be able
+% to query variable data sizes via an HTTP/GET request.
+
+The goodput is measured by dividing the connection time by the requested data
+size, excluding headers.
+The connection time is measured as when the client sends the first
+byte of its request to when it receives all requested bytes.
+We use 25 MB which is large enough such that the goodput is stable.
+
+\paragraph{Low-latency media with FEC.}
+
+We implement an endpoint for streaming low-latency audio data from the server
+to the client, using a simple repetition code for forward error correction.
+The server (a) sends a packet every 20 ms
+(b) containing audio from the last 40 ms (so there's an overlap in each
+packet). Each audio packet contains 480 bytes of data, representing an audio
+stream at 96 kbit/s.
+
+The client begins playback with 40 ms in its buffer, stalling if frames arrive
+too late and fast-forwarding if behind the target buffer size.
+If there is a gap in the
+playback buffer, the client sends a NACK with the sequence number of the
+missing frame. The client retransmits NACKs, up to one per RTT, until it has
+received the missing frame. On receiving a NACK, the server immediately
+retransmits.
+
+The one-way latency is measured from the time the data is produced in the real
+world to when it is encoded, transmitted, and available in the client's
+buffer. For example, a frame containing 40 ms of data sent over a network path
+with 150 ms delay has a minimum one-way latency of 190 ms.
+
+\paragraph{Reliable IP multicast stream.}
+
+The IP multicast application is similar to the low-latency media application
+except the server streams data to a multicast IP address. The server does not
+use forward error correction, and each packet contains 240 bytes of data. Multiple clients
+subscribe to the multicast IP address, and if a client is missing data,
+it sends an end-to-end NACK to the
+multicast server to receive a unicast retransmission.
+The primary metric is the number of end-to-end retransmissions requested by
+the clients. That is, we measure the number of packets that the server
+must (unicast) retransmit, which captures both server and network load.
+
+\subsection{Baselines}
+
+The primary baseline is just the end-to-end protocol, which is the default for
+encrypted transport protocols that cannot receive transport-layer assistance
+from proxies. 
+
+We additionally aim to compare \Sys to link-layer loss recovery approaches,
+as discussed in \Cref{sec:background}.
+To mimic these approaches,
+we implement a reliable tunnel that
+encapsulates and retransmits packets
+similar to Wi-Fi. The tunnel sender encapsulates IP datagrams in a header with
+a plaintext sequence number, and the tunnel receiver replies with a 64-bit
+Block ACK~\cite{ieee80211e}. The sender retransmits gaps in the acknowledgment up
+to $7$ times, the default limit in Wi-Fi, and takes care to avoid duplicates. We
+also implement an option for the receiver to order packets before releasing
+them to the application, behavior that we believe is unspecified in the Wi-Fi
+standard but can dramatically impact application performance.
+We refer to these variants as ordered and unordered tunnels.
+
+Finally, we benchmark our HTTP/3 application against a ``true'' split
+connection. We implement a \texttt{picoquic} connection splitter that decrypts
+and re-encrypts packets in two separate QUIC connections from one endpoint to
+another. We emphasize that these connection-splitters do not actually exist. To
+be deployed, the proxy would need to be credentialed with access to underlying
+sequence numbers, the antithesis of the transport purists who encrypted these
+headers in the first place~\cite{duke2023rfc}. Since TCP splitters \textit
+{are} commonly deployed~\cite{honda2011still,rfc3135}, our goal is to
+understand how much QUIC is ``losing out'' by not splitting its connection, and
+how closely \Sys can help QUIC achieve the same performance benefits without
+ossification.
+
+\subsection{Client Integrations}
+
+\input{listings/quacker_interface}
+
+Clients participate in the \Sys protocol by knowingly opting in to proxy
+assistance and sending eACKs. Clients share much of the same functionality,
+such as initializing the \Sys connection, maintaining a cumulative eACK of
+received packets, and determining when to eACK based on a set frequency. We
+implement a library for this shared functionality (\Cref{lst:quacker-interface})
+and integrate it into our three clients.
+The library uses $\approx\!700$ lines of Rust and includes C bindings.
+% quacker$ cloc .
+
+The library can serialize and deserialize messages in the \Sys connection, but
+the client is responsible for reading and writing to the actual socket. Each
+application uses a packet loop to interact with a socket for the base
+connection. We incorporate the \Sys socket into the same loop, which allows us to
+consider hints from the application for rateless and selective eACKing
+(\Cref{sec:eack:hints}). We also incorporate a reorder delay in the base
+connection (\Cref{sec:packet-protocol:problem}).
+% Each integration uses a few hundred lines of code.
+
+
+% Separately, we also implemented a ``sniffing quacker'' that sniffs the interface
+% on the client associated with this base connection as opposed to being on-path.
+% We find that this mostly works although we can't apply the optimizations of
+% selective eACKing. Also, although we did not observe significant issues, there
+% aren't guarantees about the synchronization of sniffing and base packets which
+% makes correctness more difficult to reason about. However, it is a quick way to
+% evaluate the potential benefits of a eACKer for a generic protocol. We do not
+% evaluate the sniffing eACKer in this section.
+
+\subsection{Proxy Implementation}
+\label{sec:implementation:proxy}
+
+% \thea{If time - I know this is just implementation, but wondering if there is
+% anything we could/should do to make this section more interesting?
+% Reference any design challenges? Remind people of cool design things from S3-4?}
+
+We implement the \Sys proxy as a network bridge that uses raw sockets to read
+and write packets between two interfaces. The proxy needs to
+be on-path and intercept the packets, as opposed to sniffing them, so
+its \texttt{InitACK} and \texttt{Reset} messages can be ordered along with the
+data packets.
+
+The proxy inspects each packet for magic discovery packets, those that match the
+4-tuples of the base connections it is helping, and also eACKs.
+It handles each packet as described in \Cref
+{sec:packrat-protocol:proxy-behavior}. We use our \texttt{eack} library to
+encode and decode eACKs. The proxy use $\approx\!1000$ lines of Rust.
+
+% bin/sidekick.rs
+% cache/base.rs
+% cache/mod.rs
+% sidekick/base.rs
+% sidekick/mod.rs
+% stream.rs
+
+\paragraph{Multicast proxy.}
+
+We also implement an extension to the \Sys proxy for IP multicast, or more
+generally, multiple clients that share a base data stream. The proxy maintains
+a fixed-size cache for the multicast 4-tuple with optimistic eviction only. For
+each client, the proxy maintains a eACK and a \textit{virtual cache}. The
+virtual cache contains (1) a global index in the base cache of the client's
+first unacknowledged packet and (2) pairs of global indexes that indicate which
+packet to insert and where to insert it because it was retransmitted to the
+client. This allows the proxy to maintain state proportional only to the number
+of outstanding retransmissions per client.
+
+% \paragraph{Packet ordering.}
+
+% The proxy needs to be on-path and order all incoming and outgoing packets in
+% something like a packet loop, at least for a single connection. This is unlike
+% when the sidekick connection is near the data \textit{sender}, where the proxy
+% can simply sniff packets off the path.
+
+% In our implementation, we configure the network interfaces to not forward
+% packets, and then we write a program that intercepts packets from raw sockets
+% for two interfaces, respectively, and forwards incoming packets from one
+% interface to the other. This involves a data copy which inherently adds
+% overhead, but the overhead is not fundamental if we were to use DPDK or some
+% other kernel pointers.
+
+% Serialization is important, for example, because say we process a eACK out of
+% sync of the data path, we may process a eACK from the future if the proxy
+% hasn't encoded packets it has already sent because it hasn't had a chance to
+% sniff them. The DiscoverAck and Reset packets are both serialization points in
+% a connection. This allows sidekick connections to be established or reset at
+% any point in the base connection, and it is important that there is not too
+% much reordering.
+
+% \paragraph{Sidekick functionality.}
+
+% The sidekick functionality in the proxy leverages the eACK library from \cite
+% {yuan2024sidekick}, along with an extension for the IBLT eACK. It encodes each
+% packet in the base connection, and then decodes eACKs, retransmitting any
+% packets determined to be missing. If it hits a memory limit when encoding
+% packets and adding them to the cache, it will reset the connection and
+% communicate this limit to the client to configure its eACK frequency. If it
+% hits a limit due to the congestion window, it will drop the packet from the
+% data sender and not forward it to the data receiver.
+
+% In addition, for shared streams such as in the IP multicast application, the
+% proxy maintains a fixed-size cache for the base connection with optimistic
+% eviction. It also maintains a virtual buffer of packets for each client as
+% opposed to a single buffer that duplicates all the packet data. The virtual
+% buffer consists of a 32-bit index for the next index in the base buffer to
+% receive, as well as a ring buffer of base index and virtual index pairs at
+% which to insert retransmitted packets.
+
+% \paragraph{Cache drop policy.}
+
+% The proxy has similar memory constraints to a connection-splitting TCP PEP per
+% base connection, and we won't try to make it better than that. Since our caches
+% are re-implemented, we have a similar policy that newly added packets exceeding
+% the capacity are simply not added until the packets already in the cache are
+% evicted.
+
+% Similar to the TCP PEP, in addition to OS memory limits we also need some sense
+% of a congestion control window. This allows us to achieve the same fairness as
+% a split connection of the same congestion control algorithm. However, since the
+% behavior differs based on CCA and even implementation of the CCA, we simply
+% select one and call it a day.

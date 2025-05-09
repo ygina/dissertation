@@ -1,0 +1,211 @@
+\section{\Sys Protocol}
+\label{sec:design}
+
+This section describes Robin, our design for a \sys protocol built
+around quACKs. This includes the setup and configuration of a Robin
+\sys connection, how a sender detects loss from a quACK, and a path-aware
+modification to CUBIC called PACUBIC, for congestion-controlled base protocols.
+
+\subsection{PEP Discovery Mechanism}
+
+\Sys connections can be configured explicitly or implicitly.  In systems that
+explicitly configure proxies, such as Apple's iCloud Private Relay~\cite{icloud-private-relay}
+based on MASQUE~\cite{kosek2021masque,kramer2021masquepep}, proxies can simply negotiate
+sending quACKs during session establishment.  In most other settings,
+such as 4G/5G cellular networks, PEPs have traditionally been deployed
+as transparent proxies, silently interposing on end-to-end
+connections.  Senders therefore need a way to detect transparent \sys
+proxies and inform them of where to send quACKs.  Because of network
+address translation, all communication to the proxy must be initiated
+by the sender or use the same IP addresses and port numbers of the
+base connection.
+
+Our current design has senders signal quACK support by sending a
+distinguished packet containing a 128-byte \emph{\sys-request} marker.  Such
+inline signaling could confuse receivers, but {\sys}s target
+protocols such as QUIC that discard cryptographically unauthenticated
+data anyway.  It would be cleaner to signal support through
+out-of-band UDP options~\cite{ietf-tsvwg-udp-options-28}, which we hope to do
+once they are standardized.
+
+The proxy replies to a \sys-request packet by sending a special packet
+from the receiver's IP address and port number back to the sender.
+This packet contains a \emph{\sys-reply} marker, an opaque session ID, and an
+IP address and port number for communicating with the proxy.  Upon
+receiving the \sys-reply packet, the sender begins communicating
+directly with the proxy from a different UDP port.  It initially sends
+back the session ID and configuration parameters to start receiving
+quACKs.
+
+\paragraph{Security.}
+A malicious third-party could execute a reflection amplification attack that
+generates a large amount of traffic while hiding its source. This is
+possible because the sender requests quACKs to a different port and (for some
+carrier-grade NATs) IP address from the underlying session. To mitigate this,
+each quACK contains a quota, initially 1, of remaining quACKs the proxy will
+send as well as an updated session ID\@.
+The quota and session ID ensure only the sender can increase the quota or
+otherwise reconfigure the session.
+
+An adversarial PEP could send misleading information to the sender. Note that
+only on-path PEPs can send credible information, since they refer to unique
+packet identifiers.
+To mitigate this, the sender can consider PEP feedback along with
+end-to-end metrics to determine whether to keep using the PEP. The sender can
+always opt out of the PEP, and the PEP cannot actively manipulate traffic any
+more than outside a \sys setting.
+
+\subsection{Configuration Messages}
+\label{sec:design:configuration}
+
+The data sender can send various other messages to the proxy
+to configure the connection or reset bad state.
+
+\paragraph{Protocol parameters.}
+The sender configures (i) the quACK interval of the PEP and (ii) the threshold
+number of missing packets $t$, or otherwise selects \sys-specific settings
+such as how an identifier is computed.
+
+% Senders select $b$ based on their collision tolerance and target
+% quACK size. In most cases, we recommend $b=4$ bytes.
+
+The quACK interval is expressed in terms of time or number of packets,
+ e.g., every $N$ milliseconds or every $N$ packets, as in a TCP delayed ACK.
+The sender determines the desired interval based on its estimated
+RTT of the base connection and its application objectives, e.g.,
+more frequently for latency-sensitive applications or lower-RTT paths.
+%
+
+The threshold represents the bound on the number of missing packets
+between quACKs, in practice the number of ``holes'' among the packets that are
+selectively ACKed. The threshold depends on the quACK interval, and
+should be set based on how precise loss detection needs to be and
+other qualities of the link.
+For example, the threshold is larger to detect congestive loss in the queue of a
+bottleneck link, or smaller to still detect transmission error on a lossy link.
+
+% When the \sys protocol is initiated, both
+% the sender and receiver initialize $t$ power sums to $0$.
+% To bound the size of the quACK while preserving a unique solution, all power sum
+% arithmetic is performed modulo
+% % some prime number---in particular,
+% the largest
+% prime that can be expressed in $b$ bits.
+
+% When the receiver is ready to send a quACK, it sends the $b\cdot t$ bits
+% corresponding to its $t$ power sums, and the count, to the sender.
+% % To decode the
+% % quACK, the sender computes the polynomial $p(x)$ where the roots are exactly the
+% % missing packet identifiers, and solves for the polynomial. As an optimization,
+% % when the set of candidate roots $S$ is small, the sender evaluates $p(x)$ for
+% % every packet $x \in S$ and records the zeros as missing packets.
+% The sender subtracts the received count from its own count to determine the
+% number of missing packets $m$.
+% Note that the number of bits used to represent the count only needs to be big
+% enough to represent this difference, and the count itself can wraparound.
+% If the difference also wraps around, then the polynomial equations either
+% cannot be solved or the solutions do not correspond to packets in $S$.
+
+
+\paragraph{Resets.}
+Robin allows the sender to tell the PEP to reinitialize the quACK.
+This is helpful if the quACK becomes
+invalid, e.g., if $m$ exceeds the threshold $t$. It is
+always safe to reset the quACK, or even to ignore the \sys entirely and
+fall back to the base protocol's end-to-end mechanisms.
+% \dm{Do we want the PEP to be able to reset the sender?  Might be
+%   useful to send one last special quACK when evicting something from
+%   the cache.}
+
+\subsection{Sender Behavior}
+
+In this section, we discuss two particular sender-side behaviors that are enabled by
+the \sys protocol and which are helpful across several scenarios: detecting packet loss
+from a decoded quACK and congestion control.
+
+\subsubsection{Detecting Loss}
+\label{sec:design:detecting-loss}
+
+The sender knows definitively which packets have been received by the proxy from
+a decoded quACK. Next, it must determine from the remaining packets which ones
+have been dropped and which are still in-flight, including if there has been a
+reordering of packets. In-flight packets are later
+classified as received or dropped based on future quACKs.
+
+When there is no reordering, the packets that are dropped are just the ``holes''
+among the packets that are selectively ACKed by the quACK. In particular, these
+are the holes when considering sent packets in the order they were sent up to
+the last element received, which represents the last selective ACK.
+To identify these dropped packets, the sender encodes $t$ cumulative power sums
+of its sent packets up to the last element received.
+The difference between these power sums and the power
+sums in the quACK represents the dropped packets. The sender ``removes'' the
+identifiers of dropped packets from its cumulative power sums, ensuring that
+the only packets that contribute to the threshold limit are those that
+went missing since decoding the last quACK.
+%  \michael{can we, instead of ``accumulates'', say: ``locally calculates'' ? This would seem clearer. Or are you trying to
+% say that this is a continuously updated number?  If so, perhaps: ``locally calculates a cumulatively updated power sum quACK ...''?}
+
+To account for reordering in loss detection, Robin implements an algorithm
+similar to the 3-duplicate ACK rule in TCP~\cite{rfc5681tcp,rfc2001tcp}.
+In TCP, if three or more duplicate ACKs are received in a row, it is a strong
+indication that a segment has been lost. Robin considers a packet lost only if
+three or more packets sent after the missing packet have been received.
+Other mechanisms could involve timeouts for individual packets similar to the
+RACK-TLP loss detection algorithm for TCP~\cite{rfc8985}.
+
+\subsubsection{Path-Aware CUBIC Congestion Control}
+\label{sec:design:cubic}
+
+Congestion-controlled base protocols must have a congestion response to lost
+packets that they retransmit due to quACKs, similar to if the loss were
+discovered by the end-to-end ACK.
+This ensures friendliness with end-to-end congestion control algorithms that do
+consider the loss, such as CUBIC~\cite{ha2008cubic} in the presence of a
+connection-splitting TCP PEP.
+Here, we propose PACUBIC, an algorithm that emulates this ``split CUBIC''
+behavior. PACUBIC uses knowledge of where loss occurs to improve connection
+throughput compared to end-to-end CUBIC, while remaining fair to competing flows.
+
+Recall that CUBIC~\cite{ha2008cubic} reduces its congestion window by a
+multiplicative decrease factor,
+$\beta = \beta^* = 0.7$, when observing loss (a congestion event), and otherwise increases
+its window based on a real-time dependent cubic function with scaling factor
+$C=C^*=0.4$:
+\[
+cwnd = C(T-K)^3 + w_{max} \text{ where } K = \sqrt[3]{\frac{w_{max}(1-\beta)}{C}}.
+\]
+
+\noindent Here, $cwnd$ is the current congestion window,
+$w_{max}$ is the window size just before the last reduction,
+and $T$ is the time elapsed since the last window reduction.
+
+While a split CUBIC connection has \emph{two} congestion windows,
+end-to-end PACUBIC only has \emph{one} window representing the in-flight bytes
+of the end-to-end connection.
+Conceptually, we want an algorithm that enables PACUBIC's single
+congestion window to match the sum of the split connection's two congestion
+windows.
+
+PACUBIC effectively makes it so that we reduce and grow $cwnd$
+proportionally to the number of in-flight bytes on the path segment
+of where the last congestion event occurred.
+Let $r$ be the estimated ratio of the RTT of the near path segment
+(between the data sender and the proxy) to the RTT of the entire connection
+(between end hosts).
+We use $r$ as a proxy for the ratio of the number of in-flight bytes.
+If the last congestion event came from a quACK, we use the same real-time
+dependent cubic function but with the following
+constants\footnote{See \Cref{sec:appendix:pacubic} for more intuition behind $\beta'$ and $C'$.}
+\[
+\beta = 1 - r(1-\beta^*)\text{ and }C = \frac{C^*}{r^3}.
+\]
+\noindent If the last congestion event came from an end-to-end ACK, then we use
+the original $\beta$ and $C$ as above.
+
+While this algorithm resembles the congestion behavior of split CUBIC, it is
+simply an approximation. PACUBIC does not know the exact number of bytes
+in-flight on each path segment, and the sum of the two congestion windows is simply a
+heuristic for an inherently different split connection. The main takeaway is
+that knowing where loss occurs can inform congestion control. We generally
+hope that quACKs can lead to the development of smarter, path-aware algorithms.

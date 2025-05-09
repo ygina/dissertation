@@ -1,0 +1,58 @@
+\begin{figure}[h]
+\definecolor{LighterGreen}{RGB}{190,230,190}
+\definecolor{LightGreen}{RGB}{150,210,140}
+\definecolor{LightRed}{RGB}{255,100,100}
+\definecolor{LighterRed}{RGB}{255,150,150}
+\definecolor{LightestRed}{RGB}{255,200,200}
+\begin{subfigure}{\columnwidth}
+  % 5+
+  %
+  \setlength{\tabcolsep}{2pt}
+  \footnotesize
+  \centering
+  \vspace{-0.25cm}
+  \begin{tabular}{lccccccc}
+    \toprule
+    & \multicolumn{2}{c}{Data Sender$\rightarrow$} & \multicolumn{2}{c}{$\leftarrow$Proxy} & \multicolumn{2}{c}{$\leftarrow$Data Receiver} & \\
+    & \bf Pkts & \bf Bytes & \bf Pkts & \bf Bytes & \bf Pkts & \bf Bytes & \bf Goodput \\
+    \midrule
+    QUIC E2E & $1.00\times$ & $1.00\times$ & $1.00\times$ & $1.00\times$ & $1.00\times$ & $1.00\times$ & $1.00\times$ \\
+    Strawman 1a & $0.96\times$ & $1.01\times$ & \cellcolor{LighterRed}{$2.02\times$} & \cellcolor{LightestRed}{$1.56\times$} & $1.01\times$ & $1.03\times$ & \cellcolor{LighterGreen}{$3.33\times$} \\
+    Strawman 1b & $0.94\times$ & $1.00\times$ & \cellcolor{LighterRed}{$2.00\times$} & \cellcolor{LightestRed}{$1.78\times$} & $1.00\times$ & $1.03\times$ & \cellcolor{LightGreen}{$3.53\times$} \\
+    Strawman 1c & \cellcolor{LightestRed}{$1.83\times$} & $1.06\times$ & \cellcolor{LighterRed}{$2.01\times$} & \cellcolor{LightestRed}{$1.83\times$} & $1.00\times$ & $1.03\times$ & \cellcolor{LightGreen}{$3.46\times$} \\
+    \bf \textcolor{black!50!blue}{Power Sum}   & \textcolor{black!50!blue}{\bf 0.94$\times$} & \textcolor{black!50!blue}{\bf 1.00$\times$} & \textcolor{black!50!blue}{\bf 1.03$\times$} & \textcolor{black!50!blue}{\bf 1.07$\times$} & \textcolor{black!50!blue}{\bf 1.00$\times$} & \textcolor{black!50!blue}{\bf 1.03$\times$} & \cellcolor{LightGreen}{\textcolor{black!50!blue}{\bf 3.55$\times$}} \\
+    \bottomrule
+  \end{tabular}
+  % \includegraphics[width=\columnwidth]{figures/packet-overhead-retx.png}
+  \caption{Scenario \#2: Connection-splitting PEP emulation.}
+  \label{tab:packet-overhead:retx}
+\end{subfigure}
+\begin{subfigure}{\columnwidth}
+  % \includegraphics[width=\columnwidth]{figures/packet-overhead-ackr.png}
+  \setlength{\tabcolsep}{2pt}
+  \footnotesize
+  \centering
+  \begin{tabular}{lccccccc}
+    \toprule
+    & \multicolumn{2}{c}{Data Sender$\rightarrow$} & \multicolumn{2}{c}{$\leftarrow$Proxy} & \multicolumn{2}{c}{$\leftarrow$Data Receiver} & \\
+    & \bf Pkts & \bf Bytes & \bf Pkts & \bf Bytes & \bf Pkts & \bf Bytes & \bf Goodput \\
+    \midrule
+    QUIC E2E & $1.00\times$ & $1.00\times$ & $1.00\times$ & $1.00\times$ & $1.00\times$ & $1.00\times$ & $1.00\times$ \\
+    Strawman 1a & $0.96\times$ & $1.00\times$ & \cellcolor{LightRed}{$9.94\times$} & \cellcolor{LighterRed}{$4.99\times$} & \cellcolor{LightGreen}{$0.04\times$} & \cellcolor{LightGreen}{$0.08\times$} & $1.02\times$ \\
+    Strawman 1b & $0.96\times$ & $1.00\times$ & \cellcolor{LightRed}{$9.95\times$} & \cellcolor{LightRed}{$7.13\times$}      & \cellcolor{LightGreen}{$0.04\times$} & \cellcolor{LightGreen}{$0.08\times$} & $1.02\times$ \\
+    Strawman 1c & \cellcolor{LightestRed}{$1.91\times$} & $1.05\times$ & \cellcolor{LightRed}{$9.73\times$} & \cellcolor{LightRed}{$7.41\times$}      & \cellcolor{LightGreen}{$0.04\times$} & \cellcolor{LightGreen}{$0.08\times$} & $0.97\times$ \\
+    \bf \textcolor{black!50!blue}{Power Sum}    & \textcolor{black!50!blue}{\bf 0.96$\times$} & \textcolor{black!50!blue}{\bf 1.00$\times$} & \textcolor{black!50!blue}{\bf 1.09$\times$} & \cellcolor{LighterRed}{\textcolor{black!50!blue}{\bf 2.56$\times$}} & \cellcolor{LightGreen}{\textcolor{black!50!blue}{\bf 0.04$\times$}} & \cellcolor{LightGreen}{\textcolor{black!50!blue}{\bf 0.08$\times$}} & \textcolor{black!50!blue}{\bf 0.98$\times$} \\
+    \bottomrule
+  \end{tabular}
+  \caption{Scenario \#3: ACK reduction.}
+  \label{tab:packet-overhead:ackr}
+\end{subfigure}
+\caption{Link overheads for a 10 MB upload. The cells represent the multiplier
+relative to the end-to-end QUIC baseline for each type of quACK\@.
+Lower is better for number of packets and bytes sent on a link.
+Higher goodput is better. Robin's power sum quACK achieves the success metric
+for each scenario without incurring the link overheads of the strawmen.
+We did not evaluate the contrived protocol in Scenario \#1.
+}
+\label{tab:packet-overhead}
+\end{figure}

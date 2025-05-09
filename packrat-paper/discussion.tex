@@ -1,0 +1,58 @@
+\section{Discussion}
+
+Our emulations model non-congestive loss as random, independent loss,
+which may not accurately reflect the real world. While non-congestive loss
+does exists, its various behaviors are not well-characterized. This work
+would benefit from a measurement study on the patterns of non-congestive loss
+to better understand the scope of the problem and its impact.
+
+We base this work on the idea that proxies and link-layer approaches are
+deployed for a reason, and understanding the impact that encrypted transport
+protocols have in these real-world network paths would better motivate the need
+for protocol-agnostic proxies at all. This is also true on paths where
+reliable connectivity is not a solved problem. Also,
+in-network retransmissions intuitively reduce load in the network and it may be
+interesting to explore how these retransmissions benefit not just
+applications but the network itself.
+
+The question for any research system is how can it be deployed and useful in
+the real world. The simplest deployment today could look like a simple in-line
+\Sys proxy between a Wi-Fi router and Internet modem. Public hotspots and
+dense urban apartments make good candidates for smaller-scale lossy path
+segments.
+% Another deployment is in satellite networks where TCP connection-splitting
+% proxies are typically deployed. Here, the performance of QUIC is a documented,
+% unsolved problem~\cite{kosek2022quicpep,kuhn2021quic-over-sat}.
+The client integration could be a browser extension for QUIC or a simple
+modified media client.
+The \Sys protocol has the advantage that only one endpoint in addition to the
+proxy needs to speak the protocol.
+
+In this paper, we explored an alternative construction of the quACK that is
+optimized for computational efficiency at a small granularity. An extension to
+this is finding other applications of the quACK in the setting of network
+packet analysis. We may also be able to further improve the link overheads of
+the IBLT quACK at millisecond timescales using, e.g., interactive quACKing
+between the proxy and endpoint.
+
+% We have mainly worked around the non-determinism of the IBLT quACK by
+% sending $4\!\times$ the number of symbols as the packets the client thinks it
+% is missing. The theoretical constant overhead of IBLTs is only $1.35\!\times$
+% and perhaps, e.g., interactive quACKing could improve the signaling in the \Sys
+% protocol. Another extension is quACKing from the proxy to the client to
+% indicate which packets are possibly available for retransmission, or applying
+% the computationally efficient quACK to other practical packet-scale problems.
+
+% In the context of QUIC and connection-splitting specifically, can this
+% combine with the Sidekick protocol to match the performance
+% of split TCP connection settings bi-directionally?
+
+% scalability
+
+% Related: real-world evaluations in service provider networks. what does real traffic
+% look like and how does it impact the proxy? (e.g. lots of short connections,
+% connections per page load, connections per client, "elephant" flows, etc.)
+
+% what should congestion control look like for connection splitters?
+% what is fair for in-network retransmissions
+% same as picoquic connection splitter as a baseline

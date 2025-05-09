@@ -1,0 +1,309 @@
+\section{QuACK}
+\label{sec:quack}
+
+As previously illustrated, a \sys needs to be able to refer to and efficiently
+acknowledge a set of opaque packets seen by a network intermediary.
+But this problem is technically challenging for middleboxes without access to
+cleartext sequence numbers or the ossification of other fields.
+
+We start by mathematically defining the quACK problem.
+We discuss how to select an \emph{identifier} to refer to a packet,
+and analyze strawman solutions to the quACK problem
+that use too much space or computation.
+Finally, we present an efficient construction of a quACK based on the insight
+that we can model the problem as a system of power sum polynomial equations
+when we have a bound on the maximum number of missing elements, a threshold $t$.
+This solution is most similar to the deterministic solution to the
+\emph{straggler identification} problem~\cite{eppstein2011straggler}, and also builds on
+related theoretical work in set reconciliation~\cite{minsky2003set}, and coding
+theory and graph theory~\cite{karpovsky2003data}.
+
+\subsection{The QuACK Problem}
+
+We first describe the quACK problem. A data sender transmits a multiset\footnote{A ``multiset'' means the same element can be transmitted more than once.} of elements $S$ (these correspond to packets).
+At any given time, a receiver (such as a proxy server) has received a subset
+$R \subseteq S$ of the sent elements.
+We would like the receiver to
+communicate a small amount of information
+% concisely communicate a message
+to the sender,
+who then efficiently decodes the missing elements---the set difference
+$S \setminus R$---knowing $S$.
+% We call this message a quACK.
+% \gina{I still prefer a ``to communicate a small amount of information'' since
+%   Strawman 1 sends multiple messages. The definition of $\mathrm{encode}$ is
+%   also unclear to me since Strawman 1 isn't cumulative---does $R$ include all
+%   packets every received or just since the last quACK? It depends on the
+%   strawman. It's also weird why the mathematical definition is parameterized by
+%   $t$ when the threshold doesn't matter for the strawmen.}
+We call this small amount of information the ``quACK'', and the problem is:
+\textbf{what is in a quACK and how do we decode it?}
+
+% A quACK admits a pair of operations: encode and decode.
+% \begin{eqnarray*}
+% \mathrm{encode}_t(\mathbf{R}) & \rightarrow & \textit{quACK} \\
+% \mathrm{decode}_t(\mathbf{S}, \textit{quACK}) & \rightarrow & \mathbf{S} \setminus \mathbf{R} \\
+%   \end{eqnarray*}
+
+% \dm{I find it slightly confusing that the previous sentence starts
+%   with a small a mount of information, but then says or $R$, because
+%   $R$ is not a small amount of information.  Also, this might be a
+%   good place to mention that we expect some upper bound on $|R|$
+%   \gina{It would be an upper bound on $|S \setminus R|$ not $|R|$} and
+%   will just fall back to end-to-end reliability if that is exceeded.}
+
+\subsection{Packet Identifiers}
+
+In a networking context, how exactly do we refer to the elements
+in the quACK problem that have been sent or received?
+Traditional TCP middleboxes have been able to interpose their
+own concise, cumulative acknowledgments using cleartext sequence numbers, but
+this is not possible with modern, secure transport protocols. Even if a
+connection did expose an unencrypted numerical field, we would not want to
+refer to that field at risk of ossifying that protocol.
+
+Instead, we need a function that deterministically maps
+a packet to a random $b$-byte \emph{identifier}. The most trivial solution
+that applies to all base protocols is
+to hash the entire payload. Another option if the payload is already
+pseudorandom (e.g., QUIC) is to take the first $b$ bytes from a fixed
+offset of that payload. Although the latter option would rely on those bytes
+to remain pseudorandom, it is computationally more efficient because it
+does not require reading the entire payload.
+
+\paragraph{Collisions.}
+The main considerations when selecting the number of bytes, $b$, in an
+identifier is the tolerance for collisions compared with the extra data
+needed to refer to these packets on the link. The larger $b$ is, the lower
+the collision probability but the greater the link overhead.
+
+Define the collision probability to be the probability that a randomly-chosen
+$b$-byte identifier in a list of $n$ packets maps to more than one packet in
+that list.
+If we assume that identifiers are uniformly distributed,
+this probability is equal to $1-(1 - 1/256^{b})^{n-1}$.
+When $n=25$, using $4$ bytes results in an almost negligible chance of
+collision while using $2$ bytes results in a 0.04\% chance
+(\Cref{tab:collision-prob}).
+\input{tables/collision-prob.tex}
+
+When handling collisions, a sender who is decoding a quACK has a list of $n$ packets it is
+trying to classify as received or missing (\Cref{sec:quack:microbenchmarks}).
+Note that collisions are also known
+to the sender beforehand. If there is a collision between
+a packet that is received and a packet that is missing, the fate of that
+identifier is considered indeterminate.
+In our scenarios (\Cref{sec:motivation}), either the
+protocol can still function
+with approximate statistics (e.g., congestion control)
+or it can fall back to an end-to-end mechanism (e.g., retransmission).
+
+\subsection{Strawman Solutions}
+
+\input{tables/strawmen-theoretical.tex}
+
+A problem that is simple with cumulative and selective acknowledgments of
+plaintext sequence numbers is deceivingly challenging for pseudorandom
+packet identifiers. Consider the following strawman solutions to the quACK
+problem:
+
+\paragraph{Strawman 1: Echo every identifier.}
+Strawman 1a, similar to \cite{li-tsvwg-loops-problem-opportunities-06,kramer2020lwpep},
+echoes the identifier of every received packet in a new UDP packet to the data
+sender.  Decoding is trivial given the identifiers are unmodified.
+This strawman adds significant link overhead in terms of additional packets.
+Additionally, since the strawman is not cumulative, losing a quACK means the
+end host could falsely consider a packet to be lost, creating a congestion
+event or spurious retransmission.
+
+Strawman 1b echoes a sliding window of identifiers over UDP such that there is overlap
+in the identifiers referred to by consecutive quACKs.
+This solution is slightly more resilient to loss, but uses more bytes and is
+still not guaranteed to be reliable.
+Another variant batches identifiers to reduce the number of packets, but this
+solution is even less resilient to loss.
+
+We also consider a Strawman 1c that echoes every identifier over TCP with
+\texttt{TCP\_NODELAY} to send every identifier in its own packet.
+This ensures there are no false positives when detecting lost packets,
+but adds even more link overhead in terms of TCP headers and additional ACKs
+from the data sender (every other packet by default in the Linux kernel).
+
+\paragraph{Strawman 2: Cumulative hash of every identifier.}
+Strawman 2 sends a SHA-256 hash of a sorted concatenation of all the
+received packets in a UDP packet, and the sender hashes every subset of the same size of
+sent packets until it finds the subset with the same hash (assuming collision resistance).
+The strawman includes
+a count of the packets received to determine the size of the subset to hash.
+As the number of missing packets exceeds even a moderate amount, the number
+of subsets to calculate explodes, making the strawman impractical to decode.
+
+\smallskip
+
+One might also suggest the receiver send negative acknowledgments of the packets
+it has not received. However, unlike sequence numbers where one can
+determine a gap in received packets, there is no way to tell with random
+identifiers what packet is missing or should be expected next.
+
+\subsection{The Power Sum Solution}
+
+% \input{figures_tex/strawmen.tex}
+Now we describe a solution to the quACK problem based on the insight
+that we can model the problem as a system of power sum polynomial equations
+when we have a bound on the maximum number of missing elements, a threshold $t$.
+Unlike the previous strawmen, this construction is efficient to decode, and
+its size is proportional only to $t$.
+
+Consider the simplest case, when the receiver is only missing a single element.
+The receiver maps packet identifiers to a finite field,
+i.e. modulo the largest prime that fits in $b$ bytes,
+ and communicates the sum $\sum_{x \in R} x$ of the received
+elements to
+the sender. The sender computes the sum $\sum_{x \in S} x$ of the sent elements
+and subtracts the sum from the receiver, calculating:
+\[
+    \sum_{x \in S} x - \sum_{x \in R} x = \sum_{x \in S\setminus R} x,
+\]
+which is the sum of elements in the set difference. In this case, the sum is
+exactly the value of the missing element.
+
+In fact, we can generalize this scheme to any number of missing elements $m$.
+Instead of transmitting only a single sum, the receiver communicates
+the first $m$ \emph{power sums} to the sender, where the $i$-th power sum of a
+multiset $R$ is defined as $\sum_{x \in R} x^i$.
+The sender then computes the first $m$ power sums of $S$ and calculates the
+respective differences $d_i$ for $i \in [1,m]$, producing the following
+system of $m$ equations:
+\vspace{-0.2cm}
+\[
+    \left\{\, \sum_{x \in S\setminus R} x^i = d_i \mid i \in [1,m] \right\}.
+\]
+\vspace{-0.4cm}
+% \begin{alignat*}{2}
+%     \sum_{x \in S} x    &- \sum_{x \in R} x     &&= \sum_{x \in S\setminus R} x
+%     \sum_{x \in S} x^2  &- \sum_{x \in R} x^2   &&= \sum_{x \in S\setminus R} x^2
+%     & &&\hspace{1.5mm}\vdots
+%     \sum_{x \in S} x^T  &- \sum_{x \in R} x^T   &&= \sum_{x \in S\setminus R} x^T.
+% \end{alignat*}
+
+Instead of transmitting an unbounded number of power sums, the receiver only
+maintains and sends the first $t$ power sums.
+% Also in practice, all power sum arithmetic
+% is performed in the largest prime field that fits in our packet identifier
+% space i.e., modulo the largest prime that fits in $b$ bytes.
+% \dm{This paragraph may be too late to mention that you are doing this
+%   over a finite field.  Otherwise your message sizes have a log
+%   dependency on the number of transmitted packets, which will convey
+%   the wrong intuition.  Suggest just mentioning that earlier and here
+%   saying you just use the largest prime field that fits in your packet
+%   ID space.}
+Efficiently solving these $t$ power sum polynomial equations in $t$ variables
+in a finite field is a well-understood algebra problem~\cite{eppstein2011straggler}. The
+solutions
+% to these equations
+are exactly $x \in S \setminus R$.
+
+\paragraph{Efficiency.}
+The power sum quACK is efficient to decode, adds reasonable link overhead,
+and is a cumulative representation of the packets seen by the receiver
+(\Cref{tab:strawmen-theoretical}).
+Compared to Strawman 2, the power sum quACK can be decoded with simple
+algebraic techniques.
+Its link overhead is proportional only to the number of
+missing packets between consecutive quACKs, up to a configurable threshold. In
+comparison, the link overhead of Strawman 1 is necessarily proportional to the
+number of received packets.
+The power sum quACK is also resilient to mis-identifying a received packet as
+dropped, in the case a quACK is lost in transmission.
+
+\paragraph{Interface.}
+
+% \input{figures_tex/interface.tex}
+
+The actual format of the power sum quACK includes three fields: (i) $t$ $b$-byte
+power sums, (ii) a 4-byte count of received elements, and (iii) the $b$-byte
+identifier of the last element received. We assume power sum quACKs to be sent
+over UDP, though the actual mechanism is not tied to the design.
+Since the decoder
+does not know $m$ ahead of time, the decoder takes the difference between the
+number of packets it has sent and the count in the quACK to calculate $m$.
+Sending the last element received is an optimization that allows $m$ to
+represent just the ``holes'' among the packets being selectively ACKed,
+excluding the possibly many consecutive elements that are in-flight
+(\Cref{sec:design:detecting-loss}).
+
+\subsection{Microbenchmarks}
+\label{sec:quack:microbenchmarks}
+
+We benchmark our optimized implementation of the power sum quACK~\cite{quack-github}
+to demonstrate its practicality for in-line packet processing.
+Our microbenchmarks used an m4.xlarge AWS instance with a 4-CPU Intel Xeon E5
+processor @ 2.30 GHz and 16 GB memory.
+
+\input{tables/strawmen-practical.tex}
+
+A power sum quACK that represents $n=25$ outstanding packets
+(packets in consideration on that path segment not yet known to be received or lost)
+and up to $t=10$ missing
+packets with $b=4$-byte identifiers adds $33$\,ns of encoding time per
+packet and takes $2.82$\,$\mu$s to decode (\Cref{tab:strawmen-practical}).
+
+\paragraph{Decoding.}
+The decode time must be comparable to the time it takes to process a typical
+ACK and modify the logic in the transport protocol. Decoding typically
+occurs on end hosts, compared to encoding which occurs in the middle of the path.
+
+Finding the solution to the system of power sum polynomial equations boils down
+to applying Newton's identities (a linear algorithm) and finding the roots of a
+polynomial equation
+in a modular field~\cite{eppstein2011straggler}.
+Factoring a polynomial is asymptotically fast in theory, but the implementation
+is branch-heavy and complicated~\cite{batut2000user}.
+We found that plugging in and evaluating which of $n$ candidate roots
+evaluated to zero was faster in practice for $n < 40,000$ roots.
+This is the method we use to decode the power sum quACK.
+
+The decode time of this method is directly proportional to $n$ (\Cref{fig:n-vs-decoding})
+and the number of missing packets $m$ (\Cref{fig:m-vs-decoding}).
+Decoding takes $2820/10/25 \approx 11$ ns/candidate/missing.
+Both $n$ and $m$ are typically a few hundred at most.
+
+% Even though plugging in roots is $O(n)$, where $n$ is the size of the log,
+% small. This solution does not give the multiplicity of the root, although one
+% could factor out the root from the polynomial if this disambiguation is
+% necessary for the \sys protocol.
+
+\input{figures_tex/quack.tex}
+
+\paragraph{Encoding.} The encode time per-packet is directly proportional to
+the threshold number of missing packets $t$ (\Cref{fig:construction-time}) at
+$33/10 \approx 3$ ns/power sum.
+Each power sum can be updated in a constant number of operations based on the
+previous power sum, so encoding an identifier requires $t$ modular additions
+and multiplications for the $t$ power sums.
+
+\paragraph{Bit widths.} Different bit widths have different implications for
+which instructions the CPU can use. Modular operations are efficient
+for 16- and 32-bit integers, fitting within the 64-bit word size (the number of
+bits that can be processed in one instruction) of most modern CPUs. For example,
+to multiply two 32-bit integers, we cast them to 64-bit integers, multiply,
+then take the modulus.
+
+\Cref{fig:quack-plots} shows the best performance we
+achieved at different bit widths.
+For 16-bit identifiers only, we precomputed power tables that fit in the L3 cache.
+For 64-bit identifiers, we implemented Montgomery modular multiplication~\cite{montgomery1985modular}
+to avoid an expensive hardware division for 128-bit integers.
+% In all cases, we decoded by plugging in roots.
+In the remainder of the paper, we use $b=4$
+as the preferred tradeoff between space and collision probability.
+
+% \input{tables/optimized-quack.tex}
+
+% \input{figures_tex/threshold-bytes.tex}
+
+% The bytes overhead scales better with the BDP than the first strawman does,
+% even though we have to increase the threshold (\cref{fig:threshold-bytes}).
+% The encode time is linear in the threshold.
+% Note the decode time does not depend on the threshold, but the actual number of
+% missing packets.

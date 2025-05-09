@@ -1,0 +1,16 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+We presented \emph{\sys protocols}: an alternate approach to PEPs that leaves
+the underlying protocol opaque and unmodified on the wire.
+We described a mathematical technique called a \emph{quACK} that enables
+middleboxes to refer to packets of the underlying connection without the ability
+to observe cleartext sequence numbers.
+We augmented a streaming protocol and a production QUIC implementation
+(Cloudflare quiche)
+to make use of information arriving from a proxy on a \sys connection,
+including a path-aware congestion-control mechanism called \emph{PACUBIC}.
+In emulation and a real-world evaluation, the \sys protocol
+was able to improve the
+performance---tail latency, throughput, or energy usage---of these
+end-to-end base protocols without modifying the wire format or security properties.

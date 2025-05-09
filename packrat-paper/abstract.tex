@@ -1,0 +1,38 @@
+%-------------------------------------------------------------------------------
+\begin{abstract}
+%-------------------------------------------------------------------------------
+
+This paper describes and evaluates new techniques for
+network-originated retransmissions for end-to-end transport
+connections, yielding performance benefits for encrypted transport
+protocols in lossy settings.  We use set-reconciliation techniques
+based on the Rateless IBLT to let the receiver efficiently acknowledge
+encrypted packets to a network function, without modifying the sender
+or the underlying wire format. With these tools, endpoints can receive
+network-originated retransmissions appropriate for them, without an
+additional layer of encapsulation, tunnel, or link-layer
+retransmissions.
+
+% Lossy network paths can significantly harm application performance. Existing
+% approaches such as link-layer retransmissions and connection-splitting either
+% cannot be tuned to the connections that share the link, or are otherwise
+% infeasible without ossification or credentialing the proxy. In this paper, we
+% show how in-network retransmissions via a sidekick connection can enable a
+% variety of performance enhancements---higher throughput, lower latency, and
+% lower link overheads---for a variety of \textit{encrypted} transport protocols
+% in these settings. We utilize set reconciliation techniques based on the quACK
+% to refer to encrypted packets, without involving the data sender, and leave the
+% underlying protocol unchanged on the wire and opaque to the
+% performance-enhancing proxy.
+
+% These in-network retransmissions require an on-path proxy located near the
+% data \textit{receiver}, and scalability becomes challenging when the more
+% complex decoding and retransmission logic is shifted from the endpoint to the
+% proxy. To address this issue, we present an alternate construction of the quACK
+% using the IBLT data structure, improving the efficiency of encoding and
+% decoding operations. Combined with the insight that the quACK sender is
+% co-located at the endpoint with the application ACK sender, we can send
+% significantly fewer and smaller quACKs overall, minimizing the extra load
+% introduced by the sidekick connection to the network.
+
+\end{abstract}

@@ -1,0 +1,26 @@
+\begin{table}[ht]
+  \centering
+  \vspace{-0.4cm}
+  \begin{tabular}{l r r}
+    \hline
+    \textbf{Module} & \textbf{Language} & \textbf{LOC} \\
+    \hline
+    QuACK library (\Cref{sec:quack:microbenchmarks}) & Rust & 1772 \\
+    Media server/client + integration & Rust & 478 \\
+    \texttt{quiche} client integration & Rust & 1821 \\
+    \texttt{libcurl} client integration & C & 1459 \\
+    Proxy \sys binary & Rust & 833 \\
+    \hline
+  \end{tabular}
+  \caption{Lines of code.
+  \vspace{-0.2cm}
+  }
+  \label{tab:lines-of-code}
+\end{table}
+
+% quack$ tokei src/arithmetic/evaluator.rs src/arithmetic/modint.rs \
+%       src/lib.rs src/power_sum.rs build.rs
+% media_integration/media/src/bin$ tokei media_client.rs media_server.rs
+% https://github.com/ygina/quiche/compare/0.18.0...ygina:quiche:sidekick
+% https://github.com/ygina/curl/compare/7.87.0...ygina:curl:sidekick
+% sidekick/src$ tokei *.rs bin/sender_multi.rs

@@ -1,0 +1,28 @@
+\begin{table}[h]
+  \centering
+  % \renewcommand{\arraystretch}{0.000023}
+  \small
+  \begin{tabular}{lrrr}
+    \toprule
+    & \bf Encode Time & \bf Decode Time\\
+    \midrule
+    Strawman 1a/1c & $1$ ns/pkt & 0 \\
+    Strawman 1b & $51$ ns/pkt & 0 \\
+    Strawman 2 & $27$ ns/pkt & $830$ ms \\
+    \bf \textcolor{black!50!blue}{Power Sum} & \bf \textcolor{black!50!blue}{33 ns/pkt} & \bf \textcolor{black!50!blue}{2.82 $\mu$s} \\
+    \bottomrule
+  \end{tabular}
+  \caption{
+  % Encode and decode times of different quACK constructions.
+  The CPU overheads of power sums are comparable to those of the
+  strawmen, while being more efficient in space and computation. The
+  encode time includes constructing and serializing the quACK(s), given $n$
+  identifiers. The decode time includes finding the identifiers of either
+  $R$ or $S \setminus R$, given the quACK(s) and $S$.
+  Parameters: $n=25$, $t=10$, $b=4$.
+  \vspace{-0.4cm}
+  % Average of 1000 trials
+  % Encode benchmarks encode 1000 packets
+  }
+  \label{tab:strawmen-practical}
+\end{table}

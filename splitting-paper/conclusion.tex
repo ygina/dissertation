@@ -1,0 +1,25 @@
+%-------------------------------------------------------------------------------
+\section{Conclusion}
+%-------------------------------------------------------------------------------
+
+We performed an emulation measurement study on the impact of
+connection-splitting PEPs on sustained throughput in the context of recent
+developments such as BBR and QUIC. We found that TCP BBR benefits more from
+splitting today than when it was first released, and its current version
+benefits in settings where TCP CUBIC does not. QUIC congestion-control
+implementations exhibit substantial variability both within QUIC and with
+Linux TCP.
+
+In the short term, we urge researchers to refer to congestion-control schemes
+by algorithm/implementation/version, not just ``BBR'' or even ``QUIC BBRv1''.
+We urge the community to create regression and acceptance tests---possibly
+including our heatmaps with ``permissible zones''---for a scheme to call
+itself an implementation of the XYZv1 algorithm.
+
+For connection-splitting to truly be relevant again, there must be clear
+scenarios where PEPs offer significant benefits but end-to-end solutions fall
+short. This paper is a first step, but real-world studies are needed. Next,
+even though the problem is old, the solution need not be to ``just do the same
+things.'' We hope this paper motivates the community to pursue
+protocol-agnostic approaches to in-network assistance and destigmatize the
+controversial nature of PEPs.
