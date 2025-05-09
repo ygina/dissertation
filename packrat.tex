@@ -163,7 +163,7 @@ raised concerns regarding TCP fairness~\cite
 {ware2019modeling,philip2024prudentia}. In response, the performance of newer
 versions of BBR has regressed in lossy environments, suggesting a lasting trend
 in the treatment of loss as a congestion signal regardless of its source~\cite
-{atc-submission}.
+{yuan2025internet}.
 
 \paragraph{Link-layer loss recovery.}
 
@@ -212,7 +212,7 @@ decrypting packet contents, but their primary focus tends to be security. VPNs
 introduce a costly encryption layer. MASQUE tunnels protocols over HTTP/3, and
 if used for local retransmissions has the potential for complex nested loss
 recovery and congestion control interactions~\cite
-{rfc9298masque,schinazi-masque-proxy-05,kramer2021masquepep}. It is intended to
+{rfc9298,schinazi-masque-proxy-05,kramer2021masquepep}. It is intended to
 function per-application, and the best known implementation from Apple
 functions like a VPN~\cite{icloud-private-relay}. These proxies may also not be
 on-path, which harms performance.
@@ -696,7 +696,7 @@ compared to end-to-end with 4\% loss on the near path segment (\Cref
 ``loss-based'' congestion control, achieves poor link utilization in even
 minimally lossy environments. While the performance of CCAs differ by
 implementation, \texttt{picoquic} CUBIC has been shown to be one of the more
-aggressive ones~\cite{atc-submission}.
+aggressive ones~\cite{yuan2025internet}.
 
 QUIC with a Packrat achieves similar throughput to QUIC with an explicit
 connection splitter as loss increases. They both utilize nearly all available

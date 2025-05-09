@@ -11,18 +11,6 @@ congestion signal, and the QUIC transport protocol, which prevents
 transparent connection-splitting yet empirically matches or exceeds
 TCP's performance in wide deployment, using the same congestion control.
 
-
-% In the 1990s, many networks deployed performance-enhancing proxies
-% (PEPs) that transparently split TCP connections to aid performance,
-% especially over long-delay paths with packet loss. Two recent
-% developments have called PEPs' supposed benefits into question: the
-% BBR congestion-control scheme, which de-emphasizes packet loss as a
-% congestion signal, and the QUIC transport protocol, which prevents
-% transparent connection-splitting but is said to achieve similar or
-% better empirical performance than TCP in wide deployment, using the
-% same congestion-control schemes, without benefiting from TCP PEPs in
-% the field.
-
 In light of this, are PEPs obsolete? This paper presents a range of
 emulation measurements indicating: ``probably not.'' While BBR's
 original 2016 version didn't benefit markedly from connection-splitting, more
@@ -33,18 +21,5 @@ dramatically and further differ from those of Linux TCP---frustrating
 head-to-head comparisons.
 Notwithstanding their controversial nature, our results suggest
 that PEPs remain relevant to Internet performance for the foreseeable future.
-
-% In light of this, are PEPs obsolete? This paper presents a range of
-% emulation measurements indicating: ``probably not.'' While BBR's
-% original 2016 version didn't benefit markedly from
-% connection-splitting, more-recent versions of BBR behave differently,
-% and can benefit a great deal from PEPs: in some cases, greater than
-% earlier ``loss-based'' congestion-control schemes.  We also find that
-% QUIC implementations of the ``same'' congestion-control schemes vary
-% dramatically and further differ from those of Linux TCP---frustrating
-% attempts to draw robust conclusions from head-to-head
-% comparisons.
-% Notwithstanding their controversial nature, our results suggest
-% that PEPs remain relevant to Internet performance for the foreseeable future.
 
 \end{abstract}
