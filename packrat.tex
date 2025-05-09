@@ -399,9 +399,9 @@ retransmissions are uncommon, this allows the client to quACK less frequently
 and the proxy to maintain a significantly smaller cache. Unlike
 connection-splitters, the proxy does not actually make reliability \textit
 {guarantees}, and the client can always fall back to end-to-end retransmissions
-after resetting the packrat connection, as described below.
+after resetting the Packrat connection, as described below.
 
-\paragraph{Reset the packrat connection.}
+\paragraph{Reset the Packrat connection.}
 
 If the proxy is unable to decode a quACK for any reason, it sends a \texttt
 {Reset} to the client. These reasons include but are not limited to: an

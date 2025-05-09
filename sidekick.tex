@@ -118,10 +118,10 @@ the data sender (\Cref{fig:sc-protocols}). Recall that a quACK is a
 sender uses this feedback to influence its behavior on the base connection,
 without altering the wire format.
 
-To be clear: the sidekick protocol is not tied to a specific base protocol
+To be clear: the Sidekick protocol is not tied to a specific base protocol
 nor to how the end hosts use the quACK information. The base protocol does not
 need to be reliable, nor to have unique datagrams---we implemented and evaluated
-the same sidekick protocol and the same middlebox behavior across the different
+the same Sidekick protocol and the same middlebox behavior across the different
 scenarios in this paper.
 
 \paragraph{Low-Latency Media.}
@@ -136,7 +136,7 @@ high de-jitter buffer delays from waiting for retransmitted packets to be
 played in order (\Cref{fig:media} in emulation, \Cref
 {fig:real-world:scenario1} in real world).
 
-In the sidekick approach, a sidekick on the Wi-Fi access point sends quACKs to the audio
+In the Sidekick approach, a Sidekick on the Wi-Fi access point sends quACKs to the audio
 application on the user's laptop, assisting the base connection's data sender.
 The sender uses quACKs to retransmit packets sooner than they would have using
 negative acknowledgments (NACKs) from the receiver. The end result is similar
@@ -159,7 +159,7 @@ mechanisms over the entire path to detect losses, recover from them, and adjust
 the congestion-control behavior. This leads to reduced upload speeds
 (\Cref{fig:baseline-line} in emulation, \Cref{fig:real-world:scenario2} in real world).
 
-With help from the same sidekick PEP, the QUIC sender combines information from
+With help from the same Sidekick PEP, the QUIC sender combines information from
 quACKs and end-to-end ACKs to emulate the congestion-control behavior of a
 split TCP connection (\Cref{sec:sidekick:protocol:sender-behavior}). The
 application considers whether packets are lost on the near or far path
@@ -191,7 +191,7 @@ One proposal has the PEP acknowledge packets on behalf of the
 receiver~\cite{kliazovich2012arqproxy}, leveraging cleartext TCP sequence
 numbers, but it does not apply to opaque transport protocols.
 
-In this case, a sidekick at the Wi-Fi access point (or a cellular base station)
+In this case, a Sidekick at the Wi-Fi access point (or a cellular base station)
 quACKs to the sender on behalf of the receiver. The receiver still occasionally
 wakes up its radio to send ACKs, but the sender uses the more frequent quACKs
 to advance its flow-control and congestion-control windows.
@@ -215,7 +215,7 @@ to configure the connection or reset bad state.
 Robin allows the sender to tell the PEP to reinitialize the quACK.
 This is helpful if the quACK becomes
 invalid, e.g., if $m$ exceeds the threshold $t$. It is
-always safe to reset the quACK, or even to ignore the sidekick entirely and
+always safe to reset the quACK, or even to ignore the Sidekick entirely and
 fall back to the base protocol's end-to-end mechanisms.
 
 \subsection{Handshake}
@@ -227,25 +227,25 @@ based on MASQUE~\cite{kosek2021masque,kramer2021masquepep}, proxies can simply n
 sending quACKs during session establishment.  In most other settings,
 such as 4G/5G cellular networks, PEPs have traditionally been deployed
 as transparent proxies, silently interposing on end-to-end
-connections.  Senders therefore need a way to detect transparent sidekick
+connections.  Senders therefore need a way to detect transparent Sidekick
 proxies and inform them of where to send quACKs.  Because of network
 address translation, all communication to the proxy must be initiated
 by the sender or use the same IP addresses and port numbers of the
 base connection.
 
 Our current design has senders signal quACK support by sending a
-distinguished packet containing a 128-byte \emph{sidekick-request} marker.  Such
-inline signaling could confuse receivers, but {sidekick}s target
+distinguished packet containing a 128-byte \emph{Sidekick-request} marker.  Such
+inline signaling could confuse receivers, but Sidekicks target
 protocols such as QUIC that discard cryptographically unauthenticated
 data anyway.  It would be cleaner to signal support through
 out-of-band UDP options~\cite{ietf-tsvwg-udp-options-28}, which we hope to do
 once they are standardized.
 
-The proxy replies to a sidekick-request packet by sending a special packet
+The proxy replies to a Sidekick-request packet by sending a special packet
 from the receiver's IP address and port number back to the sender.
-This packet contains a \emph{sidekick-reply} marker, an opaque session ID, and an
+This packet contains a \emph{Sidekick-reply} marker, an opaque session ID, and an
 IP address and port number for communicating with the proxy.  Upon
-receiving the sidekick-reply packet, the sender begins communicating
+receiving the Sidekick-reply packet, the sender begins communicating
 directly with the proxy from a different UDP port.  It initially sends
 back the session ID and configuration parameters to start receiving
 quACKs.
@@ -266,11 +266,11 @@ packet identifiers.
 To mitigate this, the sender can consider PEP feedback along with
 end-to-end metrics to determine whether to keep using the PEP. The sender can
 always opt out of the PEP, and the PEP cannot actively manipulate traffic any
-more than outside a sidekick setting.
+more than outside a Sidekick setting.
 
 \paragraph{Protocol parameters.}
 The sender configures (i) the quACK interval of the PEP and (ii) the threshold
-number of missing packets $t$, or otherwise selects sidekick-specific settings
+number of missing packets $t$, or otherwise selects Sidekick-specific settings
 such as how an identifier is computed.
 
 The quACK interval is expressed in terms of time or number of packets,
@@ -321,7 +321,7 @@ client is free to send quACKs.
 \label{sec:sidekick:protocol:sender-behavior}
 
 In this section, we discuss two particular sender-side behaviors that are enabled by
-the sidekick protocol and which are helpful across several scenarios: detecting packet loss
+the Sidekick protocol and which are helpful across several scenarios: detecting packet loss
 from a decoded quACK and congestion control.
 
 \subsubsection{Detecting Loss}
@@ -415,7 +415,7 @@ hope that quACKs can lead to the development of smarter, path-aware algorithms.
 \input{sidekick-paper/tables/lines-of-code.tex}
 
 We now describe our implementation of Robin~\cite{sidekick-github} for several applications.
-We integrated sidekick functionality with a simple media client for low-latency streaming
+We integrated Sidekick functionality with a simple media client for low-latency streaming
 and an HTTP/3 (QUIC) client.
 The total implementation of the quACK library, and proxy and client
 integrations used 6363 LOC (\Cref{tab:lines-of-code}).
@@ -468,13 +468,13 @@ in the quACK to modify transport layer behavior.
 \input{sidekick-paper/tables/experimental-scenarios.tex}
 
 \paragraph{Low-latency media client.} The media client has two open UDP sockets:
-one for the base connection and one for the sidekick connection. When it receives a
+one for the base connection and one for the Sidekick connection. When it receives a
 quACK, it detects lost packets without reordering and immediately retransmits
 them. The protocol does not have a congestion window nor a flow-control window.
-The client also sends reset and configuration messages over the sidekick connection.
+The client also sends reset and configuration messages over the Sidekick connection.
 
 \paragraph{HTTP/3 file upload client.}
-The HTTP/3 client similarly has an adjacent UDP socket for the sidekick connection on
+The HTTP/3 client similarly has an adjacent UDP socket for the Sidekick connection on
 which it receives quACKs and sends reset and configuration messages. The client
 passes the quACK to our modified \texttt{quiche} library, which interprets the
 quACK and makes transport layer decisions. From the client's perspective,
@@ -488,7 +488,7 @@ retransmission mechanism. We implement PACUBIC,
 described in \Cref{sec:sidekick:protocol:sender-behavior}.
 We also move the flow-control window (without forgetting packets in the
 retransmission buffer), but only in the ACK reduction scenario, when the
-congestion window is nearly representative of that of the sidekick connection's
+congestion window is nearly representative of that of the Sidekick connection's
 path segment.
 
 \subsection{Proxy Implementation}
@@ -498,7 +498,7 @@ Our proxy sniffs incoming packets of a network interface using the
 \texttt{recvfrom} system call on a raw socket.
 It stores a hash table using Rust's standard library \texttt{HashMap} that maps
 socket pairs to their respective quACKs, and
-incrementally updates the quACKs for flows that have requested sidekick assistance.
+incrementally updates the quACKs for flows that have requested Sidekick assistance.
 It also sends quACKs at their configured frequencies and listens for
 configuration messages.
 
@@ -510,13 +510,13 @@ configuration messages.
 
 We evaluated Robin to answer the following questions:
 \begin{enumerate}[noitemsep,topsep=0pt]
-	\item Can sidekicks improve the performance of opaque transport protocols
+	\item Can Sidekicks improve the performance of opaque transport protocols
 	in a variety of scenarios while preserving the opaque behavior of the
 	base protocols?
 	\item Can a path-aware congestion control algorithm match the fairness of
 	split TCP PEPs using CUBIC?
 	\item How do the CPU overheads of encoding quACKs impact the maximum
-	capacity of a proxy with a sidekick?
+	capacity of a proxy with a Sidekick?
 	\item What link overheads does the power sum quACK add and how does it
 	compare to the strawmen?
 	\item Is Robin robust in a real-world environment?
@@ -542,7 +542,7 @@ for each link to model---e.g., lossy Wi-Fi or a high-latency cellular
 path---as well as the metrics for success in that scenario.
 Link 1 connects the data sender (client) to the proxy,
 while Link 2 connects the proxy to the data receiver (server).
-On the proxy, we either run a sidekick,
+On the proxy, we either run a Sidekick,
 a connection-splitting TCP PEP~\cite{caini2006pepsal}, or nothing at all.
 
 \paragraph{Real-world environment.}
@@ -554,7 +554,7 @@ the nearest geographical region. The ThinkPad used as an access point (AP)
 a Lenovo Yoga laptop, running Ubuntu 20.04.6 with a 4-Core Intel i5 CPU @
 1.60 GHz and 4 GB memory, with a 2.4 GHz Wi-Fi hotspot.
 The AP was connected to the Internet via a JEXtream cellular modem
-with a 5G data plan. The AP ran sidekick software.
+with a 5G data plan. The AP ran Sidekick software.
 
 We measured the link properties of each path segment to compare to
 our emulation parameters. We measured delay and loss using 1000~\texttt{ping}s
@@ -578,38 +578,38 @@ scenarios, we show that Robin can improve performance compared to the base
 protocol alone, which would not be able to benefit from existing PEPs.
 Each scenario has a different metric for success---tail latency, throughput,
 or number of packets sent by the data receiver (corresponding to energy usage
-or chance of Wi-Fi collisions)---demonstrating the versatility of the sidekick
+or chance of Wi-Fi collisions)---demonstrating the versatility of the Sidekick
 protocol.
 
 \paragraph{Low-Latency Media.}
-The sidekick can reduce tail latencies in a low-latency media stream, representing
+The Sidekick can reduce tail latencies in a low-latency media stream, representing
 fewer drops and better quality of experience.
-The early retransmissions induced by the sidekick reduced the 99th percentile
+The early retransmissions induced by the Sidekick reduced the 99th percentile
 latency of the de-jitter buffer delay from 48.6 ms to 2.2 ms---a 95\%
 reduction (\Cref{fig:media}).
 As long as the quACK interval is less than the end-to-end RTT, the connection
-benefits from the sidekick.
+benefits from the Sidekick.
 
-The sidekick is beneficial in this scenario because it enables the client to sooner
+The Sidekick is beneficial in this scenario because it enables the client to sooner
 detect and retransmit lost packets, and the server to sooner play packets from
 its de-jitter buffer.
 The end-to-end mechanism takes one additional received packet to notify of the
 loss and
 one end-to-end RTT to retransmit and play the packet (20+52=72ms), resulting in
 three delayed packets (the three ``steps" in \Cref{fig:media}) in most cases.
-The sidekick takes up to two additional packets and one near path segment RTT
+The Sidekick takes up to two additional packets and one near path segment RTT
 (20+2=22ms or 20$\times$2+2=42ms), delaying either one or two packets in comparison.
 Dropped ACKs and quACKs account for the $<2\%$ of packets with even greater
 de-jitter latencies.
 
 \paragraph{Connection-Splitting PEP Emulation.}
-The sidekick improves upload speeds when there is a lossy, low-latency link
+The Sidekick improves upload speeds when there is a lossy, low-latency link
 by using quACKs to inform the sender's congestion control.
 In a scenario with $1\%$ random loss on the link between the proxy and the
 data sender, the HTTP/3 (QUIC) client achieves $3.6\times$ the goodput for a 10 MB
-upload with a sidekick compared to end-to-end QUIC (\Cref{fig:baseline-line}).
+upload with a Sidekick compared to end-to-end QUIC (\Cref{fig:baseline-line}).
 
-When there is no random loss, the sidekick does not impact the performance
+When there is no random loss, the Sidekick does not impact the performance
 of QUIC\@.
 There are no logical changes to the base protocol in this case because all loss
 is on the
@@ -627,17 +627,17 @@ fairness of connection-splitting TCP PEPs.
 
 Using quACKs in lieu of end-to-end ACKs allows the data receiver to
 significantly reduce its ACK frequency while maintaining high goodput.
-In our experiment, QUIC with a sidekick sent $96\%$ fewer packets (mainly ACKs)
+In our experiment, QUIC with a Sidekick sent $96\%$ fewer packets (mainly ACKs)
 than end-to-end QUIC before the goodput dropped below 8.5 Mbit/s
 (\Cref{fig:ack-reduction}).
 The quACK enables the data sender to promptly move the flow-control window forward,
 as long as the last hop is reliable.
 
 The goodput significantly degrades when reducing the end-to-end ACK frequency
-without a sidekick. When end-to-end QUIC reduces the ACK frequency to every
+without a Sidekick. When end-to-end QUIC reduces the ACK frequency to every
 80 ms, the data receiver sends $247 / 138 = 1.8\times$ the packets at
-$4.5 / 8.4 = 0.5\times$ the goodput, worse than QUIC with the sidekick
-in both dimensions (\Cref{fig:ack-reduction}). With a sidekick,
+$4.5 / 8.4 = 0.5\times$ the goodput, worse than QUIC with the Sidekick
+in both dimensions (\Cref{fig:ack-reduction}). With a Sidekick,
 the data sender also does not need to change packet pacing to avoid bursts in
 response to infrequent ACKs, which is why end-to-end QUIC cannot send fewer
 than $\approx 240$ packets.
@@ -652,19 +652,19 @@ or more variably. Less frequent quACKs means the client reacts later to
 feedback about the near path segment, and more often has to rely on the
 end-to-end mechanism. The performance particularly degrades when the quACK
 interval exceeds the end-to-end RTT. However, even in this case, the base
-protocol with any sidekick at all performs better than the base protocol alone\@.
+protocol with any Sidekick at all performs better than the base protocol alone\@.
 
 \subsection{Link Overheads}
 \label{sec:sidekick:evaluation:link-overheads}
 
 \input{sidekick-paper/tables/packet-overheads.tex}
 
-The other cost in terms of using sidekick protocols is the additional data
+The other cost in terms of using Sidekick protocols is the additional data
 sent by the proxy to the data sender.
 Too many additional bytes use up bandwidth, and additional packets use
 up CPU\@.
 \Cref{tab:packet-overhead} shows the number of packets and bytes sent at each
-node comparing the strawmen and power sum quACK to no sidekick connection at all.
+node comparing the strawmen and power sum quACK to no Sidekick connection at all.
 
 Using power sum quACKs increases the packets sent from the proxy to the data
 sender
@@ -724,7 +724,7 @@ protection boundary\footnote{
 A kernel-bypass system like Retina~\cite{wan2022retina} can achieve
 25 Gbps on 2 cores while processing raw packets with a 1000-cycle callback
 (Figure 5(a) in \cite{wan2022retina}). The Sidekick equivalent would be a 500-cycle
-callback, and assuming all traffic has requested sidekick help. Throughput scales
+callback, and assuming all traffic has requested Sidekick help. Throughput scales
 almost linearly with the number of cores using symmetric RSS hashing.
 Thus we don't expect proxy overheads to be an issue with modern 100 Gbps network
 speeds and an optimized implementation even on commodity hardware.
@@ -763,13 +763,13 @@ QUIC and TCP perform similarly to each other with proxy assistance and 1\%
 loss on the near path segment.
 
 \paragraph{Sidekick vs.\ TCP PEP\@.}
-\Cref{fig:loss-vs-tput} shows that QUIC with a sidekick roughly matches---as
+\Cref{fig:loss-vs-tput} shows that QUIC with a Sidekick roughly matches---as
  intended---the behavior of TCP with a PEP-assisted split connection. At higher
 loss rates, the near path segment becomes the bottleneck link even with earlier
 feedback about loss, causing the performance of TCP with proxy assistance to
-drop. QUIC with a sidekick follows a similar pattern because of its path-aware
+drop. QUIC with a Sidekick follows a similar pattern because of its path-aware
 congestion-control scheme (\Cref{sec:sidekick:protocol:sender-behavior}). The
-results indicate that the sidekick protocol's gains do not come at the expense
+results indicate that the Sidekick protocol's gains do not come at the expense
 of congestion-control fairness relative to the split TCP connection.
 
 \section{Real-World Experiments}
@@ -793,7 +793,7 @@ these main differences between emulation and the real-world:
 
 \Cref{fig:real-world} shows the results of running the low-latency media and
 connection-splitting PEP emulation experiments in the real-world. The baseline
-protocol with a sidekick is able to
+protocol with a Sidekick is able to
 reduce the 99th percentile de-jitter latency of an audio stream
 from 2.3~seconds to 204~ms---about a 91\% reduction---and
 improve the goodput of a 50 MB HTTP/3 upload by about 50\%.
@@ -804,13 +804,13 @@ base protocol under all circumstances, compared to end-to-end mechanisms alone.
 Part of the difference can be attributed to the network setting. When there is
 no loss on the near path segment, as can occasionally happen in a real Wi-Fi link,
 we do not expect to
-see a difference with a sidekick. When there is more loss on the far path segment, which
+see a difference with a Sidekick. When there is more loss on the far path segment, which
 is variable and depends on the time, we
-expect the benefit of the sidekick to be less since this equally affects the
+expect the benefit of the Sidekick to be less since this equally affects the
 performance of the base protocol.
 
 The other part of the difference could be made up by future work that better
-adapts a sidekick connection to real-world variability: The client could improve
+adapts a Sidekick connection to real-world variability: The client could improve
 path segment RTT estimation based on when the proxy receives packets, and use this
 dynamic estimate in the calculation of $r$ used in $\beta$ and $C$.
 The client could also use
