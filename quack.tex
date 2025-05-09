@@ -1,4 +1,5 @@
 \chapter{QuACKs}
+\label{sec:quack}
 
 As previously illustrated, a Sidekick needs to be able to refer to and efficiently
 acknowledge a set of opaque packets seen by a network intermediary.
@@ -17,7 +18,15 @@ This solution is most similar to the deterministic solution to the
 related theoretical work in set reconciliation~\cite{minsky2003set}, and coding
 theory and graph theory~\cite{karpovsky2003data}.
 
+Concretely realized, the quACK expresses the equivalent of TCP's
+cumulative + selective ACK over opaque (randomly identified) packets
+in 48 bytes, tolerating up to 10 missing packets before the last
+``selective ACK.'' On a recent x86-64 CPU, it takes 33 ns/packet for a Sidekick PEP
+to encode a quACK, and 3~$\mu$s for an end host to decode it. These
+overheads compared well with several alternatives (\Cref{sec:quack:microbenchmarks}).
+
 \section{The QuACK Problem}
+\label{sec:quack:problem}
 
 We first describe the quACK problem. A data sender transmits a multiset\footnote
 {A ``multiset'' means the same element can be transmitted more than once.} of
@@ -64,18 +73,17 @@ collision while using $2$ bytes results in a 0.04\% chance
 (\Cref{tab:collision-prob}).
 \input{sidekick-paper/tables/collision-prob.tex}
 
-When handling collisions, a sender who is decoding a quACK has a list of $n$ packets it is
-trying to classify as received or missing (\Cref{sec:quack:microbenchmarks}).
-Note that collisions are also known
-to the sender beforehand. If there is a collision between
-a packet that is received and a packet that is missing, the fate of that
-identifier is considered indeterminate.
-In our scenarios (\Cref{sec:motivation}), either the
-protocol can still function
-with approximate statistics (e.g., congestion control)
-or it can fall back to an end-to-end mechanism (e.g., retransmission).
+When handling collisions, a sender who is decoding a quACK has a list of $n$
+packets it is trying to classify as received or missing
+(\Cref{sec:quack:microbenchmarks}). Note that collisions are also known to the
+sender beforehand. If there is a collision between a packet that is received
+and a packet that is missing, the fate of that identifier is considered
+indeterminate. Either the protocol can still function with approximate
+statistics (e.g., congestion control) or it can fall back to an end-to-end
+mechanism (e.g., retransmission).
 
 \section{Strawman Solutions}
+\label{sec:quack:strawmen}
 
 \input{sidekick-paper/tables/strawmen-theoretical.tex}
 
@@ -123,10 +131,12 @@ determine a gap in received packets, there is no way to tell with random
 identifiers what packet is missing or should be expected next.
 
 \section{Efficient QuACK Constructions}
+\label{sec:quack:constructions}
 
 \input{packrat-paper/listings/quack_interface}
 
 \subsection{Background: Set Reconciliation}
+\label{sec:quack:constructions:background}
 
 The problem of providing a concise acknowledgment of encrypted packet identifiers
 boils down to a more general problem called set reconciliation. In this problem,
@@ -155,6 +165,7 @@ base acknowledgment scheme to dynamically adjust the quACK.
 We describe two optimizations: \textit{rateless quACKs} and \textit{selective quACKing}.
 
 \subsection{The Power Sum Solution}
+\label{sec:quack:constructions:power-sum}
 
 Now we describe a solution to the quACK problem based on the insight
 that we can model the problem as a system of power sum polynomial equations
@@ -217,9 +228,10 @@ number of packets it has sent and the count in the quACK to calculate $m$.
 Sending the last element received is an optimization that allows $m$ to
 represent just the ``holes'' among the packets being selectively ACKed,
 excluding the possibly many consecutive elements that are in-flight
-(\Cref{sec:design:detecting-loss}).
+(\Cref{sec:sidekick:protocol:sender-behavior}).
 
 \subsection{The Invertible Bloom Lookup Table Solution}
+\label{sec:quack:constructions:iblt}
 
 
 In this section, we apply
@@ -293,6 +305,7 @@ quACK. However, the quACK is still more efficient when
 loss is small or infrequent.
 
 \section{Microbenchmarks}
+\label{sec:quack:microbenchmarks}
 
 We benchmark our optimized implementation of the power sum quACK~\cite{quack-github}
 to demonstrate its practicality for in-line packet processing.
@@ -319,6 +332,7 @@ We run the microbenchmarks on a single core of an AWS m4.xlarge instance.
 \input{sidekick-paper/figures_tex/quack.tex}
 
 \subsection{Bit Widths}
+\label{sec:quack:microbenchmarks:bit-widths}
 
 Different bit widths have different implications for
 which instructions the CPU can use. Modular operations are efficient
@@ -335,6 +349,7 @@ division for 128-bit integers. In the remainder of the paper, we use $b=4$ as
 the preferred tradeoff between space and collision probability.
 
 \subsection{Encoding}
+\label{sec:quack:microbenchmarks:encoding}
 
 The encode time per-packet is directly proportional to
 the threshold number of missing packets $t$ (\Cref{fig:construction-time}) at
@@ -350,6 +365,7 @@ pseudorandom mapping algorithm, adding constant factor overheads that impact
 smaller numbers of symbols.
 
 \subsection{Decoding}
+\label{sec:quack:microbenchmarks:decoding}
 
 The decode time must be comparable to the time it takes to process a typical
 ACK and modify the logic in the transport protocol. Decoding typically
@@ -377,6 +393,7 @@ method that is linear in \textit{all} packets received, not just the \textit
 factorization.
 
 \subsection{Non-Determinism}
+\label{sec:quack:microbenchmarks:non-determinism}
 
 \input{packrat-paper/figures_tex/quack_cpu}
 \input{packrat-paper/figures_tex/quack_correctness}
@@ -399,6 +416,7 @@ the Packrat has a greater worst-case tolerance for errors with the same encoding
 overheads. The Packrat proxy can reset the connection if it cannot decode a quACK.
 
 \section{Rateless Property}
+\label{sec:quack:rateless}
 
 The number of symbols in the quACK is configured for the worst case, but it is
 wasteful to consistently send hundreds of bytes over the wire for each quACK.

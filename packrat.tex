@@ -1,4 +1,5 @@
 \chapter{Packrat Protocol}
+\label{sec:packrat}
 
 The relationship between Internet transport protocols and lossy
 wireless networks has long been fraught. Three decades ago, the
@@ -130,19 +131,18 @@ wire format of the underlying connection. We make the following contributions:
 \begin{itemize}[noitemsep]
     \item The Packrat protocol and a mechanism at the \textit{endpoint} to correct
      end-to-end reordering signals when there are in-network retransmissions
-     (\Cref{sec:packrat-protocol}).
-    \item An acknowledgment of encrypted packets based on the Rateless IBLT
-     that is fast to decode (\Cref{sec:eack}).
+     (\Cref{sec:packrat:protocol}).
     \item Optimizations to improve proxy
      scalability based on the co-location of the endpoint and quACK sender
-     (\Cref{sec:eack:hints}).
+     (\Cref{sec:packrat:protocol:receiver-behavior}).
     \item An implementation of the Packrat proxy and integrations with three
-     applications that use encrypted transport (\Cref{sec:implementation}).
+     applications that use encrypted transport (\Cref{sec:packrat:implementation}).
     \item An emulation study of the performance enhancements, as well as the CPU,
-     memory, and link overheads of using the Packrat protocol (\Cref{sec:evaluation}).
+     memory, and link overheads of using the Packrat protocol (\Cref{sec:packrat:evaluation}).
 \end{itemize}
 
 \section{Background: In-Network Retransmissions}
+\label{sec:packrat:background}
 
 We provide a brief history of loss recovery mechanisms in the network to
 motivate the need for lightweight, non-ossifying, in-network retransmissions
@@ -227,6 +227,7 @@ reconciliation in quACKs for referring to encrypted packets,
 but to send network-originated retransmissions.
 
 \section{The Reordering Problem}
+\label{sec:packrat:problem}
 
 \begin{figure}
     \centering
@@ -333,6 +334,7 @@ certain delay before they can be referenced in the client's underlying
 acknowledgments.
 
 \section{Packrat Protocol}
+\label{sec:packrat:protocol}
 
 The Packrat protocol is spoken between a client and an on-path proxy, where the
 client is a data \textit{receiver}. We imagine the proxy to exist near the data
@@ -358,6 +360,7 @@ connections. We assume each message is transmitted in an unreliable UDP
 datagram.
 
 \subsection{Proxy Behavior}
+\label{sec:packrat:protocol:proxy-behavior}
 
 The behavior of the proxy is to decode incoming quACKs and retransmit missing
 packets, and to cache and evict packets from the base connection for
@@ -417,6 +420,7 @@ assistance is better suited to mobility and handoffs if the connection ever
 changes network paths.
 
 \subsection{Data Receiver Behavior}
+\label{sec:packrat:protocol:receiver-behavior}
 
 In addition to modifying end-to-end acknowledgments to avoid sending excessive
 reordering signals to the server, the primary behavior of the client is
@@ -444,14 +448,15 @@ cache exploding in size because the proxy optimistically evicts packets, and
 these are likely to be received or the client would have NACKed.\\
 
 \section{Implementation}
+\label{sec:packrat:implementation}
 
 We now describe our implementation of the Packrat protocol, which includes
-the \texttt{eack} library (\Cref{sec:eack:microbenchmarks}),
-a \texttt{packrat} library used for three client integrations,
+a \texttt{packrat} library used for three client integrations
 and a Packrat proxy. We also describe the implementations of the
 applications and baselines we use to evaluate Packrat.
 
 \subsection{Applications}
+\label{sec:packrat:implementation:applications}
 
 We evaluate the Packrat protocol in three applications with different performance
 metrics to explore the versatility of in-network retransmissions:
@@ -508,6 +513,7 @@ the clients. That is, we measure the number of packets that the server
 must (unicast) retransmit, which captures both server and network load.
 
 \subsection{Client Integrations}
+\label{sec:packrat:implementation:client-integrations}
 
 \input{packrat-paper/listings/quacker_interface}
 
@@ -525,10 +531,11 @@ the client is responsible for reading and writing to the actual socket. Each
 application uses a packet loop to interact with a socket for the base
 connection. We incorporate the Packrat socket into the same loop, which allows us to
 consider hints from the application for rateless and selective quACKing
-(\Cref{sec:eack:hints}). We also incorporate a reorder delay in the base
-connection (\Cref{sec:packet-protocol:problem}).
+(\Cref{sec:quack:rateless,sec:packrat:protocol:receiver-behavior}). We also
+incorporate a reorder delay in the base connection (\Cref{sec:packrat:problem}).
 
 \subsection{Proxy Implementation}
+\label{sec:packrat:implementation:proxy}
 
 We implement the Packrat proxy as a network bridge that uses raw sockets to read
 and write packets between two interfaces. The proxy needs to
@@ -537,10 +544,10 @@ its \texttt{InitACK} and \texttt{Reset} messages can be ordered along with the
 data packets.
 
 The proxy inspects each packet for magic discovery packets, those that match the
-4-tuples of the base connections it is helping, and also quACKs.
-It handles each packet as described in \Cref
-{sec:packrat-protocol:proxy-behavior}. We use our \texttt{eack} library to
-encode and decode quACKs. The proxy use $\approx\!1000$ lines of Rust.
+4-tuples of the base connections it is helping, and also quACKs. It handles
+each packet as described in \Cref{sec:packrat:protocol:proxy-behavior}. We use
+our \texttt{quack} library to encode and decode quACKs. The proxy use
+$\approx\!1000$ lines of Rust.
 
 \paragraph{Multicast proxy.}
 
@@ -555,6 +562,7 @@ client. This allows the proxy to maintain state proportional only to the number
 of outstanding retransmissions per client.
 
 \section{Evaluation}
+\label{sec:packrat:evaluation}
 
 We evaluate our Packrat protocol implementation in an emulation study and answer
 the following questions:
@@ -563,30 +571,29 @@ the following questions:
      end-to-end, connection-splitting, and tunnel baselines in network settings
      with a lossy path segment near the data \textit{receiver}?
     \item How do the rateless and selective optimizations in \Cref
-     {sec:eack:hints} impact the link overheads of the Packrat protocol?
+     {sec:quack:rateless} impact the link overheads of the Packrat protocol?
     \item How much memory does the cache use at the proxy?
     \item How much traffic can a CPU-constrained proxy handle?
 \end{enumerate}
 
 \subsection{Methodology}
+\label{sec:packrat:evaluation:methodology}
 
 The primary baseline is just the end-to-end protocol, which is the default for
 encrypted transport protocols that cannot receive transport-layer assistance
 from proxies.
 
 We additionally aim to compare Packrat to link-layer loss recovery approaches,
-as discussed in \Cref{sec:background}.
-To mimic these approaches,
-we implement a reliable tunnel that
-encapsulates and retransmits packets
-similar to Wi-Fi. The tunnel sender encapsulates IP datagrams in a header with
-a plaintext sequence number, and the tunnel receiver replies with a 64-bit
-Block ACK~\cite{ieee80211e}. The sender retransmits gaps in the acknowledgment up
-to $7$ times, the default limit in Wi-Fi, and takes care to avoid duplicates. We
+as discussed in \Cref{sec:packrat:background}. To mimic these approaches, we
+implement a reliable tunnel that encapsulates and retransmits packets similar
+to Wi-Fi. The tunnel sender encapsulates IP datagrams in a header with a
+plaintext sequence number, and the tunnel receiver replies with a 64-bit Block
+ACK~\cite{ieee80211e}. The sender retransmits gaps in the acknowledgment up to
+$7$ times, the default limit in Wi-Fi, and takes care to avoid duplicates. We
 also implement an option for the receiver to order packets before releasing
 them to the application, behavior that we believe is unspecified in the Wi-Fi
-standard but can dramatically impact application performance.
-We refer to these variants as ordered and unordered tunnels.
+standard but can dramatically impact application performance. We refer to these
+variants as ordered and unordered tunnels.
 
 Finally, we benchmark our HTTP/3 application against a ``true'' split
 connection. We implement a \texttt{picoquic} connection splitter that decrypts
@@ -651,7 +658,7 @@ with ratelessness.
 The reorder delay is a client configuration that
 must be at least the RTT to the proxy, which the client can learn from the Packrat
 protocol. We also select a cache size that is small enough to evaluate
-optimistic eviction in \Cref{sec:evaluation:memory}.
+optimistic eviction in \Cref{sec:packrat:evaluation:memory-overheads}.
 
 \paragraph{Measurement methodology.}
 
@@ -672,6 +679,7 @@ and 4-CPU Intel Xeon E5 processor at 2.30 GHz. The instance
 runs Ubuntu 22.04.2 LTS with the Linux 6.80-1024-aws kernel.
 
 \subsection{Main Performance Results}
+\label{sec:packrat:evaluation:main-results}
 
 We find that
 in-network retransmissions via the Packrat protocol enable a variety of performance
@@ -777,10 +785,12 @@ Disabling link-layer retransmissions introduces loss, which can be even more
 detrimental for performance.
 
 \subsection{Link Overheads}
+\label{sec:packrat:evaluation:link-overheads}
+
 \input{packrat-paper/figures_tex/link_overheads}
 
 In this section, we analyze how sending quACKs with the optimizations in \Cref
-{sec:eack:hints} impacts the link overheads in the network.
+{sec:quack:rateless} impacts the link overheads in the network.
 \Cref{fig:link-overheads} displays the number of packets and bytes sent on each
 link between the client, proxy, and server in the HTTP and media applications.
 As a proportion of the volume in bytes sent by both endpoints of the
@@ -836,6 +846,7 @@ block ACKs are small, it can be costly for radios to switch often between
 sending and receiving modes, and for proxies with per-packet overheads.
 
 \subsection{CPU Overheads}
+\label{sec:packrat:evaluation:cpu-overheads}
 
 In this experiment, we analyze the number of cycles that the proxy
 needs to process each
@@ -896,6 +907,7 @@ hardware.
 % = 11.2 Gbit/s
 
 \subsection{Memory Overheads}
+\label{sec:packrat:evaluation:memory-overheads}
 
 \input{packrat-paper/figures_tex/memory_overheads}
 
@@ -931,12 +943,12 @@ RTTs of packets between the client and proxy.
 \paragraph{Reliable IP multicast stream.}
 
 The multicast application has a fixed packet cache size of 64 kB, and we analyze
-the memory overheads of the per-client virtual caches (\Cref
-{fig:memory:multicast}). In particular, we calculate the overhead of each
-virtual cache as 4 bytes for the first global index and then 8 bytes for each
-insertion pair (\Cref{sec:implementation:proxy}). When there are 16 clients,
-the proxy uses on average 0.178 KB in the virtual caches for a very low
-overhead of 12 bytes/client. That is exactly one insertion pair, and in general
-the overheads of the virtual caches are proportional to the number of
-outstanding retransmissions.
+the memory overheads of the per-client virtual caches (\Cref{fig:memory:multicast}).
+In particular, we calculate the overhead of each virtual cache as 4 bytes for
+the first global index and then 8 bytes for each insertion pair
+(\Cref{sec:packrat:implementation:proxy}). When there are 16 clients, the proxy
+uses on average 0.178 KB in the virtual caches for a very low overhead of 12
+bytes/client. That is exactly one insertion pair, and in general the overheads
+of the virtual caches are proportional to the number of outstanding
+retransmissions.
 % average = 0.17788111888111888 KB = 1

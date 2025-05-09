@@ -1,5 +1,5 @@
 \chapter{Split Throughput Heuristic}
-
+\label{sec:splitting}
 
 \input{splitting-paper/figures_tex/bbr-over-time.tex}
 
@@ -138,6 +138,7 @@ protocol-agnostic PEPs that achieve the performance benefits of in-network
 assistance without the ossification downsides.
 
 \section{Background: BBR and QUIC}
+\label{sec:splitting:background}
 
 In this section, we provide additional context on some concepts that we refer to
 throughout the text.
@@ -245,6 +246,7 @@ environments~\cite
 {kosek2022quicpep,martin2022suitability,kuhn2021quic-over-sat,border2020evaluating}.
 
 \section{Split Throughput Heuristic}
+\label{sec:splitting:heuristic}
 
 When initially considering which network scenarios to evaluate in our emulation
 study, we discovered it to be non-trivial to pick scenarios that would lead to
@@ -301,7 +303,7 @@ heuristic allows us to estimate the throughput of encrypted transport
 protocols using knowledge about its end-to-end throughput, without
 actually splitting the connection.
 
-In \Cref{sec:accuracy}, we discuss potential sources of error in the heuristic,
+In \Cref{sec:splitting:accuracy}, we discuss potential sources of error in the heuristic,
 including the lack of consideration of the queue configuration on the proxy
 or the placement of the bottleneck link relative to the data sender. However,
 we believe there is a design tradeoff in accuracy versus simplicity.
@@ -315,6 +317,7 @@ limitations of our methodology using the heuristic, and propose possible
 extensions.
 
 \subsection{Example Usage in a Single Network Setting}
+\label{sec:splitting:heuristic:example}
 
 \begin{lstfloat}[t]
 \begin{lstlisting}[language=Python]
@@ -392,7 +395,7 @@ This is the throughput of a long-running HTTPS connection in a
 \texttt{mininet} emulation. The emulated network is parameterized
 by the network model of a single path segment, and the HTTPS implementation
 uses the congestion control scheme of interest. We describe additional details
-about the emulation in \Cref{sec:methodology}.
+about the emulation in \Cref{sec:splitting:methodology}.
 
 \paragraph{Calculating the split improvement.}
 
@@ -406,6 +409,7 @@ throughput benefit is just how much the split throughput has improved (if it has
 relative to the end-to-end throughput.
 
 \subsection{Caching Throughput Measurements}
+\label{sec:splitting:heuristic:caching}
 
 While we can now predict split throughput for congestion control schemes which
 are not easily
@@ -451,6 +455,7 @@ loss. We explore adjacent data points if and only if the current data point has
 not timed out.
 
 \subsection{Limitations}
+\label{sec:splitting:heuristic:limitations}
 
 Although our methodology is more efficient for evaluating many network
 settings and enables the exploration of theoretical scenarios,
@@ -490,10 +495,12 @@ Finally, our heuristic makes the simplified assumption that we can identify the
 bottleneck path segment based on the minimum measured throughput. In reality,
 the ability of a data sender to sustain that throughput depends on its ability
 to saturate the send buffer. This is particularly true for data senders farther
-along the network path, as their behavior will depend on the queue configuration
-and the burstiness of previous senders. We explore this more in \Cref{sec:accuracy}.
+along the network path, as their behavior will depend on the queue
+configuration and the burstiness of previous senders. We explore this more
+in \Cref{sec:splitting:accuracy}.
 
 \section{Methodology}
+\label{sec:splitting:methodology}
 
 \input{splitting-paper/figures_tex/mininet.tex}
 \input{splitting-paper/tables/cca-implementations.tex}
@@ -579,6 +586,7 @@ will never equal the link rate.
  except for TCP BBRv2 and BBRv3.%, in which they use the Google fork of v6.4.0+.
 
 \section{Measurement Study Results}
+\label{sec:splitting:results}
 
 \input{splitting-paper/figures_tex/2d-heatmap.tex}
 
@@ -610,6 +618,7 @@ behavior of each CCA implementation are available in \Cref{sec:appendix}.
 Our emulation benchmarks are also publicly available on GitHub: \url{https://github.com/StanfordSNR/connection-splitting}.
 
 \subsection{Finding 1: TCP BBR Over Time}
+\label{sec:splitting:results:finding1}
 
 \paragraph{Finding: Splitting has become significantly more beneficial to TCP
  BBR since it was initially released in 2016.}
@@ -633,11 +642,11 @@ and BBRv3 show significant throughput gains from connection-splitting.
 \paragraph{Analysis.}
 To explore why CUBIC and BBRv3 benefit from splitting but BBRv1 does not, we
 analyze end-to-end throughputs of each CCA and apply the split throughput
-heuristic (\Cref{fig:heuristic}). As described in \Cref{sec:heuristic}, this
-methodology allows us to study split settings by measuring the much smaller
-parameter space of end-to-end connections.
-We find that connection-splitting is likely to improve throughput on lossy
-paths for CUBIC, BBRv2, and BBRv3 connections, but not for BBRv1.
+heuristic (\Cref{fig:heuristic}). As described in \Cref{sec:splitting:heuristic},
+this methodology allows us to study split settings by measuring the much smaller
+parameter space of end-to-end connections. We find that connection-splitting is
+likely to improve throughput on lossy paths for CUBIC, BBRv2, and BBRv3
+connections, but not for BBRv1.
 
 \Cref{fig:2d-heatmap} visualizes our cached end-to-end measurements as link rate
  utilization heatmaps of loss vs. delay.
@@ -690,6 +699,8 @@ so-called ``model-based'' congestion control algorithms seem to now react to
 loss as a congestion signal, as the BBR algorithm continues to evolve.
 
 \subsection{Finding 2: TCP BBRv3 vs. TCP CUBIC}
+\label{sec:splitting:results:finding2}
+
 \paragraph{Finding: There exist classes of network paths where TCP BBRv3 would
  significantly benefit from splitting but TCP CUBIC would not.}
 
@@ -807,6 +818,8 @@ connection-splitting can be extended to model new types of networks, especially
 in space.
 
 \subsection{Finding 3: QUIC Congestion Control}
+\label{sec:splitting:results:finding3}
+
 \paragraph{Finding: QUIC implementations of the same congestion control schemes
  vary significantly, and further differ from Linux's TCP implementations.}
 
@@ -943,6 +956,7 @@ undesirable, these results suggest that it is valuable to consistently
 re-evaluate these claims.
 
 \section{Accuracy Analysis}
+\label{sec:splitting:accuracy}
 
 \input{splitting-paper/figures_tex/accuracy-split.tex}
 
