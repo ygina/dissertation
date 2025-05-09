@@ -185,11 +185,9 @@ multiset $R$ is defined as $\sum_{x \in R} x^i$.
 The sender then computes the first $m$ power sums of $S$ and calculates the
 respective differences $d_i$ for $i \in [1,m]$, producing the following
 system of $m$ equations:
-\vspace{-0.2cm}
 \[
     \left\{\, \sum_{x \in S\setminus R} x^i = d_i \mid i \in [1,m] \right\}.
 \]
-\vspace{-0.4cm}
 
 Instead of transmitting an unbounded number of power sums, the receiver only
 maintains and sends the first $t$ power sums. Efficiently solving these $t$
