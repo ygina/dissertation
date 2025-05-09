@@ -277,7 +277,7 @@ based on an ideal setting:
      throughput'' of a connection by measuring the long-lived ``end-to-end
      throughput'' on each segment of the split path and taking the minimum.
   \end{tcolorbox}
-  \caption{\small A heuristic for evaluating split behavior from end-to-end behavior in
+  \caption{A heuristic for evaluating split behavior from end-to-end behavior in
    an emulated network.}
   \label{fig:heuristic}
 \end{figure}
@@ -337,7 +337,7 @@ def compose(s1: NetworkModel,
 def throughput(s: NetworkModel) -> float:
     return run_emulation(s)
 \end{lstlisting}
-\captionof{lstlisting}{\small An interface for modeling a network path and estimating
+\captionof{lstlisting}{An interface for modeling a network path and estimating
  throughput. The \texttt{compose()} function models an end-to-end network path
  from two path segments. The \texttt{throughput()} function obtains a throughput
  measurement for a path segment.}
@@ -355,7 +355,7 @@ def pred_e2e_throughput(s1: NetworkModel,
     s = compose(s1, s2)
     return throughput(s)
 \end{lstlisting}
-\captionof{lstlisting}{\small Functions that apply our simplified network model and the
+\captionof{lstlisting}{Functions that apply our simplified network model and the
  split throughput heuristic (\Cref{fig:heuristic}) to predict split and
  end-to-end throughput, using the interface in \Cref
  {lst:multi-segment-network-model}.}
