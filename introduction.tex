@@ -1,2 +1,57 @@
 \chapter{Introduction}
-...
+
+In the Internet's canonical model, transport is end-to-end and implemented only
+in hosts. Traditionally, routers and other network components forwarded IP
+datagrams without regard to their payloads or flow membership~\cite
+{saltzer1984endtoend, clark1988darpa}; only hosts thought about connections,
+reliable delivery, or flow-by-flow congestion control.
+
+In practice, however, the best behavior for a transport protocol depends on the
+particulars of the network path. An appropriate retransmission or
+congestion-control scheme for a heavily-multiplexed wired network wouldn't be
+ideal for paths that include a high-delay satellite link, Wi-Fi with bulk ACKs
+and frequent reordering, or a cellular WWAN~\cite
+{kuhn2021quic-over-sat,goyal2017abc}.
+
+By the 1990s, many networks had broken from the canonical model by deploying
+in-network TCP accelerators, also known as ``performance-enhancing proxies''
+(PEPs)~\cite{rfc3135}. TCP PEPs can split an end-to-end connection into
+multiple concatenated connections~\cite
+{kapoor2005achieving,caini2006pepsal,davern2011httpep,farkas2012splittcp,hayes2019mmwave},
+buffer and retransmit packets over a lossy link~\cite
+{balakrishnan1995snoop,polese2017milliproxy}, virtualize congestion
+control~\cite{cronkite2016vcc,he2016acdc,mihaly2012mobilePEP}, resegment the
+byte stream, and enable forward error correction, explicit congestion
+notification, or other segment-specific enhancements. Because TCP isn't
+encrypted or authenticated, PEPs can achieve this transparently, without the
+knowledge or cooperation of end hosts. Roughly 20--40\% of Internet paths cross
+at least one TCP PEP~\cite{imc2011handley, edeline2019bottomup}.
+
+While many flows benefit from PEPs, their use carries a cost: protocol
+ossification~\cite{papastergiou2017deossifying, edeline2019bottomup}. When a
+middlebox inserts itself in a connection and enforces its preconceptions about
+the transport protocol, it can thwart the protocol's evolution, dropping
+traffic that uses an upgraded version or new options. TCP PEPs have hindered or
+complicated the deployment of many TCP improvements, such as ECN++, tcpcrypt,
+TCP extended options, and multipath TCP~\cite
+{mandalari2018ecnplusplus,imc2011handley,raiciu2012multipathtcp}.
+
+In response to this ossification, and to an increased emphasis on privacy and
+security, post-TCP transport protocols have been designed to be impervious to
+meddling middleboxes, by encrypting and authenticating the transport header. We
+call these newer transport protocols ``opaque.'' The most prevalent is
+QUIC~\cite{rfc9000}, found in billions of installed Web browsers and millions
+of servers~\cite{zirngibl2021quicdeployment}; other opaque transport protocols
+are used in WebRTC/SRTP~\cite{rfc8834webrtc}, Zoom~\cite
+{zoom}, BitTorrent~\cite{bittorrent}, and Mosh/SSP~\cite{winstein2012mosh}.
+
+This opacity means that middleboxes can't interpose themselves on a connection
+or understand the sequence numbers of packets in transit.  This prevents PEPs
+from providing assistance, reducing---in some situations---the performance of
+opaque transport protocols~\cite
+{border2020quicsat-presentation,kuhn2021quic-over-sat,martin2022bbr-quic-sat,border2022evaluating,kosek2022quicpep}.
+It's possible to co-design protocols and PEPs to preserve security and privacy
+while permitting assistance from credentialed middleboxes~\cite
+{ford2008logjam,sherry2015blindbox, dogar2012tapa,iyengar2009flow}, but
+challenging to do so without tightly coupling these components, risking
+ossification and fragility.

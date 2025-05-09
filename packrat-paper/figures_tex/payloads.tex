@@ -18,10 +18,6 @@
     % \centering
     % Client payloads
     \begin{subfigure}[b]{0.48\linewidth}
-        % \begin{protopayload}{\texttt{Discover}}
-        %  \begin{lstlisting}
-        %  \end{lstlisting}
-        % \end{protopayload}
         \begin{protopayload}{\texttt{Init}}
             \begin{lstlisting}[language=Rust,basicstyle=\footnotesize]
 epoch: u32;
@@ -45,11 +41,6 @@ code: Vec<Symbol>;
     \hfill
     % Proxy payloads
     \begin{subfigure}[b]{0.48\linewidth}
-%         \begin{protopayload}{\texttt{DiscoverACK}}
-%          \begin{lstlisting}[language=Rust,basicstyle=\footnotesize]
-% mem_bytes: usize;
-%          \end{lstlisting}
-%         \end{protopayload}
         \begin{protopayload}{\texttt{InitACK}}
             \begin{lstlisting}[language=Rust,basicstyle=\footnotesize]
 epoch: u32;
@@ -72,7 +63,7 @@ udp_payload: Vec<u8>;
         \label{fig:payloads:proxy}
     \end{subfigure}
   % Caption
-  \caption{\Sys protocol messages to initialize the connection and generate
+  \caption{Packrat protocol messages to initialize the connection and generate
    retransmissions. There are two types of eACKS: the IBLT eACK
    we introduce in \Cref{sec:eack:iblt} and an equivalent implementation of the
    power sum quACK from \cite{yuan2024sidekick}. The \texttt{Symbol}

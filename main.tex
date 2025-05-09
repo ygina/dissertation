@@ -8,7 +8,7 @@
 %
 \documentclass{report}
 \usepackage{suthesis-2e}
-\usepackage[dvipsnames]{xcolor}
+\usepackage[dvipsnames,table]{xcolor}
 
 % Math & fonts
 \usepackage{amsmath, amssymb}
@@ -56,6 +56,13 @@
 
 % Inline code
 \newcommand\code[1]{\lstinline$#1$}
+
+% Colors
+\definecolor{LighterGreen}{RGB}{190,230,190}
+\definecolor{LightGreen}{RGB}{150,210,140}
+\definecolor{LightRed}{RGB}{255,100,100}
+\definecolor{LighterRed}{RGB}{255,150,150}
+\definecolor{LightestRed}{RGB}{255,200,200}
 
 \lstdefinelanguage{Rust} {
  keywords={fn, trait, struct, bool, u32, u64, u16, u8, usize},
