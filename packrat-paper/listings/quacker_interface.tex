@@ -1,0 +1,23 @@
+\begin{lstfloat}[t]
+\begin{lstlisting}[language=Rust]
+struct Packrat {
+    /// Serialize a Packrat message to send
+    fn send_init(params: ...) -> SendBuf;
+    fn send_eack(); -> SendBuf;
+    fn send_eack_rateless(m: usize); -> SendBuf;
+    /// Handle the incoming message and return the
+    /// payload if it is a `Retransmit` message.
+    fn recv_payload(buf: RecvBuf) -> &[u8]
+    /// Manage eACK state
+    fn is_ready() -> bool;
+    fn insert(id: u32) -> bool;
+    fn reset();
+}
+\end{lstlisting}
+\vspace{-0.3cm}
+\captionof{lstlisting}{Pseudocode interface for the \texttt{packrat} library.
+ The library consolidates shared functionality at the client for sending
+ eACKs. The client is responsible for reading and writing to the actual \Sys
+ socket.}
+\label{lst:quacker-interface}
+\end{lstfloat}

@@ -8,6 +8,70 @@
 %
 \documentclass{report}
 \usepackage{suthesis-2e}
+\usepackage[dvipsnames]{xcolor}
+
+% Math & fonts
+\usepackage{amsmath, amssymb}
+\usepackage[scaled=0.85]{beramono}
+
+% Figures and floats
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{stfloats}
+\usepackage[section]{placeins}
+
+% Tables
+\usepackage{booktabs}
+
+% Text tweaks and structure
+\usepackage{enumitem}
+\usepackage{xspace}
+\usepackage{microtype}
+
+% References and links
+\usepackage{cite}
+\usepackage{hyperref}
+\usepackage{cleveref}
+
+% Listings
+\usepackage{listings}
+\usepackage{tcolorbox}
+
+% Custom float for listings
+\usepackage{newfloat}
+\newfloat{lstfloat}{htbp}{lop}
+\floatname{lstfloat}{Listing}
+\def\lstfloatautorefname{Listing}
+
+% Cref tweaks
+\makeatletter
+\newcommand{\nospaceS}{\S\@gobble}
+\makeatother
+\Crefname{section}{\nospaceS}{\nospaceS}
+\Crefname{figure}{Fig.}{Figs.}
+\Crefname{table}{Tab.}{Tabs.}
+\Crefname{listing}{Lst.}{Lsts.}
+\crefalias{lstlisting}{listing}
+
+% Inline code
+\newcommand\code[1]{\lstinline$#1$}
+
+\lstdefinelanguage{Rust} {
+ keywords={fn, trait, struct, bool, u32, u64, u16, u8, usize},
+ keywordstyle=\color{BrickRed}\bfseries,
+ ndkeywords={QuACK, Quacker, ClientQuacker, Quack},
+ ndkeywordstyle=\color{NavyBlue}\bfseries,
+ basicstyle=\footnotesize\ttfamily,
+ identifierstyle=\color{black},
+ sensitive=false,
+ comment=[l]{///},
+ commentstyle=\color{gray}\ttfamily\bfseries,
+ showstringspaces=false,
+ string=[s]{"}{"},
+ stringstyle=\color{ForestGreen}\ttfamily,
+}
+
 \dept{Computer Science}
 
 \begin{document}

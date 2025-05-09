@@ -1,4 +1,4 @@
-\begin{table*}[h]
+\begin{table*}[ht]
   \centering
   % \renewcommand{\arraystretch}{0.000023}
   \small
@@ -12,7 +12,7 @@
     & window  & & & & \\
     Strawman 1c & Parse identifier & N/A & $n$ (TCP headers) & $b$ & No \\
     Strawman 2 & Parse identifier, & Concatenate and hash & $1$ & $32+4$ & Yes \\
-    & concatenate and hash & $n \choose m$ subsets & & (hash and count) & \\
+    & concatenate and hash & $\binom{n}{m}$ subsets & & (hash and count) & \\
     Power Sums & Parse identifier, $t$ modular & Plug $n$ candidate roots into a & $1$ & $4+b+b\cdot t$ & Yes \\
     & multiplications and additions & degree-$m$ polynomial OR solve & & (count, last value, & \\
     & & system of $m$ polynomial equations & & $t$ power sums) & \\
