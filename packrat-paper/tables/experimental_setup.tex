@@ -3,7 +3,7 @@
     \begin{tabular}{r l l l l l l}
         \toprule
         \bf
-        & Data Receiver & Proxy $\leftrightarrow$ & eACK & Num & Cache & Reorder \\
+        & Data Receiver & Proxy $\leftrightarrow$ & quACK & Num & Cache & Reorder \\
         & (Client) $\leftrightarrow$ Proxy & Data Sender (Server) &  Frequency & Symbols & Capacity & Delay \\
         \midrule
          HTTP/3 & 2ms, 50 Mbit/s, 4\% loss & 30ms, 20 Mbit/s, 0\% loss & 10ms, 16pkts & 160+rateless & 48 kB & 30 ms \\
@@ -15,10 +15,8 @@
      represent scenarios with loss near the data receiver where the proxy is
      located behind a Wi-Fi access point, LEO satellite ground station, and
      cellular base station, respectively. The number of symbols is configured
-     for the IBLT eACK, which in practice sends only a short prefix of symbols
+     for the IBLT quACK, which in practice sends only a short prefix of symbols
      over the wire.
-     % We also specify the quACK frequency,
-     % cache capacity, and reorder delay in end-to-end signals.
      }
     \label{tab:experiment-config}
 \end{table*}

@@ -310,7 +310,7 @@ configuration request. The proxy completes the handshake with an \texttt
 {InitACK} and a new UDP address specific to this base connection.
 
 The client configuration in \texttt{Init} includes several parameters (\Cref
-{fig:payloads:client}). This includes: the type of encoding used for the eACK,
+{fig:payloads:client}). This includes: the type of encoding used for the quACK,
 the number of symbols to use in the encoding, the byte offset in the randomly
 encrypted payload at which to parse the 4-byte identifier, and the size of the
 requested cache. The client may dynamically adjust these configurations with
@@ -318,7 +318,7 @@ new \texttt{Init} packets as it learns more about the network path.
 
 The proxy accepts or rejects these configurations with an \texttt{InitACK}, and
 is ready to cache packets and retransmit. On receiving an \texttt{InitACK}, the
-client is free to send eACKs.
+client is free to send quACKs.
 
 \subsection{Proxy Behavior}
 

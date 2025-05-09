@@ -28,7 +28,7 @@ id_offset: u16;
 mem_bytes: u32;
             \end{lstlisting}
         \end{protopayload}
-        \begin{protopayload}{\texttt{eACK}}
+        \begin{protopayload}{\texttt{quACK}}
             \begin{lstlisting}[language=Rust,basicstyle=\footnotesize]
 count: u32;
 last_identifier: u32;
@@ -64,7 +64,7 @@ udp_payload: Vec<u8>;
     \end{subfigure}
   % Caption
   \caption{Packrat protocol messages to initialize the connection and generate
-   retransmissions. There are two types of eACKS: the IBLT eACK
+   retransmissions. There are two types of quACKS: the IBLT quACK
    we introduce in \Cref{sec:eack:iblt} and an equivalent implementation of the
    power sum quACK from \cite{yuan2024sidekick}. The \texttt{Symbol}
    uses 5 and 4 bytes in each type, respectively.}

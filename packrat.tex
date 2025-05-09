@@ -88,10 +88,10 @@ retransmission.}: a technique for network-originated retransmissions
 for encrypted end-to-end transport connections, yielding performance
 benefits in lossy settings. We adapt set-reconciliation techniques
 based on the Rateless IBLT~\cite{yang2024practical} to let the
-receiver efficiently acknowledge encrypted packets (in an ``eACK'') to a network
+receiver efficiently acknowledge encrypted packets (in a ``quACK'') to a network
 function, without modifying the sender or the underlying wire
 format. Compared with Sidekick, which also involves
-acknowledgments over encrypted sequence numbers, these eACKs
+acknowledgments over encrypted sequence numbers, these quACKs
 are faster to decode, making them appropriate for a deployment
 where network functions are the ones interpreting acknowledgments over
 encrypted sequence numbers from many connections in parallel and
@@ -134,7 +134,7 @@ wire format of the underlying connection. We make the following contributions:
     \item An acknowledgment of encrypted packets based on the Rateless IBLT
      that is fast to decode (\Cref{sec:eack}).
     \item Optimizations to improve proxy
-     scalability based on the co-location of the endpoint and eACK sender
+     scalability based on the co-location of the endpoint and quACK sender
      (\Cref{sec:eack:hints}).
     \item An implementation of the Packrat proxy and integrations with three
      applications that use encrypted transport (\Cref{sec:implementation}).
@@ -223,7 +223,7 @@ packets itself~\cite{yuan2024sidekick}. This limits its usefulness
 to when the loss is near the data \textit{sender}.
 However, client traffic (which is near the lossy last-mile) is typically heavier
 in the downlink direction. In this paper, we similarly leverage set
-reconciliation in eACKs for referring to encrypted packets,
+reconciliation in quACKs for referring to encrypted packets,
 but to send network-originated retransmissions.
 
 \section{The Reordering Problem}
@@ -267,7 +267,7 @@ packet (\Cref{fig:reordering-problem:unmodified}): The server sends 1250-byte pa
 which is 1 packet every ms. The client drops packet \#2 but
 receives \#1, \#3, \#4, etc. If the RTT between the client and proxy is 10 ms,
 by the time the client receives the in-network retransmission of \#2 (from
-eACKing \#1 and \#3), it could
+quACKing \#1 and \#3), it could
 have already ACKed $10$ more packets with higher sequence
 numbers up to \#12. The server unnecessarily retransmits \#2 and treats the
 loss as a congestion signal.
@@ -316,7 +316,7 @@ ranges. Using Packrat, the QUIC ACK instead includes the cumulative sequence
 number, but then only the ranges for packets that have been received for at
 least the time it takes for the proxy to retransmit. This
 \textit{reorder delay} includes the RTT to the proxy
-as well as any delay in sending the eACK.
+as well as any delay in sending the quACK.
 In the example, 10 ms after detecting the gap in \#2, the ACK consists
 of packets \#1-2 and any cumulative sequence numbers beyond \#2 (up to \#11)
 (\Cref{fig:reordering-problem:packrat}).
@@ -359,15 +359,15 @@ datagram.
 
 \subsection{Proxy Behavior}
 
-The behavior of the proxy is to decode incoming eACKs and retransmit missing
+The behavior of the proxy is to decode incoming quACKs and retransmit missing
 packets, and to cache and evict packets from the base connection for
 retransmission. The state at the proxy for each base connection is (1) a packet
-cache and (2) an eACK that represents the cumulative encoding of all packets
+cache and (2) a quACK that represents the cumulative encoding of all packets
 received by the client that are no longer in the cache.
 
-\paragraph{Decode eACKs and retransmit.}
+\paragraph{Decode quACKs and retransmit.}
 
-The \texttt{eACK} definitively states which packets have been \textit{received}
+The \texttt{quACK} definitively states which packets have been \textit{received}
 by the client. Based on its knowledge of which packets it has \textit{sent} to
 the client, the proxy evicts any newly received packets from the cache. The
 proxy then applies a loss detection policy to determine which of its sent
@@ -386,13 +386,13 @@ the payload to the base connection.
 
 The proxy caches packets with the base connection 4-tuple in the order they are
 forwarded to the client, up to the pre-configured cache size. It evicts packets
-if an \texttt{eACK} indicates they have been received and no longer need to be
-retransmitted. Whenever a packet is evicted, it is also encoded in the eACK
+if an \texttt{quACK} indicates they have been received and no longer need to be
+retransmitted. Whenever a packet is evicted, it is also encoded in the quACK
 state of the base connection.
 
 If a packet of the base connection arrives but the cache is full, the
 proxy \textit{optimistically} evicts the oldest packets to make room. When
-retransmissions are uncommon, this allows the client to eACK less frequently
+retransmissions are uncommon, this allows the client to quACK less frequently
 and the proxy to maintain a significantly smaller cache. Unlike
 connection-splitters, the proxy does not actually make reliability \textit
 {guarantees}, and the client can always fall back to end-to-end retransmissions
@@ -400,13 +400,13 @@ after resetting the packrat connection, as described below.
 
 \paragraph{Reset the packrat connection.}
 
-If the proxy is unable to decode a eACK for any reason, it sends a \texttt
+If the proxy is unable to decode a quACK for any reason, it sends a \texttt
 {Reset} to the client. These reasons include but are not limited to: an
 insufficient number of symbols to decode the missing packets, a necessary
 retransmission was optimistically evicted,
 a packet corruption caused the encoded identifiers
 to become out of sync, etc. The \texttt{Reset} indicates the start of a new
-epoch in which the client and proxy encode identifiers into their eACKs.
+epoch in which the client and proxy encode identifiers into their quACKs.
 
 Base connections that use the Packrat protocol must always be able to fall back to
 end-to-end mechanisms when the Packrat is unable to send in-network
@@ -420,12 +420,12 @@ changes network paths.
 
 In addition to modifying end-to-end acknowledgments to avoid sending excessive
 reordering signals to the server, the primary behavior of the client is
-to \texttt{eACK} at a specified frequency, e.g., every 10 ms or every 16
+to \texttt{quACK} at a specified frequency, e.g., every 10 ms or every 16
 packets. This frequency is typically the same as that of the underlying
-acknowledgment scheme. The eACKs are cumulative representations of all the
+acknowledgment scheme. The quACKs are cumulative representations of all the
 packets ever received since sending the last \texttt{Init}.
 
-\paragraph{Selective eACKing.}
+\paragraph{Selective quACKing.}
 
 An on-path proxy handles many tens to hundreds of thousands of concurrent
 connections at once. Any per-packet overhead incurred by the Packrat protocol
@@ -437,9 +437,9 @@ acknowledgment of encrypted packets can be more suitable in the setting of
 in-network retransmissions for its computational efficiency.
 
 If the client does not expect it needs a retransmission, there is not much point
-in sending an eACK. In NACK schemes, where the client detects loss and asks for
-a retransmission, it can choose to selectively eACK only when it would
-otherwise send a NACK. Note that the client can omit regular eACKs without the
+in sending a quACK. In NACK schemes, where the client detects loss and asks for
+a retransmission, it can choose to selectively quACK only when it would
+otherwise send a NACK. Note that the client can omit regular quACKs without the
 cache exploding in size because the proxy optimistically evicts packets, and
 these are likely to be received or the client would have NACKed.\\
 
@@ -512,9 +512,9 @@ must (unicast) retransmit, which captures both server and network load.
 \input{packrat-paper/listings/quacker_interface}
 
 Clients participate in the Packrat protocol by knowingly opting in to proxy
-assistance and sending eACKs. Clients share much of the same functionality,
-such as initializing the Packrat connection, maintaining a cumulative eACK of
-received packets, and determining when to eACK based on a set frequency. We
+assistance and sending quACKs. Clients share much of the same functionality,
+such as initializing the Packrat connection, maintaining a cumulative quACK of
+received packets, and determining when to quACK based on a set frequency. We
 implement a library for this shared functionality (\Cref{lst:quacker-interface})
 and integrate it into our three clients.
 The library uses $\approx\!700$ lines of Rust and includes C bindings.
@@ -524,7 +524,7 @@ The library can serialize and deserialize messages in the Packrat connection, bu
 the client is responsible for reading and writing to the actual socket. Each
 application uses a packet loop to interact with a socket for the base
 connection. We incorporate the Packrat socket into the same loop, which allows us to
-consider hints from the application for rateless and selective eACKing
+consider hints from the application for rateless and selective quACKing
 (\Cref{sec:eack:hints}). We also incorporate a reorder delay in the base
 connection (\Cref{sec:packet-protocol:problem}).
 
@@ -537,17 +537,17 @@ its \texttt{InitACK} and \texttt{Reset} messages can be ordered along with the
 data packets.
 
 The proxy inspects each packet for magic discovery packets, those that match the
-4-tuples of the base connections it is helping, and also eACKs.
+4-tuples of the base connections it is helping, and also quACKs.
 It handles each packet as described in \Cref
 {sec:packrat-protocol:proxy-behavior}. We use our \texttt{eack} library to
-encode and decode eACKs. The proxy use $\approx\!1000$ lines of Rust.
+encode and decode quACKs. The proxy use $\approx\!1000$ lines of Rust.
 
 \paragraph{Multicast proxy.}
 
 We also implement an extension to the Packrat proxy for IP multicast, or more
 generally, multiple clients that share a base data stream. The proxy maintains
 a fixed-size cache for the multicast 4-tuple with optimistic eviction only. For
-each client, the proxy maintains a eACK and a \textit{virtual cache}. The
+each client, the proxy maintains a quACK and a \textit{virtual cache}. The
 virtual cache contains (1) a global index in the base cache of the client's
 first unacknowledged packet and (2) pairs of global indexes that indicate which
 packet to insert and where to insert it because it was retransmitted to the
@@ -641,9 +641,9 @@ representing the congested backhaul. Importantly, the emulated loss is
 attributed to non-congestive factors such as wireless interference.
 
 The remaining configurations in \Cref{tab:experiment-config} are for the Packrat
-protocol. We set the eACK frequency to the same as the protocol's underlying
+protocol. We set the quACK frequency to the same as the protocol's underlying
 acknowledgment scheme. The number of symbols determines how many missing
-packets can be decoded between each eACK. Though the IBLT eACK needs more symbols
+packets can be decoded between each quACK. Though the IBLT quACK needs more symbols
 because of its non-determinism, choosing a large number of symbols minimally
 impacts the encoding overhead, which scales logarithmically, and the link
 overhead, because the sender can transmit only a prefix of symbols
@@ -703,7 +703,7 @@ split connection, this behavior is due to the congestion window on the near
 path segment being able to compensate for high loss with a short delay, to a
 certain threshold. With Packrat, this is because the reorder delay initially
 hides loss from the congestion control algorithm at the data sender. As the
-loss increases, we observe that the proxy fails to decode the eACK more often
+loss increases, we observe that the proxy fails to decode the quACK more often
 and resets the connection. Each time there is a reset, the receiver falls back
 to end-to-end retransmissions, signaling more loss (and congestion) to the data
 sender. This suggests that the congestion response to loss with Packrat can be
@@ -738,7 +738,7 @@ a frame still needs to be retransmitted. In this transport protocol, a frame
 needs to be retransmitted if two packets are lost in a row. Thus at 10\% loss,
 the 99th percentile delay of both mechanisms is the minimum of 190 ms. In the
 remaining percentile, one more out-of-order packet arrives after $20$ ms,
-draining the last of the buffer and generating an eACK or NACK. The length of
+draining the last of the buffer and generating a quACK or NACK. The length of
 the stall is then the 100 or 300 ms RTT with the proxy or server. The unordered
 tunnel exhibits a similar behavior to Packrat.
 
@@ -779,18 +779,18 @@ detrimental for performance.
 \subsection{Link Overheads}
 \input{packrat-paper/figures_tex/link_overheads}
 
-In this section, we analyze how sending eACKs with the optimizations in \Cref
+In this section, we analyze how sending quACKs with the optimizations in \Cref
 {sec:eack:hints} impacts the link overheads in the network.
 \Cref{fig:link-overheads} displays the number of packets and bytes sent on each
 link between the client, proxy, and server in the HTTP and media applications.
 As a proportion of the volume in bytes sent by both endpoints of the
 application, the HTTP client makes up $1.3\%$ of the traffic with Packrat and
 $0.7\%$ without. The media client makes up $8.2\%$ of the traffic with Packrat
-and $1.0\%$ without. We find that that we can reasonably think of eACKs as
+and $1.0\%$ without. We find that that we can reasonably think of quACKs as
 control packets in the common case.
 
-\paragraph{Rateless eACKs.}
-Using the rateless property to send smaller eACKs
+\paragraph{Rateless quACKs.}
+Using the rateless property to send smaller quACKs
 reduces the number of bytes the client sends by $3.6\!\times$ (\Cref
 {fig:link-overheads:http-bytes}) and $1.8\!\times$ (\Cref
 {fig:link-overheads:media-bytes}) compared to Packrat without the optimization.
@@ -802,22 +802,22 @@ conservatively when initializing the Packrat connection while being able to
 dynamically adjust to changing loss conditions, particularly in less controlled
 non-emulation environments.
 
-\paragraph{Sending eACKs on NACK.}
+\paragraph{Sending quACKs on NACK.}
 
 % media sender tx_packets 25.786554138093248 -> 12.33599987063784
-Sending a eACK only when the client would otherwise send a NACK reduces the
+Sending a quACK only when the client would otherwise send a NACK reduces the
 number of packets the media client sends $1.9\!\times$ (\Cref
 {fig:link-overheads:media-packets}). Note that without sending on NACK, we
-configured the media client to eACK every other packet to balance latency with
-frequent eACKing. The media client sends more packets than end-to-end because
-although it only ACKs when there is a missing \textit{frame}, it eACKs when
+configured the media client to quACK every other packet to balance latency with
+frequent quACKing. The media client sends more packets than end-to-end because
+although it only ACKs when there is a missing \textit{frame}, it quACKs when
 there is a missing \textit{packet} because the FEC is opaque to the proxy.
 % media sender tx_bytes 1275.1961129433735 -> 147.66572118181435
 % 1127.53 * 8 = 9 Kbit
 
 \paragraph{Base connection improvements.}
 
-Even though the HTTP client eACKs at a similar frequency to which it ACKs, the
+Even though the HTTP client quACKs at a similar frequency to which it ACKs, the
 client sends a similar number of packets with and without the Packrat (\Cref
 {fig:link-overheads:http-packets}). The proxy in the end-to-end scenario sends
 nearly twice as many ACKs to the server because the number of ACKs depends on
@@ -841,17 +841,17 @@ In this experiment, we analyze the number of cycles that the proxy
 needs to process each
 packet in the HTTP/3 benchmark, and use the per-packet overheads to
 extrapolate the capacity of a CPU-constrained proxy. These overheads
-include both eACK operations and transport-protocol logic for e.g.,
+include both quACK operations and transport-protocol logic for e.g.,
 packet triaging, loss detection, and cache management.
 
 Each data packet on the base connection takes on average $1002$ cycles/packet.
 The main overhead comes from adding the packet to a ring buffer used as the
 packet cache.
 
-Each eACK on the Packrat connection takes on average 27716 cycles/packet. The
-proxy determines which packets to retransmit based on the eACK and evicts
+Each quACK on the Packrat connection takes on average 27716 cycles/packet. The
+proxy determines which packets to retransmit based on the quACK and evicts
 packets. Loss detection involves encoding a delta of packets since the last
-eACK into the existing state, as well as decoding the received eACK. Encoding
+quACK into the existing state, as well as decoding the received quACK. Encoding
 uses a total of $7156/27716 = 25.8\%$ of the cycles and decoding $3560/27716 =
 12.8\%$. With a total of $38.6\%$ of the processing time spent on IBLT
 operations, this implies that encoding and decoding are valuable to optimize.
@@ -868,7 +868,7 @@ operations, this implies that encoding and decoding are valuable to optimize.
 % WARN [proxy::cycles] transport,encode,decode
 % WARN [proxy::cycles] 27716,7156,3560 (total=6200,prop=1.000,1.000,0.516)
 
-In this application, there is approximately one eACK for every $16.3$ data
+In this application, there is approximately one quACK for every $16.3$ data
 packets. If each data packet uses a full MTU of 1500 bytes, this means a single
 core of a 2.4 GHz CPU on a proxy would theoretically be able to handle 10.7
 Gbit/s\footnote{ $2.4\text{ Gcycles/s }
@@ -913,9 +913,9 @@ at the Packrat proxy is 64kB per connection, similar to a typical TCP window siz
 
 The cache grows quickly because each data packet is large, but evicts
 packets every 10~ms when
-it receives an eACK (\Cref{fig:memory:http}). The minimum cache size is
+it receives a quACK (\Cref{fig:memory:http}). The minimum cache size is
 $\approx\!10$ kB, the size of the outstanding packets between the client and
-proxy. A spike occurs when an eACK is dropped, at which point the proxy
+proxy. A spike occurs when a quACK is dropped, at which point the proxy
 optimistically evicts. The proxy resets the connection if there is an
 error, which is more common with a smaller cache, and drops the cache
 size to 0.
@@ -923,7 +923,7 @@ size to 0.
 \paragraph{Low-latency media with FEC.}
 
 The media application relies on optimistic eviction to keep the cache small
-since the client selectively eACKs (\Cref{fig:memory:media}). The
+since the client selectively quACKs (\Cref{fig:memory:media}). The
 line plateaus at the maximum cache size because the proxy
 assumes these packets have been received. The cache size only needs to fit 1-2
 RTTs of packets between the client and proxy.
