@@ -3,15 +3,18 @@
     \begin{tabular}{r l l l l l l}
         \toprule
         \bf
-        & Data Receiver & Proxy $\leftrightarrow$ & quACK & Num & Cache & Reorder \\
-        & (Client) $\leftrightarrow$ Proxy & Data Sender (Server) &  Frequency & Symbols & Capacity & Delay \\
+        & Data Receiver & Proxy $\leftrightarrow$ Data & QuACK & Num & Cache & Reorder \\
+        & (Client) $\leftrightarrow$ Proxy & Sender (Server) &  Interval & Symbols & Capacity & Delay \\
         \midrule
-         HTTP/3 & 2ms, 50 Mbit/s, 4\% loss & 30ms, 20 Mbit/s, 0\% loss & 10ms, 16pkts & 160+rateless & 48 kB & 30 ms \\
-         Media & 50ms, 50 Mbit/s, 10\% loss & 100ms, 20 Mbit/s, 0\% loss & On NACK & 40+rateless & 20 kB & 110 ms \\
-         Multicast & 10ms, 50 Mbit/s, 10\% loss & 30ms, 20 Mbit/s, 0\% loss & On NACK & 40+rateless & 64 kB & 30 ms \\
+         HTTP/3 & 2ms, 50 Mbit/s, & 30ms, 20 Mbit/s, & 10ms, & 160+ & 48 kB & 30 ms \\
+         & 4\% loss & 0\% loss & 16pkts & rateless & & \\
+         Media & 50ms, 50 Mbit/s, & 100ms, 20 Mbit/s, & On NACK & 40+ & 20 kB & 110 ms \\
+         & 10\% loss & 0\% loss & & rateless & & \\
+         Multicast & 10ms, 50 Mbit/s, & 30ms, 20 Mbit/s, & On NACK & 40+ & 64 kB & 30 ms \\
+         & 10\% loss & 0\% loss & & rateless & & \\
          \bottomrule
     \end{tabular}
-    \caption{Experimental configuration of each  benchmark. The network settings
+    \caption{Experimental configuration of each benchmark. The network settings
      represent scenarios with loss near the data receiver where the proxy is
      located behind a Wi-Fi access point, LEO satellite ground station, and
      cellular base station, respectively. The number of symbols is configured

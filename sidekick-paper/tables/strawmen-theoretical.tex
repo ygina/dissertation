@@ -4,18 +4,18 @@
   \small
   \begin{tabular}{llllll}
     \toprule
-    & \bf & \bf & \bf Num Additional & \bf Packet Payload & \bf Cumu-\\
-    & \bf Per-Packet Encode Time & \bf Decode Time & \bf Proxy Packets & \bf Size (bytes) & \bf lative?\\
+    & \bf Per-Packet & \bf & \bf Num QuACK & \bf Payload & \bf Cumu-\\
+    & \bf Encode Time & \bf Decode Time & \bf Packets & \bf Size (bytes) & \bf lative?\\
     \midrule
-    Strawman 1a & Parse identifier & N/A & $n$ & $b$ & No \\
-    Strawman 1b & Parse identifier, move sliding & N/A & $n$ & $b \cdot window$ & No \\
+    Strawman 1a & N/A & N/A & $n$ (UDP) & $b$ & No \\
+    Strawman 1b & Move sliding & N/A & $n$ (UDP) & $b \cdot window$ & No \\
     & window  & & & & \\
-    Strawman 1c & Parse identifier & N/A & $n$ (TCP headers) & $b$ & No \\
-    Strawman 2 & Parse identifier, & Concatenate and hash & $1$ & $32+4$ & Yes \\
-    & concatenate and hash & $\binom{n}{m}$ subsets & & (hash and count) & \\
-    Power Sums & Parse identifier, $t$ modular & Plug $n$ candidate roots into a & $1$ & $4+b+b\cdot t$ & Yes \\
-    & multiplications and additions & degree-$m$ polynomial OR solve & & (count, last value, & \\
-    & & system of $m$ polynomial equations & & $t$ power sums) & \\
+    Strawman 1c & N/A & N/A & $n$ (TCP) & $b$ & No \\
+    Strawman 2 & Concatenate & Concatenate and & $1$ (UDP) & $32+4$ (hash & Yes \\
+    & and hash & hash $\binom{n}{m}$ subsets & & and count) & \\
+    Power Sums & $t$ modular & Plug $n$ candidate & $1$ (UDP) & $4+b+b\cdot t$ ($t$ & Yes \\
+    & multiplications & roots into a & & power sums, last & \\
+    & and additions & degree-$m$ polynomial & & $t$ value, count) & \\
     \bottomrule
   \end{tabular}
   \caption{Strawmen compared to the power sum quACK representing $n$ packets

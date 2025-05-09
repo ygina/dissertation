@@ -2,22 +2,19 @@
   \centering
   % \renewcommand{\arraystretch}{0.000023}
   \small
-  \begin{tabular}{llllllll}
+  \begin{tabular}{lllll}
     \toprule
-                 &                 &            & \bf QuACK     & \bf Thre-     &                                  & \bf Emu-   & \bf Real- \\
-    \bf Scenario & \bf Link 1      & \bf Link 2 & \bf Interval & \bf shold     & \bf Success Metric               & \bf lated? & \bf World? \\
+    & \bf Data Sender  & \bf Proxy $\leftrightarrow$ Data & \bf QuACK     & \\
+    & \bf (Client) $\leftrightarrow$ Proxy & \bf Receiver (Server) & \bf Interval & \bf Threshold \\
     \midrule
-    \#1 Low-  & $1$ ms delay, $3.6\%$  & $25$ ms delay, $0\%$ & $2$ pkts & $8$ & Reduce tail latency of how long    & Yes & Yes \\
-    latency           & loss, $100$ Mbit/s   & loss, $10$ Mbit/s    &         &      & packets are queued in the data     & & \\
-    media &                      &                      &         &      & receiver's de-jitter buffer.   & & \\
+    \#1 Low-latency media & $1$ms, $100$ Mbit/s, & $25$ms, $10$ Mbit/s, & $2$ pkts & $8$ \\
+                          & $3.6\%$ loss         & $0\%$ loss           &          &     \\
 
-    \#2 Connec-   & $1$ ms delay, $1.0\%$  & $25$ ms delay, $0\%$ & $30$ ms & $10$ & Achieve high throughput; match   & Yes & Yes \\
-    tion- split-   & loss, $100$ Mbit/s   & loss, $10$ Mbit/s    &         &      & the performance, congestion con- & & \\
-    ting PEP &                      &                      &         &      & trol behavior, and fairness of   & & \\
-    emulation   &                      &                      &         &      & connection-splitting TCP PEPs.   & & \\
+    \#2 Connection-splitting & $1$ms, $100$ Mbit/s, & $25$ms, $10$ Mbit/s, & $30$ ms & $10$ \\
+    PEP emulation            & $1.0\%$ loss         & $0\%$ loss           &         & \\
 
-    \#3 ACK          & $25$ ms delay, $0\%$ & $1$ ms delay, $0\%$  & $15$ ms & $50$ & Reduce ACK frequency of data re- & Yes & No \\
-    reduction    & loss, $10$ Mbit/s    & loss, $100$ Mbit/s   &         &      & ceiver; achieve high throughput. & & \\
+    \#3 ACK reduction & $25$ms, $10$ Mbit/s, & $1$ms, $100$ Mbit/s & $15$ ms & $50$ \\
+                      & $0\%$ loss,          & $0\%$ loss          &         & \\
     \bottomrule
   \end{tabular}
   \caption{Experimental scenarios. Link 1 connects the data sender (client) to
