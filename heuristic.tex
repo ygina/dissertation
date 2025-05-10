@@ -245,7 +245,7 @@ negative impact of encryption on performance in split satellite
 environments~\cite
 {kosek2022quicpep,martin2022suitability,kuhn2021quic-over-sat,border2020evaluating}.
 
-\section{Split Throughput Heuristic}
+\section{The Split Throughput Heuristic}
 \label{sec:splitting:heuristic}
 
 When initially considering which network scenarios to evaluate in our emulation
@@ -316,7 +316,7 @@ open-ended analysis of CCAs over a variety of networks. Finally, we discuss the
 limitations of our methodology using the heuristic, and propose possible
 extensions.
 
-\subsection{Example Usage in a Single Network Setting}
+\subsection{Example usage in a single network setting}
 \label{sec:splitting:heuristic:example}
 
 \begin{lstfloat}[t]
@@ -408,7 +408,7 @@ network path and using the measured throughput of that network path. The split
 throughput benefit is just how much the split throughput has improved (if it has)
 relative to the end-to-end throughput.
 
-\subsection{Caching Throughput Measurements}
+\subsection{Caching throughput measurements for analysis}
 \label{sec:splitting:heuristic:caching}
 
 While we can now predict split throughput for congestion control schemes which
@@ -499,7 +499,7 @@ along the network path, as their behavior will depend on the queue
 configuration and the burstiness of previous senders. We explore this more
 in \Cref{sec:splitting:accuracy}.
 
-\section{Methodology}
+\section{Measurement methodology}
 \label{sec:splitting:methodology}
 
 \input{splitting-paper/figures_tex/mininet.tex}
@@ -585,7 +585,7 @@ will never equal the link rate.
  Ubuntu 22.04.2. The nodes use the default Linux kernel v5.15.0-122-generic,
  except for TCP BBRv2 and BBRv3.%, in which they use the Google fork of v6.4.0+.
 
-\section{Measurement Study Results}
+\section{Results}
 \label{sec:splitting:results}
 
 \input{splitting-paper/figures_tex/2d-heatmap.tex}
@@ -617,11 +617,9 @@ to validate some of these predictions. Raw data for the end-to-end
 behavior of each CCA implementation are available in \Cref{sec:appendix:heatmaps}.
 Our emulation benchmarks are also publicly available on GitHub: \url{https://github.com/StanfordSNR/connection-splitting}.
 
-\subsection{Finding 1: TCP BBR Over Time}
-\label{sec:splitting:results:finding1}
-
-\paragraph{Finding: Splitting has become significantly more beneficial to TCP
+\subsection{Finding: Splitting has become significantly more beneficial to TCP
  BBR since it was initially released in 2016.}
+\label{sec:splitting:results:finding1}
 
 Has the model-based BBR algorithm made the throughput enhancements of
 connection-splitting obsolete? We find this line of thought has some truth
@@ -698,11 +696,9 @@ loss-based CCAs such as CUBIC---in the sense that they \textit{do}. Even
 so-called ``model-based'' congestion control algorithms seem to now react to
 loss as a congestion signal, as the BBR algorithm continues to evolve.
 
-\subsection{Finding 2: TCP BBRv3 vs. TCP CUBIC}
-\label{sec:splitting:results:finding2}
-
-\paragraph{Finding: There exist classes of network paths where TCP BBRv3 would
+\subsection{Finding: There exist classes of network paths where TCP BBRv3 would
  significantly benefit from splitting but TCP CUBIC would not.}
+\label{sec:splitting:results:finding2}
 
 Are there new classes of network settings where BBR benefits significantly from
 splitting but CUBIC does not? We want to understand the network settings in
@@ -817,11 +813,9 @@ We believe this method of analyzing useful network paths and PEP placements for
 connection-splitting can be extended to model new types of networks, especially
 in space.
 
-\subsection{Finding 3: QUIC Congestion Control}
-\label{sec:splitting:results:finding3}
-
-\paragraph{Finding: QUIC implementations of the same congestion control schemes
+\subsection{Finding: QUIC implementations of the same congestion control schemes
  vary significantly, and further differ from Linux's TCP implementations.}
+\label{sec:splitting:results:finding3}
 
 \input{splitting-paper/figures_tex/quic.tex}
 
@@ -955,7 +949,7 @@ that a specific CCA or transport protocol has made in-network assistance
 undesirable, these results suggest that it is valuable to consistently
 re-evaluate these claims.
 
-\section{Accuracy Analysis}
+\section{Accuracy analysis}
 \label{sec:splitting:accuracy}
 
 \input{splitting-paper/figures_tex/accuracy-split.tex}

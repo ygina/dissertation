@@ -82,7 +82,7 @@ indeterminate. Either the protocol can still function with approximate
 statistics (e.g., congestion control) or it can fall back to an end-to-end
 mechanism (e.g., retransmission).
 
-\section{Strawman Solutions}
+\section{Strawman solutions}
 \label{sec:quack:strawmen}
 
 \input{sidekick-paper/tables/strawmen-theoretical.tex}
@@ -130,12 +130,12 @@ it has not received. However, unlike sequence numbers where one can
 determine a gap in received packets, there is no way to tell with random
 identifiers what packet is missing or should be expected next.
 
-\section{Efficient QuACK Constructions}
+\section{Efficient quACK constructions}
 \label{sec:quack:constructions}
 
 \input{packrat-paper/listings/quack_interface}
 
-\subsection{Background: Set Reconciliation}
+\subsection{Background: Set reconciliation}
 \label{sec:quack:constructions:background}
 
 The problem of providing a concise acknowledgment of encrypted packet identifiers
@@ -164,7 +164,7 @@ with an application endpoint, the endpoint can leverage its knowledge about the
 base acknowledgment scheme to dynamically adjust the quACK.
 We describe two optimizations: \textit{rateless quACKs} and \textit{selective quACKing}.
 
-\subsection{The Power Sum Solution}
+\subsection{Power Sums: A space-optimal and deterministic solution}
 \label{sec:quack:constructions:power-sum}
 
 Now we describe a solution to the quACK problem based on the insight
@@ -230,7 +230,7 @@ represent just the ``holes'' among the packets being selectively ACKed,
 excluding the possibly many consecutive elements that are in-flight
 (\Cref{sec:sidekick:protocol:sender-behavior}).
 
-\subsection{The Invertible Bloom Lookup Table Solution}
+\subsection{Invertible Bloom Lookup Table: A computationally scalable approach}
 \label{sec:quack:constructions:iblt}
 
 
@@ -331,7 +331,7 @@ We run the microbenchmarks on a single core of an AWS m4.xlarge instance.
 
 \input{sidekick-paper/figures_tex/quack.tex}
 
-\subsection{Bit Widths}
+\subsection{Identifier bit widths}
 \label{sec:quack:microbenchmarks:bit-widths}
 
 Different bit widths have different implications for
@@ -348,7 +348,7 @@ multiplication~\cite{montgomery1985modular} to avoid an expensive hardware
 division for 128-bit integers. In the remainder of the paper, we use $b=4$ as
 the preferred tradeoff between space and collision probability.
 
-\subsection{Encoding}
+\subsection{Encoding time}
 \label{sec:quack:microbenchmarks:encoding}
 
 The encode time per-packet is directly proportional to
@@ -364,7 +364,7 @@ Each update in the IBLT uses an expensive square root instruction in the
 pseudorandom mapping algorithm, adding constant factor overheads that impact
 smaller numbers of symbols.
 
-\subsection{Decoding}
+\subsection{Decoding time}
 \label{sec:quack:microbenchmarks:decoding}
 
 The decode time must be comparable to the time it takes to process a typical
@@ -392,7 +392,7 @@ method that is linear in \textit{all} packets received, not just the \textit
 {missing} packets, due to the complexity of symmetric polynomial
 factorization.
 
-\subsection{Non-Determinism}
+\subsection{IBLT non-determinism}
 \label{sec:quack:microbenchmarks:non-determinism}
 
 \input{packrat-paper/figures_tex/quack_cpu}
@@ -415,7 +415,7 @@ of the link, but maintaining more symbols at the proxy and client means
 the Packrat has a greater worst-case tolerance for errors with the same encoding
 overheads. The Packrat proxy can reset the connection if it cannot decode a quACK.
 
-\section{Rateless Property}
+\section{Rateless quACK property}
 \label{sec:quack:rateless}
 
 The number of symbols in the quACK is configured for the worst case, but it is

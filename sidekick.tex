@@ -106,7 +106,7 @@ base protocols (\Cref{sec:sidekick:implementation}), and then evaluates the
 protocol in real-world and emulation experiments
 (\Cref{sec:sidekick:evaluation}).
 
-\section{Motivating Scenarios}
+\section{Motivating applications}
 \label{sec:sidekick:motivating}
 
 \input{sidekick-paper/figures_tex/examples.tex}
@@ -124,7 +124,7 @@ need to be reliable, nor to have unique datagrams---we implemented and evaluated
 the same Sidekick protocol and the same middlebox behavior across the different
 scenarios in this paper.
 
-\paragraph{Low-Latency Media.}
+\subsection{Low-latency media retransmissions}
 
 Consider a train passenger using on-board Wi-Fi to have a low-latency audio
 conversation, using WebRTC/SRTP~\cite{rfc8834webrtc}, with a friend. The
@@ -144,7 +144,7 @@ to the effect of prior PEPs, such as Snoop~\cite{balakrishnan1995snoop} and
 Milliproxy~\cite{polese2017milliproxy}, that leverage TCP's cleartext sequence
 numbers to trigger early retransmission on lossy wireless paths.
 
-\paragraph{Connection-Splitting PEP Emulation.}
+\subsection{Emulating split congestion control in an HTTP/3 file upload}
 
 Consider the same train passenger as before but uploading a large file over the
 Internet with a reliable transport protocol. If the protocol were TCP, the
@@ -172,7 +172,7 @@ received some packets. To respect the end-to-end reliability contract with the
 receiver, the sender does not delete packets that may need to be transmitted
 until it receives an ACK, even if the packet has been quACKed.
 
-\paragraph{ACK Reduction.}
+\subsection{Battery-saving ACK reduction}
 
 Now consider a battery-powered device downloading a large file from the
 Internet. To reduce how often the receiver's
@@ -203,7 +203,7 @@ window, it would waste time waiting between ACKs to send packets with too small
 a window, and need to pace sent packets on receiving a large ACK with too large
 a window.
 
-\section{Sidekick Protocol}
+\section{Sidekick Protocol design}
 \label{sec:sidekick:protocol}
 
 \paragraph{Configuration Messages.}
@@ -218,8 +218,39 @@ invalid, e.g., if $m$ exceeds the threshold $t$. It is
 always safe to reset the quACK, or even to ignore the Sidekick entirely and
 fall back to the base protocol's end-to-end mechanisms.
 
-\subsection{Handshake}
-\label{sec:sidekick:protocol:handshake}
+\subsection{PEP discovery}
+\label{sec:sidekick:protocol:discovery}
+
+\input{packrat-paper/figures_tex/payloads}
+
+Now we describe the messages that are exchanged in the
+Packrat protocol (\Cref{fig:payloads}), starting with the handshake.
+
+Our current design has senders signal quACK support by sending a
+distinguished packet containing a 128-byte \emph{Sidekick-request} marker.  Such
+inline signaling could confuse receivers, but Sidekicks target
+protocols such as QUIC that discard cryptographically unauthenticated
+data anyway.  It would be cleaner to signal support through
+out-of-band UDP options~\cite{ietf-tsvwg-udp-options-28}, which we hope to do
+once they are standardized.
+
+The proxy replies to a Sidekick-request packet by sending a special packet
+from the receiver's IP address and port number back to the sender.
+This packet contains a \emph{Sidekick-reply} marker, an opaque session ID, and an
+IP address and port number for communicating with the proxy.
+
+Packrats are distinguished from other types of proxies such as VPNs and
+transparent PEPs in that the proxy is on the path and the client is knowingly
+receiving in-network retransmissions. In order to discover Packrat proxies on the
+path, the client sends a magic discovery packet along the base connection
+4-tuple, after it has established that connection. Proxies respond by
+announcing that they support Packrat and their supported configurations, and the
+server discards the invalid magic packet. Clients can choose to accept
+assistance from a proxy by replying with an \texttt{Init} and their
+configuration request. The proxy completes the handshake with an \texttt
+{InitACK} and a new UDP address specific to this base connection.
+
+\subsubsection{Explicit Proxy Configuration}
 
 Sidekick connections can be configured explicitly or implicitly.  In systems that
 explicitly configure proxies, such as Apple's iCloud Private Relay~\cite{icloud-private-relay}
@@ -233,24 +264,7 @@ address translation, all communication to the proxy must be initiated
 by the sender or use the same IP addresses and port numbers of the
 base connection.
 
-Our current design has senders signal quACK support by sending a
-distinguished packet containing a 128-byte \emph{Sidekick-request} marker.  Such
-inline signaling could confuse receivers, but Sidekicks target
-protocols such as QUIC that discard cryptographically unauthenticated
-data anyway.  It would be cleaner to signal support through
-out-of-band UDP options~\cite{ietf-tsvwg-udp-options-28}, which we hope to do
-once they are standardized.
-
-The proxy replies to a Sidekick-request packet by sending a special packet
-from the receiver's IP address and port number back to the sender.
-This packet contains a \emph{Sidekick-reply} marker, an opaque session ID, and an
-IP address and port number for communicating with the proxy.  Upon
-receiving the Sidekick-reply packet, the sender begins communicating
-directly with the proxy from a different UDP port.  It initially sends
-back the session ID and configuration parameters to start receiving
-quACKs.
-
-\paragraph{Security.}
+\subsubsection{Security}
 A malicious third-party could execute a reflection amplification attack that
 generates a large amount of traffic while hiding its source. This is
 possible because the sender requests quACKs to a different port and (for some
@@ -267,6 +281,14 @@ To mitigate this, the sender can consider PEP feedback along with
 end-to-end metrics to determine whether to keep using the PEP. The sender can
 always opt out of the PEP, and the PEP cannot actively manipulate traffic any
 more than outside a Sidekick setting.
+
+\subsection{Handshake}
+\label{sec:sidekick:protocol:handshake}
+
+Upon receiving the Sidekick-reply packet, the sender begins communicating
+directly with the proxy from a different UDP port.  It initially sends
+back the session ID and configuration parameters to start receiving
+quACKs.
 
 \paragraph{Protocol parameters.}
 The sender configures (i) the quACK interval of the PEP and (ii) the threshold
@@ -287,37 +309,14 @@ other qualities of the link.
 For example, the threshold is larger to detect congestive loss in the queue of a
 bottleneck link, or smaller to still detect transmission error on a lossy link.
 
-\input{packrat-paper/figures_tex/payloads}
-
-\paragraph{Payloads.} Now we describe the messages that are exchanged in the
-Packrat protocol (\Cref{fig:payloads}), starting with the handshake.
-
-Packrats are distinguished from other types of proxies such as VPNs and
-transparent PEPs in that the proxy is on the path and the client is knowingly
-receiving in-network retransmissions. In order to discover Packrat proxies on the
-path, the client sends a magic discovery packet along the base connection
-4-tuple, after it has established that connection. Proxies respond by
-announcing that they support Packrat and their supported configurations, and the
-server discards the invalid magic packet. Clients can choose to accept
-assistance from a proxy by replying with an \texttt{Init} and their
-configuration request. The proxy completes the handshake with an \texttt
-{InitACK} and a new UDP address specific to this base connection.
-
-The client configuration in \texttt{Init} includes several parameters (\Cref
-{fig:payloads:client}). This includes: the type of encoding used for the quACK,
-the number of symbols to use in the encoding, the byte offset in the randomly
-encrypted payload at which to parse the 4-byte identifier, and the size of the
-requested cache. The client may dynamically adjust these configurations with
-new \texttt{Init} packets as it learns more about the network path.
-
 The proxy accepts or rejects these configurations with an \texttt{InitACK}, and
 is ready to cache packets and retransmit. On receiving an \texttt{InitACK}, the
 client is free to send quACKs.
 
-\subsection{Proxy Behavior}
+\subsection{Proxy behavior: Send quACKs}
 \label{sec:sidekick:protocol:proxy-behavior}
 
-\subsection{Data Sender Behavior}
+\subsection{Data sender behavior: Receive quACKs, retransmit packets, and path-aware congestion control}
 \label{sec:sidekick:protocol:sender-behavior}
 
 In this section, we discuss two particular sender-side behaviors that are enabled by
@@ -456,7 +455,7 @@ SYN packet in the three-way handshake, pretends to be the other side of that
 connection, and initiates a new connection to the real endpoint.
 Both clients use CUBIC congestion control.
 
-\subsection{Client Integrations}
+\subsection{Client integrations}
 \label{sec:sidekick:implementation:client-integrations}
 
 In each application, we modified only the \emph{client} to speak Robin
@@ -491,7 +490,7 @@ retransmission buffer), but only in the ACK reduction scenario, when the
 congestion window is nearly representative of that of the Sidekick connection's
 path segment.
 
-\subsection{Proxy Implementation}
+\subsection{Proxy}
 \label{sec:sidekick:implementation:proxy}
 
 Our proxy sniffs incoming packets of a network interface using the
@@ -502,36 +501,14 @@ incrementally updates the quACKs for flows that have requested Sidekick assistan
 It also sends quACKs at their configured frequencies and listens for
 configuration messages.
 
-\section{Evaluation}
-\label{sec:sidekick:evaluation}
-
-\input{sidekick-paper/figures_tex/experimental-setup.tex}
-\input{sidekick-paper/figures_tex/main-results.tex}
-
-We evaluated Robin to answer the following questions:
-\begin{enumerate}[noitemsep,topsep=0pt]
-	\item Can Sidekicks improve the performance of opaque transport protocols
-	in a variety of scenarios while preserving the opaque behavior of the
-	base protocols?
-	\item Can a path-aware congestion control algorithm match the fairness of
-	split TCP PEPs using CUBIC?
-	\item How do the CPU overheads of encoding quACKs impact the maximum
-	capacity of a proxy with a Sidekick?
-	\item What link overheads does the power sum quACK add and how does it
-	compare to the strawmen?
-	\item Is Robin robust in a real-world environment?
-\end{enumerate}
-
-\subsection{Methodology}
+\section{Evaluation methodology}
 \label{sec:sidekick:evaluation:methodology}
 
-We modeled the scenarios from \Cref{sec:sidekick:motivating} in both
-emulated and real-world environments. We answer questions 1-4 in emulation
-and question 5 in the real world. We use the same m4.xlarge AWS instance
-as before for the emulated experiments, and as the server in the real-world
-experiments.
+We modeled the scenarios from \Cref{sec:sidekick:motivating}. We use the same
+m4.xlarge AWS instance as before for the emulated experiments.
 
-\paragraph{Emulated environment.}
+\subsubsection{Emulation}
+
 We emulated a two-hop network topology (\Cref{fig:sc-protocols}) in mininet,
 configuring the link properties using \texttt{tc}.
 In emulation, we represented
@@ -545,7 +522,8 @@ while Link 2 connects the proxy to the data receiver (server).
 On the proxy, we either run a Sidekick,
 a connection-splitting TCP PEP~\cite{caini2006pepsal}, or nothing at all.
 
-\paragraph{Real-world environment.}
+\subsubsection{Real World}
+
 To test its robustness, we also evaluated Robin over a real-world
 environment that resembled the scenario on the train (\Cref{fig:setup:real}).
 In this setup, a Lenovo ThinkPad laptop, running Ubuntu 22.04.3 with a 4-Core
@@ -570,7 +548,26 @@ In both environments, the cellular link was the bottleneck link in terms of
 bandwidth, and the corresponding path segments in emulation had similar
 minimum RTTs and average loss percentages.
 
-\subsection{Main Performance Results}
+\section{Emulation results}
+\label{sec:sidekick:evaluation}
+
+\input{sidekick-paper/figures_tex/experimental-setup.tex}
+\input{sidekick-paper/figures_tex/main-results.tex}
+
+We evaluated Robin to answer the following questions:
+\begin{enumerate}[noitemsep,topsep=0pt]
+	\item Can Sidekicks improve the performance of opaque transport protocols
+	in a variety of scenarios while preserving the opaque behavior of the
+	base protocols?
+	\item Can a path-aware congestion control algorithm match the fairness of
+	split TCP PEPs using CUBIC?
+	\item How do the CPU overheads of encoding quACKs impact the maximum
+	capacity of a proxy with a Sidekick?
+	\item What link overheads does the power sum quACK add and how does it
+	compare to the strawmen?
+\end{enumerate}
+
+\subsection{Performance of secure transport protocols with Sidekick}
 \label{sec:sidekick:evaluation:main-results}
 
 We first evaluate Robin's main performance goal: In each of the motivating
@@ -654,7 +651,7 @@ end-to-end mechanism. The performance particularly degrades when the quACK
 interval exceeds the end-to-end RTT. However, even in this case, the base
 protocol with any Sidekick at all performs better than the base protocol alone\@.
 
-\subsection{Link Overheads}
+\subsection{Link overheads from sending quACKs}
 \label{sec:sidekick:evaluation:link-overheads}
 
 \input{sidekick-paper/tables/packet-overheads.tex}
@@ -692,7 +689,7 @@ more bytes. Strawman 1c increases the link overheads at both the proxy and the
 data sender due to larger TCP headers and TCP ACKs.
 We did not evaluate Strawman 2 due to its impractical decode time.
 
-\subsection{CPU Overheads}
+\subsection{CPU overheads of encoding at the proxy}
 \label{sec:sidekick:evaluation:cpu-overheads}
 
 \input{sidekick-paper/figures_tex/cpu-overheads.tex}
@@ -732,7 +729,7 @@ speeds and an optimized implementation even on commodity hardware.
 or using native hardware~\cite{bosshart2014p4}.
 We could also scale on multiple cores using symmetric RSS hashing~\cite{woo2012scalable}.
 
-\subsection{Path-Aware CUBIC}
+\subsection{TCP friendliness of path-aware CUBIC}
 \label{sec:sidekick:evaluation:pacubic}
 
 \input{sidekick-paper/figures_tex/fairness-results.tex}
@@ -772,7 +769,7 @@ congestion-control scheme (\Cref{sec:sidekick:protocol:sender-behavior}). The
 results indicate that the Sidekick protocol's gains do not come at the expense
 of congestion-control fairness relative to the split TCP connection.
 
-\section{Real-World Experiments}
+\section{Real-world results}
 \label{sec:sidekick:evaluation:real-world}
 
 \input{sidekick-paper/figures_tex/real-world.tex}
