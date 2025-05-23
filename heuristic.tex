@@ -1,6 +1,8 @@
 \chapter{Split Throughput Heuristic}
 \label{sec:splitting}
 
+\section{Introduction}
+
 \input{splitting-paper/figures_tex/bbr-over-time.tex}
 
 A stylized history of connection-splitting over the Internet could go
@@ -316,7 +318,7 @@ open-ended analysis of CCAs over a variety of networks. Finally, we discuss the
 limitations of our methodology using the heuristic, and propose possible
 extensions.
 
-\subsection{Example usage in a single network setting}
+\subsection{Analyzing split throughput benefit in a single network setting}
 \label{sec:splitting:heuristic:example}
 
 \begin{lstfloat}[t]
@@ -617,9 +619,11 @@ to validate some of these predictions. Raw data for the end-to-end
 behavior of each CCA implementation are available in \Cref{sec:appendix:heatmaps}.
 Our emulation benchmarks are also publicly available on GitHub: \url{https://github.com/StanfordSNR/connection-splitting}.
 
-\subsection{Finding: Splitting has become significantly more beneficial to TCP
- BBR since it was initially released in 2016.}
+\subsection{Finding 1: TCP BBR over time}
 \label{sec:splitting:results:finding1}
+
+% Finding: Splitting has become significantly more beneficial to TCP
+%  BBR since it was initially released in 2016.
 
 Has the model-based BBR algorithm made the throughput enhancements of
 connection-splitting obsolete? We find this line of thought has some truth
@@ -696,9 +700,11 @@ loss-based CCAs such as CUBIC---in the sense that they \textit{do}. Even
 so-called ``model-based'' congestion control algorithms seem to now react to
 loss as a congestion signal, as the BBR algorithm continues to evolve.
 
-\subsection{Finding: There exist classes of network paths where TCP BBRv3 would
- significantly benefit from splitting but TCP CUBIC would not.}
+\subsection{Finding 2: TCP BBRv3 vs. TCP CUBIC}
 \label{sec:splitting:results:finding2}
+
+% Finding: There exist classes of network paths where TCP BBRv3 would
+%  significantly benefit from splitting but TCP CUBIC would not.
 
 Are there new classes of network settings where BBR benefits significantly from
 splitting but CUBIC does not? We want to understand the network settings in
@@ -813,9 +819,11 @@ We believe this method of analyzing useful network paths and PEP placements for
 connection-splitting can be extended to model new types of networks, especially
 in space.
 
-\subsection{Finding: QUIC implementations of the same congestion control schemes
- vary significantly, and further differ from Linux's TCP implementations.}
+\subsection{Finding 3: QUIC congestion control}
 \label{sec:splitting:results:finding3}
+
+% QUIC implementations of the same congestion control schemes
+%  vary significantly, and further differ from Linux's TCP implementations.
 
 \input{splitting-paper/figures_tex/quic.tex}
 
@@ -993,7 +1001,7 @@ splits such that the total loss is either 0\% or 4\%. We parameterize the networ
 path segments to use the cached measurements from \Cref
 {tab:parameters}.
 
-\paragraph{End-to-End Throughput Accuracy.}
+\subsection{End-to-end throughput accuracy}
 
 Each of our splits composes to the same end-to-end network path, so we predict
 the same end-to-end throughput for each. Our experimental
@@ -1002,7 +1010,7 @@ throughputs are also roughly uniform, especially without loss, indicating that
 our method of composing network path segments in emulation represents the same
 end-to-end network path.
 
-\paragraph{Split Throughput Accuracy.}
+\subsection{Split throughput accuracy}
 
 The split throughput predictions accurately reflect trends in loss, delay, and
 bandwidth (\Cref{fig:accuracy:split}). For example, split throughput is
@@ -1036,3 +1044,5 @@ reasonable tolerance. They are not intended to make claims about exact achievabl
 throughputs nor about the immediate utility of PEPs in the real world,
 but simply to reason about how connection-splitting may impact
 long-lived throughput in a simplified network model.
+
+\section{Summary}

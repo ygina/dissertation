@@ -1,6 +1,8 @@
 \chapter{Packrat Protocol}
 \label{sec:packrat}
 
+\section{Introduction}
+
 The relationship between Internet transport protocols and lossy
 wireless networks has long been fraught. Three decades ago, the
 seminal Snoop work~\cite{balakrishnan1995snoop} addressed an issue
@@ -226,7 +228,7 @@ in the downlink direction. In this paper, we similarly leverage set
 reconciliation in quACKs for referring to encrypted packets,
 but to send network-originated retransmissions.
 
-\section{The reordering problem with in-network retransmissions}
+\section{The reordering problem and spurious retransmissions}
 \label{sec:packrat:problem}
 
 \begin{figure}
@@ -275,7 +277,9 @@ loss as a congestion signal.
 Spurious retransmissions take up valuable bandwidth and confuse congestion
 control algorithms~\cite{leung2007overview}.
 
-\paragraph{Na\"ive solutions.}
+\subsection{How to solve this problem for TCP}
+
+\subsection{Na\"ive solutions for secure transport protocols}
 
 The Snoop protocol faces the same challenges with needing to modify end-to-end
 signals when sending in-network retransmissions~\cite
@@ -303,7 +307,7 @@ should not have to participate in the Packrat protocol.
 % in the base protocol. It is also undesirable to require certain features in all
 %  data senders, as they should not have to participate in the Packrat protocol.
 
-\paragraph{Packrat solution.}
+\subsection{Packrat solution}
 
 Our solution is for the end-to-end ACKs constructed by the client to
 signal \textit{jitter}, defined as variation in packet interarrival times,
@@ -333,8 +337,7 @@ modification. Abstractly, packets are held and ordered in a jitter buffer for a
 certain delay before they can be referenced in the client's underlying
 acknowledgments.
 
-\section{Packrat Protocol design}
-\label{sec:packrat:protocol}
+\section{Handshake}
 
 The Packrat protocol is spoken between a client and an on-path proxy, where the
 client is a data \textit{receiver}. We imagine the proxy to exist near the data
@@ -359,8 +362,6 @@ and the behavior of each party in both the Packrat and base
 connections. We assume each message is transmitted in an unreliable UDP
 datagram.
 
-\subsection{Handshake}
-
 The client configuration in \texttt{Init} includes several parameters (\Cref
 {fig:payloads:client}). This includes: the type of encoding used for the quACK,
 the number of symbols to use in the encoding, the byte offset in the randomly
@@ -368,7 +369,7 @@ encrypted payload at which to parse the 4-byte identifier, and the size of the
 requested cache. The client may dynamically adjust these configurations with
 new \texttt{Init} packets as it learns more about the network path.
 
-\subsection{Proxy behavior: Receive quACKs, cache packets, and retransmit}
+\section{Proxy behavior}
 \label{sec:packrat:protocol:proxy-behavior}
 
 The behavior of the proxy is to decode incoming quACKs and retransmit missing
@@ -428,7 +429,7 @@ the Packrat style of in-network
 assistance is better suited to mobility and handoffs if the connection ever
 changes network paths.
 
-\subsection{Data receiver behavior: Send quACKs with rateless and selective quACKing}
+\section{Sending quACKs at the data receiver}
 \label{sec:packrat:protocol:receiver-behavior}
 
 In addition to modifying end-to-end acknowledgments to avoid sending excessive
@@ -438,7 +439,7 @@ packets. This frequency is typically the same as that of the underlying
 acknowledgment scheme. The quACKs are cumulative representations of all the
 packets ever received since sending the last \texttt{Init}.
 
-\paragraph{Selective quACKing.}
+\subsection{Selective quACKs}
 
 An on-path proxy handles many tens to hundreds of thousands of concurrent
 connections at once. Any per-packet overhead incurred by the Packrat protocol
@@ -454,7 +455,28 @@ in sending a quACK. In NACK schemes, where the client detects loss and asks for
 a retransmission, it can choose to selectively quACK only when it would
 otherwise send a NACK. Note that the client can omit regular quACKs without the
 cache exploding in size because the proxy optimistically evicts packets, and
-these are likely to be received or the client would have NACKed.\\
+these are likely to be received or the client would have NACKed.
+
+\subsection{Rateless quACKs}
+
+The number of symbols in the quACK is configured for the worst case, but it is
+wasteful to consistently send hundreds of bytes over the wire for each quACK.
+Unlike set reconciliation in distributed systems, quACKs are transmitted at
+millisecond RTT timescales.
+
+In the blockchain setting, the two parties negotiate to determine the number of
+missing items, and to send additional symbols if the current number is not
+enough to probabilistically decode. This minimizes the number of symbols sent
+over the wire, but the in-network retransmission setting does not have the time
+to negotiate over multiple RTTs. How else can we apply the rateless property to
+quACKs?
+
+In fact, the client can estimate the number of retransmissions it expects from
+the proxy and send a smaller quACK, while locally encoding enough symbols for
+the worst case. For example, the client can count the number of gaps in an ACK,
+or the packets for which it would send a NACK. Both the IBLT and power sums
+have the property that a strict prefix of symbols is sufficient to decode a
+smaller error.
 
 \section{Implementation}
 \label{sec:packrat:implementation}
@@ -464,7 +486,7 @@ a \texttt{packrat} library used for three client integrations
 and a Packrat proxy. We also describe the implementations of the
 applications and baselines we use to evaluate Packrat.
 
-\subsection{Applications}
+\subsection{End-to-end applications}
 \label{sec:packrat:implementation:applications}
 
 We evaluate the Packrat protocol in three applications with different performance
@@ -521,7 +543,9 @@ The primary metric is the number of end-to-end retransmissions requested by
 the clients. That is, we measure the number of packets that the server
 must (unicast) retransmit, which captures both server and network load.
 
-\subsection{Client integrations}
+\subsection{Reliable tunnel baseline}
+
+\subsection{Client integrations with Packrat}
 \label{sec:packrat:implementation:client-integrations}
 
 \input{packrat-paper/listings/quacker_interface}
@@ -543,7 +567,7 @@ consider hints from the application for rateless and selective quACKing
 (\Cref{sec:quack:rateless,sec:packrat:protocol:receiver-behavior}). We also
 incorporate a reorder delay in the base connection (\Cref{sec:packrat:problem}).
 
-\subsection{Proxy}
+\subsection{Packrat proxy}
 \label{sec:packrat:implementation:proxy}
 
 We implement the Packrat proxy as a network bridge that uses raw sockets to read
@@ -570,7 +594,7 @@ packet to insert and where to insert it because it was retransmitted to the
 client. This allows the proxy to maintain state proportional only to the number
 of outstanding retransmissions per client.
 
-\section{Evalution methodology}
+\section{Evaluation methodology}
 \label{sec:packrat:evaluation:methodology}
 
 The primary baseline is just the end-to-end protocol, which is the default for
@@ -960,3 +984,5 @@ bytes/client. That is exactly one insertion pair, and in general the overheads
 of the virtual caches are proportional to the number of outstanding
 retransmissions.
 % average = 0.17788111888111888 KB = 1
+
+\section{Summary}

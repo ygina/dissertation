@@ -38,7 +38,7 @@ elements---the set difference $S \setminus R$---knowing $S$. We call this small
 amount of information the ``quACK'', and the problem is:
 \textbf{what is in a quACK and how do we decode it?}
 
-\paragraph{Packet identifiers.}
+\subsection{Identifiers}
 
 In a networking context, how exactly do we refer to the elements
 in the quACK problem that have been sent or received?
@@ -82,7 +82,7 @@ indeterminate. Either the protocol can still function with approximate
 statistics (e.g., congestion control) or it can fall back to an end-to-end
 mechanism (e.g., retransmission).
 
-\section{Strawman solutions}
+\subsection{Strawman solutions}
 \label{sec:quack:strawmen}
 
 \input{sidekick-paper/tables/strawmen-theoretical.tex}
@@ -130,12 +130,7 @@ it has not received. However, unlike sequence numbers where one can
 determine a gap in received packets, there is no way to tell with random
 identifiers what packet is missing or should be expected next.
 
-\section{Efficient quACK constructions}
-\label{sec:quack:constructions}
-
-\input{packrat-paper/listings/quack_interface}
-
-\subsection{Background: Set reconciliation}
+\section{Background: Set reconciliation}
 \label{sec:quack:constructions:background}
 
 The problem of providing a concise acknowledgment of encrypted packet identifiers
@@ -164,7 +159,13 @@ with an application endpoint, the endpoint can leverage its knowledge about the
 base acknowledgment scheme to dynamically adjust the quACK.
 We describe two optimizations: \textit{rateless quACKs} and \textit{selective quACKing}.
 
-\subsection{Power Sums: A space-optimal and deterministic solution}
+
+\section{Efficient constructions of the quACK in packet-scale settings}
+\label{sec:quack:constructions}
+
+\input{packrat-paper/listings/quack_interface}
+
+\subsection{Power sums: A space-optimal and deterministic solution}
 \label{sec:quack:constructions:power-sum}
 
 Now we describe a solution to the quACK problem based on the insight
@@ -230,7 +231,7 @@ represent just the ``holes'' among the packets being selectively ACKed,
 excluding the possibly many consecutive elements that are in-flight
 (\Cref{sec:sidekick:protocol:sender-behavior}).
 
-\subsection{Invertible Bloom Lookup Table: A computationally scalable approach}
+\subsection{Invertible Bloom lookup table: A computationally scalable approach}
 \label{sec:quack:constructions:iblt}
 
 
@@ -415,24 +416,4 @@ of the link, but maintaining more symbols at the proxy and client means
 the Packrat has a greater worst-case tolerance for errors with the same encoding
 overheads. The Packrat proxy can reset the connection if it cannot decode a quACK.
 
-\section{Rateless quACK property}
-\label{sec:quack:rateless}
-
-The number of symbols in the quACK is configured for the worst case, but it is
-wasteful to consistently send hundreds of bytes over the wire for each quACK.
-Unlike set reconciliation in distributed systems, quACKs are transmitted at
-millisecond RTT timescales.
-
-In the blockchain setting, the two parties negotiate to determine the number of
-missing items, and to send additional symbols if the current number is not
-enough to probabilistically decode. This minimizes the number of symbols sent
-over the wire, but the in-network retransmission setting does not have the time
-to negotiate over multiple RTTs. How else can we apply the rateless property to
-quACKs?
-
-In fact, the client can estimate the number of retransmissions it expects from
-the proxy and send a smaller quACK, while locally encoding enough symbols for
-the worst case. For example, the client can count the number of gaps in an ACK,
-or the packets for which it would send a NACK. Both the IBLT and power sums
-have the property that a strict prefix of symbols is sufficient to decode a
-smaller error.
+\section{Summary}

@@ -106,7 +106,211 @@ base protocols (\Cref{sec:sidekick:implementation}), and then evaluates the
 protocol in real-world and emulation experiments
 (\Cref{sec:sidekick:evaluation}).
 
-\section{Motivating applications}
+\section{Introduction}
+
+\section{Establishing an adjacent connection}
+\label{sec:sidekick:init}
+
+\paragraph{Configuration Messages.}
+
+The data sender can send various other messages to the proxy
+to configure the connection or reset bad state.
+
+\paragraph{Resets.}
+Robin allows the sender to tell the PEP to reinitialize the quACK.
+This is helpful if the quACK becomes
+invalid, e.g., if $m$ exceeds the threshold $t$. It is
+always safe to reset the quACK, or even to ignore the Sidekick entirely and
+fall back to the base protocol's end-to-end mechanisms.
+
+\subsection{PEP discovery}
+\label{sec:sidekick:init:discovery}
+
+\input{packrat-paper/figures_tex/payloads}
+
+Now we describe the messages that are exchanged in the
+Packrat protocol (\Cref{fig:payloads}), starting with the handshake.
+
+Our current design has senders signal quACK support by sending a
+distinguished packet containing a 128-byte \emph{Sidekick-request} marker.  Such
+inline signaling could confuse receivers, but Sidekicks target
+protocols such as QUIC that discard cryptographically unauthenticated
+data anyway.  It would be cleaner to signal support through
+out-of-band UDP options~\cite{ietf-tsvwg-udp-options-28}, which we hope to do
+once they are standardized.
+
+The proxy replies to a Sidekick-request packet by sending a special packet
+from the receiver's IP address and port number back to the sender.
+This packet contains a \emph{Sidekick-reply} marker, an opaque session ID, and an
+IP address and port number for communicating with the proxy.
+
+Packrats are distinguished from other types of proxies such as VPNs and
+transparent PEPs in that the proxy is on the path and the client is knowingly
+receiving in-network retransmissions. In order to discover Packrat proxies on the
+path, the client sends a magic discovery packet along the base connection
+4-tuple, after it has established that connection. Proxies respond by
+announcing that they support Packrat and their supported configurations, and the
+server discards the invalid magic packet. Clients can choose to accept
+assistance from a proxy by replying with an \texttt{Init} and their
+configuration request. The proxy completes the handshake with an \texttt
+{InitACK} and a new UDP address specific to this base connection.
+
+\subsubsection{Explicit Proxy Configuration}
+
+Sidekick connections can be configured explicitly or implicitly.  In systems that
+explicitly configure proxies, such as Apple's iCloud Private Relay~\cite{icloud-private-relay}
+based on MASQUE~\cite{kosek2021masque,kramer2021masquepep}, proxies can simply negotiate
+sending quACKs during session establishment.  In most other settings,
+such as 4G/5G cellular networks, PEPs have traditionally been deployed
+as transparent proxies, silently interposing on end-to-end
+connections.  Senders therefore need a way to detect transparent Sidekick
+proxies and inform them of where to send quACKs.  Because of network
+address translation, all communication to the proxy must be initiated
+by the sender or use the same IP addresses and port numbers of the
+base connection.
+
+\subsubsection{Security}
+A malicious third-party could execute a reflection amplification attack that
+generates a large amount of traffic while hiding its source. This is
+possible because the sender requests quACKs to a different port and (for some
+carrier-grade NATs) IP address from the underlying session. To mitigate this,
+each quACK contains a quota, initially 1, of remaining quACKs the proxy will
+send as well as an updated session ID\@.
+The quota and session ID ensure only the sender can increase the quota or
+otherwise reconfigure the session.
+
+An adversarial PEP could send misleading information to the sender. Note that
+only on-path PEPs can send credible information, since they refer to unique
+packet identifiers.
+To mitigate this, the sender can consider PEP feedback along with
+end-to-end metrics to determine whether to keep using the PEP. The sender can
+always opt out of the PEP, and the PEP cannot actively manipulate traffic any
+more than outside a Sidekick setting.
+
+\subsection{Handshake}
+\label{sec:sidekick:init:handshake}
+
+Upon receiving the Sidekick-reply packet, the sender begins communicating
+directly with the proxy from a different UDP port.  It initially sends
+back the session ID and configuration parameters to start receiving
+quACKs.
+
+\paragraph{Protocol parameters.}
+The sender configures (i) the quACK interval of the PEP and (ii) the threshold
+number of missing packets $t$, or otherwise selects Sidekick-specific settings
+such as how an identifier is computed.
+
+The quACK interval is expressed in terms of time or number of packets,
+ e.g., every $N$ milliseconds or every $N$ packets, as in a TCP delayed ACK.
+The sender determines the desired interval based on its estimated
+RTT of the base connection and its application objectives, e.g.,
+more frequently for latency-sensitive applications or lower-RTT paths.
+
+The threshold represents the bound on the number of missing packets
+between quACKs, in practice the number of ``holes'' among the packets that are
+selectively ACKed. The threshold depends on the quACK interval, and
+should be set based on how precise loss detection needs to be and
+other qualities of the link.
+For example, the threshold is larger to detect congestive loss in the queue of a
+bottleneck link, or smaller to still detect transmission error on a lossy link.
+
+The proxy accepts or rejects these configurations with an \texttt{InitACK}, and
+is ready to cache packets and retransmit. On receiving an \texttt{InitACK}, the
+client is free to send quACKs.
+
+\section{Path-aware sender behavior}
+\label{sec:sidekick:protocol:sender-behavior}
+
+In this section, we discuss two particular sender-side behaviors that are enabled by
+the Sidekick protocol and which are helpful across several scenarios: detecting packet loss
+from a decoded quACK and congestion control.
+
+\subsection{Loss detection}
+
+The sender knows definitively which packets have been received by the proxy from
+a decoded quACK. Next, it must determine from the remaining packets which ones
+have been dropped and which are still in-flight, including if there has been a
+reordering of packets. In-flight packets are later
+classified as received or dropped based on future quACKs.
+
+When there is no reordering, the packets that are dropped are just the ``holes''
+among the packets that are selectively ACKed by the quACK. In particular, these
+are the holes when considering sent packets in the order they were sent up to
+the last element received, which represents the last selective ACK.
+To identify these dropped packets, the sender encodes $t$ cumulative power sums
+of its sent packets up to the last element received.
+The difference between these power sums and the power
+sums in the quACK represents the dropped packets. The sender ``removes'' the
+identifiers of dropped packets from its cumulative power sums, ensuring that
+the only packets that contribute to the threshold limit are those that
+went missing since decoding the last quACK.
+%  \michael{can we, instead of ``accumulates'', say: ``locally calculates'' ? This would seem clearer. Or are you trying to
+% say that this is a continuously updated number?  If so, perhaps: ``locally calculates a cumulatively updated power sum quACK ...''?}
+
+To account for reordering in loss detection, Robin implements an algorithm
+similar to the 3-duplicate ACK rule in TCP~\cite{rfc5681tcp,rfc2001tcp}.
+In TCP, if three or more duplicate ACKs are received in a row, it is a strong
+indication that a segment has been lost. Robin considers a packet lost only if
+three or more packets sent after the missing packet have been received.
+Other mechanisms could involve timeouts for individual packets similar to the
+RACK-TLP loss detection algorithm for TCP~\cite{rfc8985}.
+
+\subsection{Path-aware CUBIC congestion control}
+
+Congestion-controlled base protocols must have a congestion response to lost
+packets that they retransmit due to quACKs, similar to if the loss were
+discovered by the end-to-end ACK.
+This ensures friendliness with end-to-end congestion control algorithms that do
+consider the loss, such as CUBIC~\cite{ha2008cubic} in the presence of a
+connection-splitting TCP PEP.
+Here, we propose PACUBIC, an algorithm that emulates this ``split CUBIC''
+behavior. PACUBIC uses knowledge of where loss occurs to improve connection
+throughput compared to end-to-end CUBIC, while remaining fair to competing flows.
+
+Recall that CUBIC~\cite{ha2008cubic} reduces its congestion window by a
+multiplicative decrease factor,
+$\beta = \beta^* = 0.7$, when observing loss (a congestion event), and otherwise increases
+its window based on a real-time dependent cubic function with scaling factor
+$C=C^*=0.4$:
+\[
+cwnd = C(T-K)^3 + w_{max} \text{ where } K = \sqrt[3]{\frac{w_{max}(1-\beta)}{C}}.
+\]
+
+\noindent Here, $cwnd$ is the current congestion window,
+$w_{max}$ is the window size just before the last reduction,
+and $T$ is the time elapsed since the last window reduction.
+
+While a split CUBIC connection has \emph{two} congestion windows,
+end-to-end PACUBIC only has \emph{one} window representing the in-flight bytes
+of the end-to-end connection.
+Conceptually, we want an algorithm that enables PACUBIC's single
+congestion window to match the sum of the split connection's two congestion
+windows.
+
+PACUBIC effectively makes it so that we reduce and grow $cwnd$
+proportionally to the number of in-flight bytes on the path segment
+of where the last congestion event occurred.
+Let $r$ be the estimated ratio of the RTT of the near path segment
+(between the data sender and the proxy) to the RTT of the entire connection
+(between end hosts).
+We use $r$ as a proxy for the ratio of the number of in-flight bytes.
+If the last congestion event came from a quACK, we use the same real-time
+dependent cubic function but with the following
+constants\footnote{See \Cref{sec:appendix:pacubic} for more intuition behind $\beta'$ and $C'$.}
+\[
+\beta = 1 - r(1-\beta^*)\text{ and }C = \frac{C^*}{r^3}.
+\]
+\noindent If the last congestion event came from an end-to-end ACK, then we use
+the original $\beta$ and $C$ as above.
+
+While this algorithm resembles the congestion behavior of split CUBIC, it is
+simply an approximation. PACUBIC does not know the exact number of bytes
+in-flight on each path segment, and the sum of the two congestion windows is simply a
+heuristic for an inherently different split connection. The main takeaway is
+that knowing where loss occurs can inform congestion control. We generally
+hope that quACKs can lead to the development of smarter, path-aware algorithms.
+
+\section{Motivating scenarios}
 \label{sec:sidekick:motivating}
 
 \input{sidekick-paper/figures_tex/examples.tex}
@@ -203,211 +407,6 @@ window, it would waste time waiting between ACKs to send packets with too small
 a window, and need to pace sent packets on receiving a large ACK with too large
 a window.
 
-\section{Sidekick Protocol design}
-\label{sec:sidekick:protocol}
-
-\paragraph{Configuration Messages.}
-
-The data sender can send various other messages to the proxy
-to configure the connection or reset bad state.
-
-\paragraph{Resets.}
-Robin allows the sender to tell the PEP to reinitialize the quACK.
-This is helpful if the quACK becomes
-invalid, e.g., if $m$ exceeds the threshold $t$. It is
-always safe to reset the quACK, or even to ignore the Sidekick entirely and
-fall back to the base protocol's end-to-end mechanisms.
-
-\subsection{PEP discovery}
-\label{sec:sidekick:protocol:discovery}
-
-\input{packrat-paper/figures_tex/payloads}
-
-Now we describe the messages that are exchanged in the
-Packrat protocol (\Cref{fig:payloads}), starting with the handshake.
-
-Our current design has senders signal quACK support by sending a
-distinguished packet containing a 128-byte \emph{Sidekick-request} marker.  Such
-inline signaling could confuse receivers, but Sidekicks target
-protocols such as QUIC that discard cryptographically unauthenticated
-data anyway.  It would be cleaner to signal support through
-out-of-band UDP options~\cite{ietf-tsvwg-udp-options-28}, which we hope to do
-once they are standardized.
-
-The proxy replies to a Sidekick-request packet by sending a special packet
-from the receiver's IP address and port number back to the sender.
-This packet contains a \emph{Sidekick-reply} marker, an opaque session ID, and an
-IP address and port number for communicating with the proxy.
-
-Packrats are distinguished from other types of proxies such as VPNs and
-transparent PEPs in that the proxy is on the path and the client is knowingly
-receiving in-network retransmissions. In order to discover Packrat proxies on the
-path, the client sends a magic discovery packet along the base connection
-4-tuple, after it has established that connection. Proxies respond by
-announcing that they support Packrat and their supported configurations, and the
-server discards the invalid magic packet. Clients can choose to accept
-assistance from a proxy by replying with an \texttt{Init} and their
-configuration request. The proxy completes the handshake with an \texttt
-{InitACK} and a new UDP address specific to this base connection.
-
-\subsubsection{Explicit Proxy Configuration}
-
-Sidekick connections can be configured explicitly or implicitly.  In systems that
-explicitly configure proxies, such as Apple's iCloud Private Relay~\cite{icloud-private-relay}
-based on MASQUE~\cite{kosek2021masque,kramer2021masquepep}, proxies can simply negotiate
-sending quACKs during session establishment.  In most other settings,
-such as 4G/5G cellular networks, PEPs have traditionally been deployed
-as transparent proxies, silently interposing on end-to-end
-connections.  Senders therefore need a way to detect transparent Sidekick
-proxies and inform them of where to send quACKs.  Because of network
-address translation, all communication to the proxy must be initiated
-by the sender or use the same IP addresses and port numbers of the
-base connection.
-
-\subsubsection{Security}
-A malicious third-party could execute a reflection amplification attack that
-generates a large amount of traffic while hiding its source. This is
-possible because the sender requests quACKs to a different port and (for some
-carrier-grade NATs) IP address from the underlying session. To mitigate this,
-each quACK contains a quota, initially 1, of remaining quACKs the proxy will
-send as well as an updated session ID\@.
-The quota and session ID ensure only the sender can increase the quota or
-otherwise reconfigure the session.
-
-An adversarial PEP could send misleading information to the sender. Note that
-only on-path PEPs can send credible information, since they refer to unique
-packet identifiers.
-To mitigate this, the sender can consider PEP feedback along with
-end-to-end metrics to determine whether to keep using the PEP. The sender can
-always opt out of the PEP, and the PEP cannot actively manipulate traffic any
-more than outside a Sidekick setting.
-
-\subsection{Handshake}
-\label{sec:sidekick:protocol:handshake}
-
-Upon receiving the Sidekick-reply packet, the sender begins communicating
-directly with the proxy from a different UDP port.  It initially sends
-back the session ID and configuration parameters to start receiving
-quACKs.
-
-\paragraph{Protocol parameters.}
-The sender configures (i) the quACK interval of the PEP and (ii) the threshold
-number of missing packets $t$, or otherwise selects Sidekick-specific settings
-such as how an identifier is computed.
-
-The quACK interval is expressed in terms of time or number of packets,
- e.g., every $N$ milliseconds or every $N$ packets, as in a TCP delayed ACK.
-The sender determines the desired interval based on its estimated
-RTT of the base connection and its application objectives, e.g.,
-more frequently for latency-sensitive applications or lower-RTT paths.
-
-The threshold represents the bound on the number of missing packets
-between quACKs, in practice the number of ``holes'' among the packets that are
-selectively ACKed. The threshold depends on the quACK interval, and
-should be set based on how precise loss detection needs to be and
-other qualities of the link.
-For example, the threshold is larger to detect congestive loss in the queue of a
-bottleneck link, or smaller to still detect transmission error on a lossy link.
-
-The proxy accepts or rejects these configurations with an \texttt{InitACK}, and
-is ready to cache packets and retransmit. On receiving an \texttt{InitACK}, the
-client is free to send quACKs.
-
-\subsection{Proxy behavior: Send quACKs}
-\label{sec:sidekick:protocol:proxy-behavior}
-
-\subsection{Data sender behavior: Receive quACKs, retransmit packets, and path-aware congestion control}
-\label{sec:sidekick:protocol:sender-behavior}
-
-In this section, we discuss two particular sender-side behaviors that are enabled by
-the Sidekick protocol and which are helpful across several scenarios: detecting packet loss
-from a decoded quACK and congestion control.
-
-\subsubsection{Detecting Loss}
-
-The sender knows definitively which packets have been received by the proxy from
-a decoded quACK. Next, it must determine from the remaining packets which ones
-have been dropped and which are still in-flight, including if there has been a
-reordering of packets. In-flight packets are later
-classified as received or dropped based on future quACKs.
-
-When there is no reordering, the packets that are dropped are just the ``holes''
-among the packets that are selectively ACKed by the quACK. In particular, these
-are the holes when considering sent packets in the order they were sent up to
-the last element received, which represents the last selective ACK.
-To identify these dropped packets, the sender encodes $t$ cumulative power sums
-of its sent packets up to the last element received.
-The difference between these power sums and the power
-sums in the quACK represents the dropped packets. The sender ``removes'' the
-identifiers of dropped packets from its cumulative power sums, ensuring that
-the only packets that contribute to the threshold limit are those that
-went missing since decoding the last quACK.
-%  \michael{can we, instead of ``accumulates'', say: ``locally calculates'' ? This would seem clearer. Or are you trying to
-% say that this is a continuously updated number?  If so, perhaps: ``locally calculates a cumulatively updated power sum quACK ...''?}
-
-To account for reordering in loss detection, Robin implements an algorithm
-similar to the 3-duplicate ACK rule in TCP~\cite{rfc5681tcp,rfc2001tcp}.
-In TCP, if three or more duplicate ACKs are received in a row, it is a strong
-indication that a segment has been lost. Robin considers a packet lost only if
-three or more packets sent after the missing packet have been received.
-Other mechanisms could involve timeouts for individual packets similar to the
-RACK-TLP loss detection algorithm for TCP~\cite{rfc8985}.
-
-\subsubsection{Path-Aware CUBIC Congestion Control}
-
-Congestion-controlled base protocols must have a congestion response to lost
-packets that they retransmit due to quACKs, similar to if the loss were
-discovered by the end-to-end ACK.
-This ensures friendliness with end-to-end congestion control algorithms that do
-consider the loss, such as CUBIC~\cite{ha2008cubic} in the presence of a
-connection-splitting TCP PEP.
-Here, we propose PACUBIC, an algorithm that emulates this ``split CUBIC''
-behavior. PACUBIC uses knowledge of where loss occurs to improve connection
-throughput compared to end-to-end CUBIC, while remaining fair to competing flows.
-
-Recall that CUBIC~\cite{ha2008cubic} reduces its congestion window by a
-multiplicative decrease factor,
-$\beta = \beta^* = 0.7$, when observing loss (a congestion event), and otherwise increases
-its window based on a real-time dependent cubic function with scaling factor
-$C=C^*=0.4$:
-\[
-cwnd = C(T-K)^3 + w_{max} \text{ where } K = \sqrt[3]{\frac{w_{max}(1-\beta)}{C}}.
-\]
-
-\noindent Here, $cwnd$ is the current congestion window,
-$w_{max}$ is the window size just before the last reduction,
-and $T$ is the time elapsed since the last window reduction.
-
-While a split CUBIC connection has \emph{two} congestion windows,
-end-to-end PACUBIC only has \emph{one} window representing the in-flight bytes
-of the end-to-end connection.
-Conceptually, we want an algorithm that enables PACUBIC's single
-congestion window to match the sum of the split connection's two congestion
-windows.
-
-PACUBIC effectively makes it so that we reduce and grow $cwnd$
-proportionally to the number of in-flight bytes on the path segment
-of where the last congestion event occurred.
-Let $r$ be the estimated ratio of the RTT of the near path segment
-(between the data sender and the proxy) to the RTT of the entire connection
-(between end hosts).
-We use $r$ as a proxy for the ratio of the number of in-flight bytes.
-If the last congestion event came from a quACK, we use the same real-time
-dependent cubic function but with the following
-constants\footnote{See \Cref{sec:appendix:pacubic} for more intuition behind $\beta'$ and $C'$.}
-\[
-\beta = 1 - r(1-\beta^*)\text{ and }C = \frac{C^*}{r^3}.
-\]
-\noindent If the last congestion event came from an end-to-end ACK, then we use
-the original $\beta$ and $C$ as above.
-
-While this algorithm resembles the congestion behavior of split CUBIC, it is
-simply an approximation. PACUBIC does not know the exact number of bytes
-in-flight on each path segment, and the sum of the two congestion windows is simply a
-heuristic for an inherently different split connection. The main takeaway is
-that knowing where loss occurs can inform congestion control. We generally
-hope that quACKs can lead to the development of smarter, path-aware algorithms.
-
 \section{Implementation}
 \label{sec:sidekick:implementation}
 
@@ -419,7 +418,7 @@ and an HTTP/3 (QUIC) client.
 The total implementation of the quACK library, and proxy and client
 integrations used 6363 LOC (\Cref{tab:lines-of-code}).
 
-\subsection{Applications}
+\subsection{End-to-end applications}
 \label{sec:sidekick:implementation:applications}
 
 The baselines we evaluated against were the performance of two opaque transport
@@ -455,7 +454,7 @@ SYN packet in the three-way handshake, pretends to be the other side of that
 connection, and initiates a new connection to the real endpoint.
 Both clients use CUBIC congestion control.
 
-\subsection{Client integrations}
+\subsection{Client integrations with Sidekick}
 \label{sec:sidekick:implementation:client-integrations}
 
 In each application, we modified only the \emph{client} to speak Robin
@@ -490,7 +489,7 @@ retransmission buffer), but only in the ACK reduction scenario, when the
 congestion window is nearly representative of that of the Sidekick connection's
 path segment.
 
-\subsection{Proxy}
+\subsection{Sidekick proxy}
 \label{sec:sidekick:implementation:proxy}
 
 Our proxy sniffs incoming packets of a network interface using the
@@ -547,6 +546,52 @@ The far segment between the AP and the AWS server was
 In both environments, the cellular link was the bottleneck link in terms of
 bandwidth, and the corresponding path segments in emulation had similar
 minimum RTTs and average loss percentages.
+
+\section{Real-world results}
+\label{sec:sidekick:evaluation:real-world}
+
+\input{sidekick-paper/figures_tex/real-world.tex}
+
+We discuss the results of our experiments replicating two of our scenarios in
+the real world, using as context
+these main differences between emulation and the real-world:
+
+\begin{itemize}[noitemsep,topsep=0pt]
+  \item The RTT is more variable as it depends on interactions in the
+  wireless medium and the shared cellular path.
+  \item Wireless loss can be more variable as nearby 2.4 GHz devices and
+  physical barriers may interfere with the link. Wireless loss also tends
+  to be more clustered in practice.
+  \item The available bandwidth on the shared cellular path is more variable,
+  and depends on the time of day.
+\end{itemize}
+
+\Cref{fig:real-world} shows the results of running the low-latency media and
+connection-splitting PEP emulation experiments in the real-world. The baseline
+protocol with a Sidekick is able to
+reduce the 99th percentile de-jitter latency of an audio stream
+from 2.3~seconds to 204~ms---about a 91\% reduction---and
+improve the goodput of a 50 MB HTTP/3 upload by about 50\%.
+Although the improvements are more conservative compared to emulation in
+\Cref{fig:media} and \Cref{fig:baseline-line}, each case still benefits the
+base protocol under all circumstances, compared to end-to-end mechanisms alone.
+
+Part of the difference can be attributed to the network setting. When there is
+no loss on the near path segment, as can occasionally happen in a real Wi-Fi link,
+we do not expect to
+see a difference with a Sidekick. When there is more loss on the far path segment, which
+is variable and depends on the time, we
+expect the benefit of the Sidekick to be less since this equally affects the
+performance of the base protocol.
+
+The other part of the difference could be made up by future work that better
+adapts a Sidekick connection to real-world variability: The client could improve
+path segment RTT estimation based on when the proxy receives packets, and use this
+dynamic estimate in the calculation of $r$ used in $\beta$ and $C$.
+The client could also use
+this estimate to dynamically adjust the quACK interval.
+Finally, we could analyze theoretically how PACUBIC responds
+to traffic patterns in the real world.
 
 \section{Emulation results}
 \label{sec:sidekick:evaluation}
@@ -769,48 +814,154 @@ congestion-control scheme (\Cref{sec:sidekick:protocol:sender-behavior}). The
 results indicate that the Sidekick protocol's gains do not come at the expense
 of congestion-control fairness relative to the split TCP connection.
 
-\section{Real-world results}
-\label{sec:sidekick:evaluation:real-world}
+\section{Summary}
 
-\input{sidekick-paper/figures_tex/real-world.tex}
+\section{Appendix: Intuitive analysis of PACUBIC}
+\label{sec:appendix:pacubic}
 
-We discuss the results of our experiments replicating two of our scenarios in
-the real world, using as context
-these main differences between emulation and the real-world:
+\begin{figure*}[h]
+\centering
+\includegraphics[width=0.8\linewidth]{sidekick-paper/figures/cwnd/cwnd_legend.pdf}\\
+\begin{subfigure}{0.32\linewidth}
+  \includegraphics[width=\linewidth]{sidekick-paper/figures/cwnd/cwnd_split_loss0p.pdf}
+  \caption{Split CUBIC, 0\% loss.}
+  \label{fig:time-cwnd:split-loss0p}
+\end{subfigure}
+\begin{subfigure}{0.32\linewidth}
+  \includegraphics[width=\linewidth]{sidekick-paper/figures/cwnd/cwnd_pacubic_loss0p.pdf}
+  \caption{PACUBIC, 0\% loss.}
+  \label{fig:time-cwnd:pacubic-loss0p}
+\end{subfigure}
+\begin{subfigure}{0.32\linewidth}
+  \includegraphics[width=\linewidth]{sidekick-paper/figures/cwnd/cwnd_cubic_loss0p.pdf}
+  \caption{CUBIC, 0\% loss.}
+  \label{fig:time-cwnd:cubic-loss0p}
+\end{subfigure}
+\begin{subfigure}{0.32\linewidth}
+  \includegraphics[width=\linewidth]{sidekick-paper/figures/cwnd/cwnd_split_loss1p.pdf}
+  \caption{Split CUBIC, 1\% loss.}
+  \label{fig:time-cwnd:split-loss1p}
+\end{subfigure}
+\begin{subfigure}{0.32\linewidth}
+  \includegraphics[width=\linewidth]{sidekick-paper/figures/cwnd/cwnd_pacubic_loss1p.pdf}
+  \caption{PACUBIC, 1\% loss.}
+  \label{fig:time-cwnd:pacubic-loss1p}
+\end{subfigure}
+\begin{subfigure}{0.32\linewidth}
+  \includegraphics[width=\linewidth]{sidekick-paper/figures/cwnd/cwnd_cubic_loss1p.pdf}
+  \caption{CUBIC, 1\% loss.}
+  \label{fig:time-cwnd:cubic-loss1p}
+\end{subfigure}
+\caption{Congestion window of a long-running upload in Scenario \#2
+(\Cref{tab:experimental-scenarios}) with $0\%$ and $1\%$ loss on the near
+path segmenet.
+The cwnd is measured at the data sender,
+except for split CUBIC whose split connection also has a cwnd at the proxy.
+PACUBIC reacts to every congestion event while keeping the cwnd high.
+CUBIC performs poorly when there is loss on the near path segment.
+CUBIC and PACUBIC are implemented in QUIC, while split CUBIC is implemented
+in TCP using a PEP.
+}
+\label{fig:time-cwnd}
+\end{figure*}
 
-\begin{itemize}[noitemsep,topsep=0pt]
-	\item The RTT is more variable as it depends on interactions in the
-	wireless medium and the shared cellular path.
-	\item Wireless loss can be more variable as nearby 2.4 GHz devices and
-	physical barriers may interfere with the link. Wireless loss also tends
-	to be more clustered in practice.
-	\item The available bandwidth on the shared cellular path is more variable,
-	and depends on the time of day.
-\end{itemize}
+Here, we dive deeper into the intuition behind the PACUBIC constants
+(\Cref{sec:sidekick:protocol:sender-behavior}), including how they were derived and why the PACUBIC
+algorithm achieves similar congestion behavior to the CUBIC algorithm in a split
+connection---we call this behavior ``split CUBIC''.
 
-\Cref{fig:real-world} shows the results of running the low-latency media and
-connection-splitting PEP emulation experiments in the real-world. The baseline
-protocol with a Sidekick is able to
-reduce the 99th percentile de-jitter latency of an audio stream
-from 2.3~seconds to 204~ms---about a 91\% reduction---and
-improve the goodput of a 50 MB HTTP/3 upload by about 50\%.
-Although the improvements are more conservative compared to emulation in
-\Cref{fig:media} and \Cref{fig:baseline-line}, each case still benefits the
-base protocol under all circumstances, compared to end-to-end mechanisms alone.
+Consider the same network topology as \Cref{fig:sc-protocols} in which a
+data sender uploads a large file to a data receiver, with help from a Sidekick
+proxy in the middle of the connection. The near path segment connects the sender
+to the proxy, and the far path segment connects the proxy to the receiver.
+The near segment is low-delay with varying random loss, and the far segment is
+high-delay with no random loss. The far segment is the bottleneck link in terms
+of bandwidth.
+The actual link parameters are the same as in Scenario \#2 of
+\Cref{tab:experimental-scenarios}.
 
-Part of the difference can be attributed to the network setting. When there is
-no loss on the near path segment, as can occasionally happen in a real Wi-Fi link,
-we do not expect to
-see a difference with a Sidekick. When there is more loss on the far path segment, which
-is variable and depends on the time, we
-expect the benefit of the Sidekick to be less since this equally affects the
-performance of the base protocol.
+We first discuss how split CUBIC would behave in this setting to conceptually
+motivate PACUBIC.
+Consider the congestion windows of each half of the
+split connection, one taken at the data sender and one at the proxy
+(\Cref{fig:time-cwnd:split-loss0p,fig:time-cwnd:split-loss1p}).
+The far path segment experiences only congestive loss,
+leading the window at the proxy to fluctuate around the segment's BDP
+regardless of the loss on the near path segment.
+The window at the data sender independently determines whether the packets
+that reach the proxy will be able to fully utilize the window set at the far
+path segment. The data sender is able to achieve this at low random loss rates, but
+becomes the bottleneck as loss rates increase (\Cref{fig:loss-vs-tput}).
 
-The other part of the difference could be made up by future work that better
-adapts a Sidekick connection to real-world variability: The client could improve
-path segment RTT estimation based on when the proxy receives packets, and use this
-dynamic estimate in the calculation of $r$ used in $\beta$ and $C$.
-The client could also use
-this estimate to dynamically adjust the quACK interval.
-Finally, we could analyze theoretically how PACUBIC responds
-to traffic patterns in the real world.
+While split CUBIC has two windows, PACUBIC only has one
+window representing the in-flight bytes of the end-to-end connection.
+PACUBIC considers loss detected from both quACKs and end-to-end ACKs.
+Conceptually, we want an algorithm that would enable PACUBIC's single
+congestion window to match the sum of CUBIC's two congestion windows, or
+the total number of in-flight bytes.
+% That is the motivation behind adjusting the window proportionally to the
+% number of in-flight bytes on each path segment, depending on where the loss occurred.
+
+With no random loss on the near path segment, PACUBIC (\Cref{fig:time-cwnd:pacubic-loss0p})
+behaves the same as normal CUBIC (\Cref{fig:time-cwnd:cubic-loss0p}).
+The congestion window is entirely governed by end-to-end ACKs since
+the far path segment is the bottleneck link. Note that while the sender may be
+able to deduce that a loss occurred on the far path segment by combining info from
+the quACK with the end-to-end ACK, PACUBIC conservatively treats the loss as
+occurring anywhere on the path.
+
+With some random loss on the near path segment, PACUBIC grows and reduces cwnd
+based on where the last congestion event occurs (\Cref{fig:time-cwnd:pacubic-loss1p}).
+Note that if the congestion window $cwnd$
+represents the bytes in-flight in the end-to-end connection, then
+$r \cdot cwnd$ represents the proportion of bytes in-flight on the near
+path segment. At a high level, if the data sender discovers loss
+on the near path segment via the quACK, it holds the $(1-r)\cdot cwnd$ portion of
+the ``far window'' constant while applying the CUBIC algorithm to the remaining
+$r \cdot w_{max}$ of the ``near window,'' representing the bottleneck link.
+
+Mathematically, instead of reducing $w_{max}$, the window size just before the
+last reduction, by $(1-\beta^*) \cdot w_{max}$, PACUBIC reduces it by only
+$[1 - (1-r(1-\beta^*))] \cdot w_{max} = r(1-\beta^*) \cdot w_{max}$.
+That is $r$ times the original reduction, a \emph{smaller} amount.
+We use the RTT ratio $r$ (near path segment to end-to-end)
+% indicating the RTT ratio of near path segment vs.~far path segment)
+as a proxy for the ratio of the number of in-flight bytes.
+
+Similarly, instead of using a cubic growth function with scaling factor $C^*$
+and inflection point $K = K^* = \sqrt[3]{w_{max}(1-\beta^*)/C^*}$,
+we use a larger scaling factor $C = C^*/r^3$
+and thus a shorter inflection point
+\[
+K = \sqrt[3]{\frac{w_{max}(1-\beta)}{C}}
+= \sqrt[3]{\frac{r\cdot w_{max}(1-\beta^*)}{C^* / r^3}}
+= r^{4/3} \cdot K^*.
+\]
+The shorter inflection point leads the congestion window to \emph{grow more
+quickly} since the sender also reacts to feedback about loss more quickly over
+the low-delay link.
+% Since
+% similarly proportional to $w_{max}$, so with $C'$, we both reduce the inflection
+% point $K$ and the growth rate $C$ of the function proportionally to the
+% number of bytes in-flight on the near path segment.
+
+At times, there can be loss detected both in quACKs and in end-to-end ACKs.
+The end-to-end ACKs have a greater effect since they reduce the congestion
+window by a larger proportion, until the remaining path segment with loss is the
+bottleneck link. In this scenario with loss, the bottleneck link at equilibrium
+is the near path segment.
+At this point, the quACK primarily determines the congestion window updates.
+If the far path segment were to become the bottleneck again, the data sender would
+detect a congestion event via the end-to-end ACK.
+
+PACUBIC has several limitations. Although it beats end-to-end CUBIC, it
+still performs worse than split CUBIC, especially at
+high loss rates (\Cref{fig:loss-vs-tput}). Also, it doesn't consider loss on the
+far path segment any differently than original CUBIC, unlike split CUBIC
+which treats the two split connections independently. PACUBIC
+emulates the congestion control behavior and fairness of split CUBIC
+fairly well as a heuristic, but would benefit from an analysis in a
+wider variety of network scenarios. It would also benefit from a side-by-side
+fairness comparison against other congestion control algorithms that perform
+well in the same scenarios. We'd like the primary takeaway of PACUBIC to be
+that knowing where loss occurs can cleverly inform congestion control.
