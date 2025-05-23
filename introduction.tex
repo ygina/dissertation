@@ -1,70 +1,171 @@
 \chapter{Introduction}
 \label{sec:introduction}
 
-In the Internet's canonical model, transport is end-to-end and implemented only
-in hosts. Traditionally, routers and other network components forwarded IP
-datagrams without regard to their payloads or flow membership~\cite
-{saltzer1984endtoend, clark1988darpa}; only hosts thought about connections,
-reliable delivery, or flow-by-flow congestion control.
+This thesis will refer to many concepts about the Internet, both old and new.
+It is important to understand why things in the Internet were designed the way
+they were, so that we have the proper context for why they no longer fit with
+how we use the Internet today. In the very beginning of the Internet in the
+1960s, ARPANET was a small research network of four stationary hosts that
+communicated over wired links. ARPANET introduced the concept of packet
+switching, by delivering large amounts of data as small, individual packets.
 
-In practice, however, the best behavior for a transport protocol depends on the
-particulars of the network path. An appropriate retransmission or
-congestion-control scheme for a heavily-multiplexed wired network wouldn't be
-ideal for paths that include a high-delay satellite link, Wi-Fi with bulk ACKs
-and frequent reordering, or a cellular WWAN~\cite
-{kuhn2021quic-over-sat,goyal2017abc}.
+In the Internet's canonical model of the 1970s, transport is end-to-end and
+implemented only in hosts. Traditionally, routers and other network components
+forwarded IP datagrams without regard to their payloads or flow
+membership~\cite{saltzer1984endtoend, clark1988darpa}; only hosts thought about
+connections, reliable delivery, or flow-by-flow congestion control, typically
+using TCP. The first congestion control algorithms from the 1980s treated
+packet loss as congestion, backing off the sending rate in fear of congestion
+collapse.
 
-By the 1990s, many networks had broken from the canonical model by deploying
-in-network TCP accelerators, also known as ``performance-enhancing proxies''
-(PEPs)~\cite{rfc3135}. TCP PEPs can split an end-to-end connection into
-multiple concatenated connections~\cite
-{kapoor2005achieving,caini2006pepsal,davern2011httpep,farkas2012splittcp,hayes2019mmwave},
-buffer and retransmit packets over a lossy link~\cite
-{balakrishnan1995snoop,polese2017milliproxy}, virtualize congestion
-control~\cite{cronkite2016vcc,he2016acdc,mihaly2012mobilePEP}, resegment the
-byte stream, and enable forward error correction, explicit congestion
-notification, or other segment-specific enhancements. Because TCP isn't
-encrypted or authenticated, PEPs can achieve this transparently, without the
-knowledge or cooperation of end hosts. Roughly 20--40\% of Internet paths cross
-at least one TCP PEP~\cite{imc2011handley, edeline2019bottomup}.
+The beginnings of the mainstream, commercial Internet were marked by the
+World-Wide Web in the 1990s. From there, Wi-Fi expanded mobility for devices in
+the home and workspace, and cellular networks along with the popularity of
+Apple and Android phones expanded mobility everywhere else. Satellite networks,
+which long provided Internet access to more remote and rural regions, are being
+made more accessible today with low-Earth orbit satellites such as Starlink.
+The combination of wireless networking and the expansion of international and
+extraterrestrial links means our networks are more lossy and high-delay
+compared to the beginnings of ARPANET.
 
-While many flows benefit from PEPs, their use carries a cost: protocol
-ossification~\cite{papastergiou2017deossifying, edeline2019bottomup}. When a
-middlebox inserts itself in a connection and enforces its preconceptions about
-the transport protocol, it can thwart the protocol's evolution, dropping
-traffic that uses an upgraded version or new options. TCP PEPs have hindered or
-complicated the deployment of many TCP improvements, such as ECN++, tcpcrypt,
-TCP extended options, and multipath TCP~\cite
-{mandalari2018ecnplusplus,imc2011handley,raiciu2012multipathtcp}.
+The applications we use the Internet for also demand more from the network than
+ever before. The first Internet applications included e-mail and web browsing,
+and now we have expanded into high-bandwidth services such as streaming and
+content sharing, as well as interactive low-latency services such as video
+conferencing. The Internet today still uses TCP for transport, IP to route
+packets, and ``loss-based'' congestion control algorithms. Have these concepts
+survived the test of time for the networks and applications of the Internet
+today?
 
-In response to this ossification, and to an increased emphasis on privacy and
-security, post-TCP transport protocols have been designed to be impervious to
-meddling middleboxes, by encrypting and authenticating the transport header. We
-call these newer transport protocols ``opaque.'' The most prevalent is
-QUIC~\cite{rfc9000}, found in billions of installed Web browsers and millions
-of servers~\cite{zirngibl2021quicdeployment}; other opaque transport protocols
-are used in WebRTC/SRTP~\cite{rfc8834webrtc}, Zoom~\cite
-{zoom}, BitTorrent~\cite{bittorrent}, and Mosh/SSP~\cite{winstein2012mosh}.
+Let's look at it in the context of QUIC, a relatively new transport protocol
+invented at Google in 2012 and standardized in 2021. If you have used Chrome,
+watched YouTube, or interacted with some other Google service, you have
+probably used QUIC. QUIC in some ways can be thought of as an alternative to
+TCP, offering ordering and reliability in the transport layer.
 
-This opacity means that middleboxes can't interpose themselves on a connection
-or understand the sequence numbers of packets in transit.  This prevents PEPs
-from providing assistance, reducing---in some situations---the performance of
-opaque transport protocols~\cite
-{border2020quicsat-presentation,kuhn2021quic-over-sat,martin2022bbr-quic-sat,border2020evaluating,kosek2022quicpep}.
-It's possible to co-design protocols and PEPs to preserve security and privacy
-while permitting assistance from credentialed middleboxes~\cite
-{ford2008logjam,sherry2015blindbox, dogar2012tapa,iyengar2009flow}, but
-challenging to do so without tightly coupling these components, risking
-ossification and fragility.
+Now imagine you're on a moving train. Your laptop is connected to the router on
+the train via a lossy, low-latency Wi-Fi link, and the router is connected to
+the rest of the Internet via a more reliable, high-latency cellular path. You
+upload a large file using QUIC and find it to be incredibly slow. Packets being
+dropped on the wireless link require a full round-trip time to invoke a
+retransmission, and the ``loss-based'' congestion control algorithm on your
+laptop interprets the end-to-end signals as a lossy, high-latency path,
+reducing the sending rate dramatically.
 
-\section{QuACKs: Referring to encrypted packets without sequence numbers}
-\label{sec:introduction:quacks}
+However, thanks to the deployment of performance-enhancing proxies (PEPs) in the
+1990s, your file upload using TCP is actually very fast. These proxies exist in
+the middle of the network, at satellite ground stations, cellular base
+stations, or even the router on a moving train. The most common type of PEP is
+the connection-splitting TCP PEP. This PEP splits an end-to-end connection into
+two separate TCP connections. This allows the PEP to invoke retransmissions
+from closer to the data sender, as well as tailor the congestion control
+according to the properties of each path segment. TCP PEPs are still prevalent
+in the network today. It is estimated that 20-40\% of Internet paths containing
+a connection-splitting TCP PEP, even more in satellite and wireless networks.
 
-\section{Sidekick: Secure in-network assistance for data senders}
-\label{sec:introduction:sidekick}
+These proxies cannot help QUIC because QUIC is what we call a ``secure''
+transport protocol. Since TCP headers are unencrypted, an in-network proxy can
+actively manipulate the transport layer, intercepting the initialization
+packets and splitting the connection without knowledge of the endpoints. In
+comparison, QUIC and many other post-TCP transport protocols now completely
+encrypt their transport headers on the wire, preventing the PEP from helping
+and harming the performance of the connection.
 
-\section{Packrat: Secure in-network retransmissions for data receivers}
-\label{sec:introduction:packrat}
+If proxies help performance by manipulating the transport layer, then why do
+protocols choose to encrypt the transport layer? First, when TCP/IP was first
+invented, ARPANET was just a small network of trusted research institutions,
+where privacy and security were not design priorities. Transport protocols
+these days prefer to hide unessential information from proxies using
+encryption. Second, proxies have caused protocol ossification and prevented
+protocols like TCP from evolving over time. To provide in-network assistance,
+proxies have to make assumptions about what fields the transport layer should
+or should not have, and alter or block traffic based on these fields, fixing
+their functionality in place. Protocol ossification has prevented TCP from
+deploying many proposed extensions and changes to the protocol over the last
+few decades.
 
-\section{The future of connection-splitting with BBR and QUIC}
-\label{sec:introduction:heuristic}
+This thesis is about resolving the tension between performance and ossification
+in secure transport protocols. \textit{I will present the
+Sidekick approach to in-network assistance and show that it can yield many of
+the same performance benefits of traditional PEPs, without protocol
+ossification.} In this approach, proxies and endpoints send information on an
+adjacent connection about which packets they have received. The information is
+called a quACK, and it applies set reconciliation techniques in a novel setting
+to efficiently refer to encrypted packets without plaintext sequence numbers.
+Transport protocols are unmodified on the wire, leaving them free to evolve.
+
+In the rest of this dissertation, I will start by presenting quACKs
+(\Cref{sec:quack}), a tool for efficiently referring to a set of randomly
+encrypted packets that a proxy or endpoint has received. Next, I will describe
+how proxies use the Sidekick (\Cref{sec:sidekick}) protocol to send quACKs over
+an adjacent connection so the endpoint can modify its behavior to emulate
+traditional PEPs. Similarly, the endpoint sends quACKs to the proxy using the
+Packrat (\Cref{sec:packrat}) protocol to receive in-network retransmissions,
+also achieving a variety of performance benefits. Finally, I will take a step
+and analyze why connection-splitting is still relevant today even with recent
+developments such as BBR and QUIC (\Cref{sec:splitting}) and conclude
+(\Cref{sec:conclusion}).
+
+
+% \section{QuACKs: Referring to encrypted packets without sequence numbers}
+% \label{sec:introduction:quacks}
+
+% One of the main challenges of providing in-network assistance to secure
+% transport protocols is how to usefully refer to packets when they do not have
+% plaintext sequence numbers like TCP. In the first part of the dissertation,
+% I will describe the quACK, a tool for efficiently referring to a set of
+% randomly encrypted packets that a proxy or endpoint has received. The quACK
+% applies set reconciliation techniques from more theoretical literature to
+% communicate a small amount of information with efficient packet encoding and
+% decoding times.
+
+% \section{Sidekick: Secure in-network assistance for data senders}
+% \label{sec:introduction:sidekick}
+
+% Then, I will describe the Sidekick protocol for providing in-network assistance
+% to data senders using secure transport protocols.
+% The Sidekick approach is a fundamentally different type of architecture for
+% in-network assistance. Rather than actively manipulating the connection on the
+% wire by modifying and rewriting packets, the proxy simply observes the
+% underlying connection, which we refer to as the base protocol. The proxy sends
+% quACKs to the endpoint describing which packets it has received, and the
+% endpoint makes path-aware decisions to enhance the performance of the
+% connection while making the transport decisions end-to-end.
+
+% \section{Packrat: Secure in-network retransmissions for data receivers}
+% \label{sec:introduction:packrat}
+
+% Next, I will present the Packrat protocol for helping secure transport protocols
+% by sending in-network retransmissions to the endpoint. This scenario differs
+% from that of the Sidekick protocol because the lossy path segment is near the
+% data receiver instead of the data sender. This is challenging because the data
+% sender dictates the terms of the data transfer, such as the sending rate and
+% end-to-end retransmissions. However, there are also advantages in that the
+% quACK sender is now co-located with the end-to-end ACK sender.
+
+% \section{The future of connection-splitting with BBR and QUIC}
+% \label{sec:introduction:heuristic}
+
+% Taking a step back, recall that
+% connection-splitting PEPs peaked in the late 1990s as a response to lossy,
+% high-delay networks, and this was possible because TCP was unencrypted.
+% Their utility today is complicated by post-TCP transport protocols such as QUIC
+% that totally encrypt the transport layer on the wire. Sometimes what's old is
+% new again, and sometimes what's old just needs to stay old.
+
+% One of the core reasons QUIC was so slow in our train scenario was because of
+% its congestion control algorithm's response to loss. In 2016, we had another
+% advancement, also from Google, in the form of a new type of congestion control
+% algorithm which is BBR. BBR was designed specifically for lossy, high-delay
+% networks and is presumed to have much better performance. With options that are
+% seemingly appealing for both ossification and performance, do recent
+% developments such as BBR and QUIC truly make connection-splitting obsolete?
+
+% We perform an emulation study of modern transport protocols and congestion
+% control schemes both with and without connection-splitting PEPs, applying the
+% \textit{split throughput heuristic}, and find that congestion control schemes do
+% still benefit from connection-splitting today and the degree varies
+% significantly by implementation. We present several takeaways regarding how to
+% refer to end-to-end congestion control schemes and also hope this study
+% motivates the need for protocol-agnostic forms of in-network assistance that
+% emulate connection-splitting PEPs in the future.
