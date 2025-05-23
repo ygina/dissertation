@@ -1,8 +1,14 @@
 \chapter{Conclusion}
+\label{sec:conclusion}
+
 \section{Summary}
+\label{sec:conclusion:summary}
+
 \section{Future work}
+\label{sec:conclusion:future}
 
 \subsection{Real-world studies}
+\label{sec:conclusion:future:real-studies}
 
 Our emulations model non-congestive loss as random, independent loss,
 which may not accurately reflect the real world. While non-congestive loss
@@ -53,12 +59,13 @@ the sender may be able to more quickly adapt and make
 data available for transmission whenever capacity intermittently becomes available.
 
 \subsection{Deployment and standardization}
+\label{sec:conclusion:future:deployment}
 
 The implementation of Robin exists as a research system that has been evaluated
 in emulation and a limited set of real-world scenarios. Since Sidekick protocols
 require the cooperation of middleboxes and client applications, more work will
 be needed to standardize the discovery protocol and wire format of Sidekick messages
-described in \Cref{sec:sidekick:protocol}, ideally with interest from the IETF.
+described in \Cref{sec:sidekick:init}, ideally with interest from the IETF.
 The standards will need to establish several design choices such as how
 identifiers are computed, how quACKs are transmitted, and the exact mechanisms
 for security and backwards compatibility.
@@ -85,6 +92,7 @@ The Packrat protocol has the advantage that only one endpoint in addition to the
 proxy needs to speak the protocol.
 
 \subsection{Set reconciliation in packet-scale settings}
+\label{sec:conclusion:future:set-reconciliation}
 
 In this paper, we explored an alternative construction of the quACK that is
 optimized for computational efficiency at a small granularity. An extension to
@@ -103,4 +111,5 @@ between the proxy and endpoint.
 % \Cref{sec:appendix:pacubic}.
 
 \section{Concluding Remarks}
+\label{sec:conclusion:remarks}
 ...

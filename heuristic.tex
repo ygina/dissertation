@@ -2,6 +2,7 @@
 \label{sec:splitting}
 
 \section{Introduction}
+\label{sec:splitting:intro}
 
 \input{splitting-paper/figures_tex/bbr-over-time.tex}
 
@@ -1002,6 +1003,7 @@ path segments to use the cached measurements from \Cref
 {tab:parameters}.
 
 \subsection{End-to-end throughput accuracy}
+\label{sec:splitting:accuracy:e2e}
 
 Each of our splits composes to the same end-to-end network path, so we predict
 the same end-to-end throughput for each. Our experimental
@@ -1011,6 +1013,7 @@ our method of composing network path segments in emulation represents the same
 end-to-end network path.
 
 \subsection{Split throughput accuracy}
+\label{sec:splitting:accuracy:split}
 
 The split throughput predictions accurately reflect trends in loss, delay, and
 bandwidth (\Cref{fig:accuracy:split}). For example, split throughput is
@@ -1046,3 +1049,4 @@ but simply to reason about how connection-splitting may impact
 long-lived throughput in a simplified network model.
 
 \section{Summary}
+\label{sec:splitting:summary}

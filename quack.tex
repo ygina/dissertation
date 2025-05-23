@@ -39,6 +39,7 @@ amount of information the ``quACK'', and the problem is:
 \textbf{what is in a quACK and how do we decode it?}
 
 \subsection{Identifiers}
+\label{sec:quack:problem:identifiers}
 
 In a networking context, how exactly do we refer to the elements
 in the quACK problem that have been sent or received?
@@ -83,7 +84,7 @@ statistics (e.g., congestion control) or it can fall back to an end-to-end
 mechanism (e.g., retransmission).
 
 \subsection{Strawman solutions}
-\label{sec:quack:strawmen}
+\label{sec:quack:problem:strawmen}
 
 \input{sidekick-paper/tables/strawmen-theoretical.tex}
 
@@ -131,7 +132,7 @@ determine a gap in received packets, there is no way to tell with random
 identifiers what packet is missing or should be expected next.
 
 \section{Background: Set reconciliation}
-\label{sec:quack:constructions:background}
+\label{sec:quack:background}
 
 The problem of providing a concise acknowledgment of encrypted packet identifiers
 boils down to a more general problem called set reconciliation. In this problem,
@@ -229,7 +230,7 @@ number of packets it has sent and the count in the quACK to calculate $m$.
 Sending the last element received is an optimization that allows $m$ to
 represent just the ``holes'' among the packets being selectively ACKed,
 excluding the possibly many consecutive elements that are in-flight
-(\Cref{sec:sidekick:protocol:sender-behavior}).
+(\Cref{sec:sidekick:sender}).
 
 \subsection{Invertible Bloom lookup table: A computationally scalable approach}
 \label{sec:quack:constructions:iblt}
@@ -417,3 +418,4 @@ the Packrat has a greater worst-case tolerance for errors with the same encoding
 overheads. The Packrat proxy can reset the connection if it cannot decode a quACK.
 
 \section{Summary}
+\label{sec:quack:summary}

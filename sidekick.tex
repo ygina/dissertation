@@ -1,6 +1,9 @@
 \chapter{Sidekick Protocol}
 \label{sec:sidekick}
 
+\section{Introduction}
+\label{sec:sidekick:intro}
+
 In this paper, we propose a method for in-network assistance of opaque transport
 protocols that tries to resolve this tension. Our approach leaves the transport
 protocol unchanged on the wire: a secure end-to-end connection between hosts,
@@ -99,14 +102,13 @@ expense of congestion-control fairness relative to a split CUBIC connection.
 
 \smallskip
 
-The rest of this paper describes the Sidekick's motivating scenarios
-(\Cref{sec:sidekick:motivating}), discusses the concrete Sidekick protocol we
-built around quACKs (\Cref{sec:sidekick:protocol}) and its implementation in two
+The rest of this paper describes the concrete Sidekick protocol we
+built around quACKs (\Cref{sec:sidekick:init,sec:sidekick:sender}),
+discusses three motivating scenarios (\Cref{sec:sidekick:motivating}) and
+the implementation of the Sidekick protocol in two
 base protocols (\Cref{sec:sidekick:implementation}), and then evaluates the
 protocol in real-world and emulation experiments
-(\Cref{sec:sidekick:evaluation}).
-
-\section{Introduction}
+(\Cref{sec:sidekick:real-world,sec:sidekick:emulation}).
 
 \section{Establishing an adjacent connection}
 \label{sec:sidekick:init}
@@ -219,13 +221,14 @@ is ready to cache packets and retransmit. On receiving an \texttt{InitACK}, the
 client is free to send quACKs.
 
 \section{Path-aware sender behavior}
-\label{sec:sidekick:protocol:sender-behavior}
+\label{sec:sidekick:sender}
 
 In this section, we discuss two particular sender-side behaviors that are enabled by
 the Sidekick protocol and which are helpful across several scenarios: detecting packet loss
 from a decoded quACK and congestion control.
 
 \subsection{Loss detection}
+\label{sec:sidekick:sender:loss-detection}
 
 The sender knows definitively which packets have been received by the proxy from
 a decoded quACK. Next, it must determine from the remaining packets which ones
@@ -256,6 +259,7 @@ Other mechanisms could involve timeouts for individual packets similar to the
 RACK-TLP loss detection algorithm for TCP~\cite{rfc8985}.
 
 \subsection{Path-aware CUBIC congestion control}
+\label{sec:sidekick:sender:pacubic}
 
 Congestion-controlled base protocols must have a congestion response to lost
 packets that they retransmit due to quACKs, similar to if the loss were
@@ -296,7 +300,7 @@ Let $r$ be the estimated ratio of the RTT of the near path segment
 We use $r$ as a proxy for the ratio of the number of in-flight bytes.
 If the last congestion event came from a quACK, we use the same real-time
 dependent cubic function but with the following
-constants\footnote{See \Cref{sec:appendix:pacubic} for more intuition behind $\beta'$ and $C'$.}
+constants\footnote{See \Cref{sec:sidekick:appendix} for more intuition behind $\beta'$ and $C'$.}
 \[
 \beta = 1 - r(1-\beta^*)\text{ and }C = \frac{C^*}{r^3}.
 \]
@@ -329,6 +333,7 @@ the same Sidekick protocol and the same middlebox behavior across the different
 scenarios in this paper.
 
 \subsection{Low-latency media retransmissions}
+\label{sec:sidekick:motivating:media}
 
 Consider a train passenger using on-board Wi-Fi to have a low-latency audio
 conversation, using WebRTC/SRTP~\cite{rfc8834webrtc}, with a friend. The
@@ -349,6 +354,7 @@ Milliproxy~\cite{polese2017milliproxy}, that leverage TCP's cleartext sequence
 numbers to trigger early retransmission on lossy wireless paths.
 
 \subsection{Emulating split congestion control in an HTTP/3 file upload}
+\label{sec:sidekick:motivating:http}
 
 Consider the same train passenger as before but uploading a large file over the
 Internet with a reliable transport protocol. If the protocol were TCP, the
@@ -365,7 +371,7 @@ the congestion-control behavior. This leads to reduced upload speeds
 
 With help from the same Sidekick PEP, the QUIC sender combines information from
 quACKs and end-to-end ACKs to emulate the congestion-control behavior of a
-split TCP connection (\Cref{sec:sidekick:protocol:sender-behavior}). The
+split TCP connection (\Cref{sec:sidekick:sender}). The
 application considers whether packets are lost on the near or far path
 segments, and adjusts the congestion window accordingly while respecting the
 opacity of the end-to-end base connection. The application also retransmits the
@@ -377,6 +383,7 @@ receiver, the sender does not delete packets that may need to be transmitted
 until it receives an ACK, even if the packet has been quACKed.
 
 \subsection{Battery-saving ACK reduction}
+\label{sec:sidekick:motivating:ack-reduction}
 
 Now consider a battery-powered device downloading a large file from the
 Internet. To reduce how often the receiver's
@@ -483,7 +490,7 @@ retransmission behavior, congestion window, and flow-control window. The library
 immediately retransmits lost \emph{frames} in a newly-numbered
 packet, as opposed to the lost \emph{packet}, similar to QUIC's original
 retransmission mechanism. We implement PACUBIC,
-described in \Cref{sec:sidekick:protocol:sender-behavior}.
+described in \Cref{sec:sidekick:sender}.
 We also move the flow-control window (without forgetting packets in the
 retransmission buffer), but only in the ACK reduction scenario, when the
 congestion window is nearly representative of that of the Sidekick connection's
@@ -501,7 +508,7 @@ It also sends quACKs at their configured frequencies and listens for
 configuration messages.
 
 \section{Evaluation methodology}
-\label{sec:sidekick:evaluation:methodology}
+\label{sec:sidekick:methodology}
 
 We modeled the scenarios from \Cref{sec:sidekick:motivating}. We use the same
 m4.xlarge AWS instance as before for the emulated experiments.
@@ -548,7 +555,7 @@ bandwidth, and the corresponding path segments in emulation had similar
 minimum RTTs and average loss percentages.
 
 \section{Real-world results}
-\label{sec:sidekick:evaluation:real-world}
+\label{sec:sidekick:real-world}
 
 \input{sidekick-paper/figures_tex/real-world.tex}
 
@@ -594,7 +601,7 @@ Finally, we could analyze theoretically how PACUBIC responds
 to traffic patterns in the real world.
 
 \section{Emulation results}
-\label{sec:sidekick:evaluation}
+\label{sec:sidekick:emulation}
 
 \input{sidekick-paper/figures_tex/experimental-setup.tex}
 \input{sidekick-paper/figures_tex/main-results.tex}
@@ -613,7 +620,7 @@ We evaluated Robin to answer the following questions:
 \end{enumerate}
 
 \subsection{Performance of secure transport protocols with Sidekick}
-\label{sec:sidekick:evaluation:main-results}
+\label{sec:sidekick:emulation:performance}
 
 We first evaluate Robin's main performance goal: In each of the motivating
 scenarios, we show that Robin can improve performance compared to the base
@@ -661,7 +668,7 @@ are negligible.
 Knowing \emph{where} congestion occurs is an opportunity for creating smarter
 congestion control. In PACUBIC, identifying where the loss occured let the data
 sender reduce the congestion window proportionally to how many packets were
-in-flight on each path segment. In \Cref{sec:sidekick:evaluation:pacubic}, we
+in-flight on each path segment. In \Cref{sec:sidekick:emulation:pacubic}, we
 will show that our path-aware congestion control algorithm still matches the
 fairness of connection-splitting TCP PEPs.
 
@@ -687,7 +694,7 @@ than $\approx 240$ packets.
 \subsubsection{Configuring the Sidekick Connection}
 \Cref{tab:experimental-scenarios} shows the quACK interval and threshold we
 elected for each scenario based on the considerations in
-\Cref{sec:sidekick:protocol}. In each experiment in \Cref{fig:main-results},
+\Cref{sec:sidekick:init}. In each experiment in \Cref{fig:main-results},
 we also show how with less frequent quACKs ($2\times$ and $4\times$ the
 interval) and proportionally-adjusted thresholds, the protocol performs worse,
 or more variably. Less frequent quACKs means the client reacts later to
@@ -697,7 +704,7 @@ interval exceeds the end-to-end RTT. However, even in this case, the base
 protocol with any Sidekick at all performs better than the base protocol alone\@.
 
 \subsection{Link overheads from sending quACKs}
-\label{sec:sidekick:evaluation:link-overheads}
+\label{sec:sidekick:emulation:link-overheads}
 
 \input{sidekick-paper/tables/packet-overheads.tex}
 
@@ -735,7 +742,7 @@ data sender due to larger TCP headers and TCP ACKs.
 We did not evaluate Strawman 2 due to its impractical decode time.
 
 \subsection{CPU overheads of encoding at the proxy}
-\label{sec:sidekick:evaluation:cpu-overheads}
+\label{sec:sidekick:emulation:cpu-overheads}
 
 \input{sidekick-paper/figures_tex/cpu-overheads.tex}
 
@@ -775,7 +782,7 @@ or using native hardware~\cite{bosshart2014p4}.
 We could also scale on multiple cores using symmetric RSS hashing~\cite{woo2012scalable}.
 
 \subsection{TCP friendliness of path-aware CUBIC}
-\label{sec:sidekick:evaluation:pacubic}
+\label{sec:sidekick:emulation:pacubic}
 
 \input{sidekick-paper/figures_tex/fairness-results.tex}
 
@@ -810,14 +817,15 @@ loss on the near path segment.
 loss rates, the near path segment becomes the bottleneck link even with earlier
 feedback about loss, causing the performance of TCP with proxy assistance to
 drop. QUIC with a Sidekick follows a similar pattern because of its path-aware
-congestion-control scheme (\Cref{sec:sidekick:protocol:sender-behavior}). The
+congestion-control scheme (\Cref{sec:sidekick:sender}). The
 results indicate that the Sidekick protocol's gains do not come at the expense
 of congestion-control fairness relative to the split TCP connection.
 
 \section{Summary}
+\label{sec:sidekick:summary}
 
-\section{Appendix: Intuitive analysis of PACUBIC}
-\label{sec:appendix:pacubic}
+\section{Appendix: Intuitive analysis of path-aware CUBIC}
+\label{sec:sidekick:appendix}
 
 \begin{figure*}[h]
 \centering
@@ -866,7 +874,7 @@ in TCP using a PEP.
 \end{figure*}
 
 Here, we dive deeper into the intuition behind the PACUBIC constants
-(\Cref{sec:sidekick:protocol:sender-behavior}), including how they were derived and why the PACUBIC
+(\Cref{sec:sidekick:sender}), including how they were derived and why the PACUBIC
 algorithm achieves similar congestion behavior to the CUBIC algorithm in a split
 connection---we call this behavior ``split CUBIC''.
 
