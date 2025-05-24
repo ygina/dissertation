@@ -1,29 +1,38 @@
 \chapter{QuACKs}
 \label{sec:quack}
 
-As previously illustrated, a Sidekick needs to be able to refer to and efficiently
-acknowledge a set of opaque packets seen by a network intermediary.
-But this problem is technically challenging for middleboxes without access to
-cleartext sequence numbers or the ossification of other fields.
+In a Sidekick connection, a proxy needs to be able to refer to and efficiently
+acknowledge a set of packets even when they are randomly encrypted. Since
+packets in a TCP connection are labeled with cleartext sequence numbers, it is
+straightforward to refer to a set of TCP packets using cumulative and selective
+ACKs. But this problem is technically challenging for secure transport
+protocols without access to cleartext sequence numbers or the ossification of
+other fields.
 
-We start by mathematically defining the quACK problem.
-We discuss how to select an \emph{identifier} to refer to a packet,
-and analyze strawman solutions to the quACK problem
-that use too much space or computation.
-Finally, we present an efficient construction of a quACK based on the insight
-that we can model the problem as a system of power sum polynomial equations
-when we have a bound on the maximum number of missing elements, a threshold $t$.
-This solution is most similar to the deterministic solution to the
-\emph{straggler identification} problem~\cite{eppstein2011straggler}, and also builds on
-related theoretical work in set reconciliation~\cite{minsky2003set}, and coding
-theory and graph theory~\cite{karpovsky2003data}.
+We mathematically define the quACK problem in the context of network packets
+sent over a lossy path segment, and discuss how to select \emph{identifiers} to
+refer to encrypted packets. We analyze strawman solutions to the quACK problem
+that use either too much space or computation. Then, we present two efficient
+constructions of the quACK inspired by related theoretical work in set
+reconciliation~\cite{minsky2003set,eppstein2011straggler}, as well as coding
+theory and graph theory~\cite{karpovsky2003data}. Both constructions require a
+bound on the maximum number of missing elements, a threshold $t$, and have
+different tradeoffs. The \textit{power sum} construction is space-optimal and
+deterministic, but requires an exact bound. The \textit{invertible Bloom lookup
+table (IBLT)} construction is more computationally scalable with an approximate
+bound, but also probabilistic with constant factor overheads.
 
-Concretely realized, the quACK expresses the equivalent of TCP's
-cumulative + selective ACK over opaque (randomly identified) packets
-in 48 bytes, tolerating up to 10 missing packets before the last
-``selective ACK.'' On a recent x86-64 CPU, it takes 33 ns/packet for a Sidekick PEP
-to encode a quACK, and 3~$\mu$s for an end host to decode it. These
-overheads compared well with several alternatives (\Cref{sec:quack:microbenchmarks}).
+% that we can model the problem as a system of power sum polynomial equations
+% when we have a bound on the maximum number of missing elements, a threshold $t$.
+
+Concretely realized, the power sum quACK expresses the equivalent of TCP's
+cumulative + selective ACK over the 32-bit identifiers of randomly encrypted
+packets in 48~bytes, tolerating up to 10 missing packets before the last
+``selective ACK.'' On a recent x86-64 CPU, it takes 26~ns to encode a single
+packet in the power sum quACK, and 15.5~$\mu$s to decode which received packets
+the quACK represents. The IBLT quACK takes 42~ns to encode a single packet,
+1.3~$\mu$s to decode a quACK, and uses (at least) 58~bytes. These overheads
+compared well with several alternatives (\Cref{sec:quack:microbenchmarks}).
 
 \section{The QuACK Problem}
 \label{sec:quack:problem}
@@ -43,7 +52,7 @@ amount of information the ``quACK'', and the problem is:
 
 In a networking context, how exactly do we refer to the elements
 in the quACK problem that have been sent or received?
-Traditional TCP middleboxes have been able to interpose their
+Traditional TCP proxies have been able to interpose their
 own concise, cumulative acknowledgments using cleartext sequence numbers, but
 this is not possible with modern, secure transport protocols. Even if a
 connection did expose an unencrypted numerical field, we would not want to
@@ -155,7 +164,7 @@ also explore the tradeoffs of the quACK compared to the quACK.
 Another way to reduce the impact of decoding at the proxy is simply to send smaller
 and fewer quACKs. When the quACK sender is at the proxy, such as in Sidekick,
 it doesn't have much flexibility in changing how often it quACKs given
-the base protocol is completely opaque. But when the quACK sender is co-located
+the base protocol is completely encrypted. But when the quACK sender is co-located
 with an application endpoint, the endpoint can leverage its knowledge about the
 base acknowledgment scheme to dynamically adjust the quACK.
 We describe two optimizations: \textit{rateless quACKs} and \textit{selective quACKing}.
