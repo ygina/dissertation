@@ -349,9 +349,10 @@ updated as elements are added and removed.
 We explored many optimizations to improve the performance of each quACK.
 In the power sum quACK, this includes optimized modular arithmetic operations
 for various bit widths to explore the tradeoff between identifier collisions
-and computation cost. In the IBLT quACK, the pseudorandom mapping algorithm
-needs to be fast so that the computational complexity outweighs constant factor
-overheads even when $t$ is small.
+and computation cost, as well as various methods for solving a system of
+symmetric polynomial equations. In the IBLT quACK, the pseudorandom mapping
+algorithm needs to be fast so that the computational complexity outweighs
+constant factor overheads even when $t$ is small.
 In \Cref{sec:quack:psum-microbenchmarks,sec:quack:iblt-microbenchmarks},
 we run microbenchmarks to demonstrate the practicality of our implementation
 for in-line packet processing, and also evaluate the impact of our design
@@ -363,13 +364,14 @@ decisions on the computation cost.
 \label{sec:quack:psum-microbenchmarks}
 
 \input{sidekick-paper/figures_tex/quack.tex}
+\input{sidekick-paper/tables/strawmen-practical.tex}
 
-We benchmark our optimized implementation of the power sum quACK~\cite{quack-github}
-to demonstrate its practicality for in-line packet processing.
+In this section, we benchmark the power sum quACK construction and evaluate the
+computation cost for different parameters in packet-scale settings.
+We explore different bit widths for the identifier and settle on
+using 32-bit packet identifiers.
 Our microbenchmarks used an m4.xlarge AWS instance with a 4-CPU Intel Xeon E5
 processor @ 2.30 GHz and 16 GB memory.
-
-\input{sidekick-paper/tables/strawmen-practical.tex}
 
 A power sum quACK that represents $n=25$ outstanding packets
 (packets in consideration on that path segment not yet known to be received or lost)
@@ -380,122 +382,128 @@ packet and takes $2.82$\,$\mu$s to decode (\Cref{tab:strawmen-practical}).
 \subsection{Identifier bit widths}
 \label{sec:quack:psum-microbenchmarks:bit-widths}
 
-Different bit widths have different implications for
-which instructions the CPU can use. Modular operations are efficient
+The more bits we use in an identifier, the less likely that there will be a
+collision, but different bit widths have different implications for the
+computation cost based on which instructions the CPU can use. Modular operations are efficient
 for 16- and 32-bit integers, fitting within the 64-bit word size (the number of
 bits that can be processed in one instruction) of most modern CPUs. For example,
 to multiply two 32-bit integers, we cast them to 64-bit integers, multiply,
 then take the modulus.
 
-\Cref{fig:quack-plots} shows the best performance we achieved at different bit
-widths. For 16-bit identifiers only, we precomputed power tables that fit in
-the L3 cache. For 64-bit identifiers, we implemented Montgomery modular
-multiplication~\cite{montgomery1985modular} to avoid an expensive hardware
-division for 128-bit integers. In the remainder of the paper, we use $b=4$ as
-the preferred tradeoff between space and collision probability.
+\Cref{fig:quack-plots} shows the best encoding and decoding times we achieved
+at different bit widths, demonstrating that computation cost is generally
+higher for higher bit widths, though not significantly. For 16-bit identifiers
+only, we precomputed power tables that fit in the L3 cache. For 64-bit
+identifiers, we implemented Montgomery modular multiplication~\cite{montgomery1985modular}
+to avoid an expensive hardware division for 128-bit
+integers. In the remainder of this dissertation, we select $b=4$, or 32-bit
+identifiers, as the preferred tradeoff between collision probability, the size
+of the quACK, and computation cost.
 
 \subsection{Encoding time}
 \label{sec:quack:psum-microbenchmarks:encoding}
 
-The encode time per-packet is directly proportional to
+Encoding a single packet requires updating the $t$ power sums in the power sum
+quACK.
+The per-packet encoding time is thus directly proportional to
 the threshold number of missing packets $t$ (\Cref{fig:construction-time}) at
-$33/10 \approx 3$ ns/power sum.
+$\approx 3$ ns/power sum.
 Each power sum can be updated in a constant number of operations based on the
-previous power sum, so encoding an identifier requires $t$ modular additions
-and multiplications for the $t$ power sums.
+previous power sum, which is a single modular addition and multiplication.
 
 \subsection{Decoding time}
 \label{sec:quack:psum-microbenchmarks:decoding}
 
-The decode time must be comparable to the time it takes to process a typical
-ACK and modify the logic in the transport protocol. Decoding typically
-occurs on end hosts, compared to encoding which occurs in the middle of the path.
-
-Finding the solution to the system of power sum polynomial equations boils down
-to applying Newton's identities (a linear algorithm) and finding the roots of a
-polynomial equation
-in a modular field~\cite{eppstein2011straggler}.
+Decoding the power sum quACK requires finding the solution to a system of power
+sum polynomial equations. This boils down to applying Newton's identities (a
+linear algorithm) and finding the roots of a polynomial equation in a modular
+field~\cite{eppstein2011straggler}.
 Factoring a polynomial is asymptotically fast in theory, but the implementation
 is branch-heavy and complicated~\cite{batut2000user}.
-We found that plugging in and evaluating which of $n$ candidate roots
-evaluated to zero was faster in practice for $n < 40,000$ roots.
-This is the method we use to decode the power sum quACK.
+We find that in practice, it is faster to plug in and determine which of the
+$n$ candidate roots evaluate to zero when there are $n < 40,000$ roots.
+We use this method to decode the power sum quACK instead of factorization.
 
-The decode time of this method is directly proportional to $n$ (\Cref{fig:n-vs-decoding})
+The decoding time of this method is directly proportional to the number of
+candidate packets $n$ (\Cref{fig:n-vs-decoding})
 and the number of missing packets $m$ (\Cref{fig:m-vs-decoding}).
-Decoding takes $2820/10/25 \approx 11$ ns/candidate/missing.
-Both $n$ and $m$ are typically a few hundred at most.
+Decoding takes $\approx 11$ ns/candidate/missing, and both $n$ and $m$ are
+typically a few hundred at most.
+Thus it is typically for encoding to take a few nanoseconds per packet and
+decoding to take a few microseconds per quACK.
 
 \section{IBLT microbenchmarks}
 \label{sec:quack:iblt-microbenchmarks}
 
-Both the IBLT and power sums are derived from set reconciliation
-techniques, so when should we prefer one to the other?
-We adapt the power sum quACK from \cite{yuan2024sidekick} for the interface
-in \Cref{lst:quack-interface}
-so that they can be used interchangeably in our microbenchmarks and compare
-it to our implementation of the IBLT quACK.
-In this section, we compare the overheads in practice.
-We run the microbenchmarks on a single core of an AWS m4.xlarge instance.
+Both constructions of the quACK implement the same interface and can be used
+interchangeably, so when should we prefer one to the other? In this section, we
+compare the encoding and decoding times in practice, including how they scale
+with the communication cost and the number of missing packets and how to
+configure the IBLT quACK based on its probabilistic correctness. We run the
+microbenchmarks on a single core of an AWS m4.xlarge instance.
 
 \subsection{Encoding and decoding time scalability}
 \label{sec:quack:iblt-microbenchmarks:scalability}
 
 \input{packrat-paper/figures_tex/quack_cpu}
 
-Encoding in the IBLT is faster in practice when there are at least
+Encoding and decoding operations in the IBLT quACK update a logarithmic number
+of symbols per-packet, compared to all of the symbols in the power sum quACK.
+This results in better computational complexity in theory, but in practice we
+find that the encoding and decoding times also depend on the constant factor
+overheads of the pseudorandom mapping algorithm.
+
+The encoding time in the IBLT quACK is faster when there are at least
 $\approx\!30$ symbols (\Cref{fig:quack:encode}).
 Each update in the IBLT uses an expensive square root instruction in the
 pseudorandom mapping algorithm, adding constant factor overheads that impact
 smaller numbers of symbols.
-m
-Decoding in the IBLT is much faster in practice for any number of symbols
-(\Cref{fig:quack:decode}). Note that the power sum quACK actually uses a decoding
-method that is linear in \textit{all} packets received, not just the \textit
-{missing} packets, due to the complexity of symmetric polynomial
-factorization.
+
+The decoding time is faster for any number of symbols (\Cref{fig:quack:decode}).
+Note that the power sum quACK actually uses a decoding method that is linear
+in \textit{all} packets received, not just the \textit{missing} packets, due to
+the complexity of symmetric polynomial factorization.
 
 \subsection{Probabilistic correctness}
 \label{sec:quack:iblt-microbenchmarks:correctness}
 
 \input{packrat-paper/figures_tex/quack_correctness}
 
-It is unknown how many symbols are required in the IBLT to decode the same
+It is unknown how many symbols are required in the IBLT quACK to decode the same
 number of $m$ missing packets using power sums in the previous benchmarks.
-There is a constant factor overhead ($1.35\times$ on average~\cite
-{yang2024practical}).
+There is a constant multiplicative factor on average
+($1.23$--$1.35\times$~\cite{yang2024practical,baek2023simple}).
 \Cref{fig:iblt-quack} shows the CDF of the minimum number of symbols to decode
 various $m$ as this constant multiplier increases. $m=1$ trivially requires
 one symbol, while the multiplier decreases for higher $m$ to achieve the same
 success rates.
 
-The quACK sender does not know how many symbols it needs to encode to later
-decode a certain $m$. Using power sums, this is exactly $m$ symbols. In
-the quACK, $4 \cdot m$ symbols have at least a $\!98.8\%$ success rate for
-all $m$ evaluated in \Cref{fig:iblt-quack}. When $m$ is large, the quACK utilizes more
-of the link, but maintaining more symbols at the proxy and client means
-the Packrat has a greater worst-case tolerance for errors with the same encoding
-overheads. The Packrat proxy can reset the connection if it cannot decode a quACK.
+The sender does not know how many symbols it needs to encode to later decode a
+certain $m$. Using the power sum quACK, this is exactly $m$ symbols. In the
+IBLT quACK, $4 \cdot m$ symbols have at least a $\!98.8\%$ success rate for all
+$m$ evaluated in \Cref{fig:iblt-quack}. When $m$ is large, the IBLT quACK
+utilizes more of the link, but maintaining more symbols at the sender and
+receiver means the sender has a greater worst-case tolerance for errors with
+more scalable encoding overheads.
 
 \section{Summary}
 \label{sec:quack:summary}
 
-The power sum quACK is efficient to decode, adds reasonable link overhead,
-and is a cumulative representation of the packets seen by the receiver
-(\Cref{tab:strawmen-theoretical}).
-Compared to Strawman 2, the power sum quACK can be decoded with simple
-algebraic techniques.
-Its link overhead is proportional only to the number of
+The power sum and IBLT constructions of the quACK are efficient to decode, add
+reasonable link overhead, and are cumulative representations of the packets
+seen by the receiver (\Cref{tab:strawmen-theoretical}). Compared to Strawman 2,
+the quACKs can be decoded with simple computational primitives such as XORs and
+modular arithmetic. Their link overheads are proportional only to the number of
 missing packets between consecutive quACKs, up to a configurable threshold. In
 comparison, the link overhead of Strawman 1 is necessarily proportional to the
-number of received packets.
-The power sum quACK is also resilient to mis-identifying a received packet as
-dropped, in the case a quACK is lost in transmission.
+number of received packets. Our constructions of the quACK are also resilient
+to mis-identifying a received packet as dropped, in the case a quACK is lost in
+transmission.
 
-To make the IBLT data structure suitable for small, network packets, we
-carefully consider constant factor overheads in the
-number of symbols and the computational efficiency. We find the quACK
-is most likely to be useful in settings with high, bursty loss, where
+Compared to each other, we find the IBLT quACK to be more useful in settings
+with high, bursty loss, where
 encoding and decoding large numbers of symbols is more efficient than the
-quACK. However, the quACK is still more efficient when
-loss is small or infrequent.
+power sum quACK. However, the power sum quACK is still more efficient when
+loss is small or infrequent. In addition, the power sum quACK may be simpler
+to reason about when the threshold is predictable, since it is deterministically
+correct.
