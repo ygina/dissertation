@@ -289,65 +289,75 @@ interchangeably use different constructions of the quACK.
 
 \subsection{Wire format}
 
-The actual format of the quACK includes three fields: (i) a 4-byte count of
-received elements, (ii) the identifier of the last element received, and
-(iii) $t$ symbols. The power sum quACK symbol is a power sum, and for the IBLT
-quACK it is a count and an XOR of identifiers. We assume quACKs to be sent over
-UDP, though the actual mechanism is not tied to the design. Since the decoder
-does not know the number of missing packets $m$ ahead of time, the decoder
-takes the difference between the number of packets it has sent and the count in
-the quACK to calculate $m$. Sending the last element received is an
-optimization that allows $m$ to represent just the ``holes'' among the packets
-being selectively ACKed, excluding the possibly many consecutive elements that
-are in-flight (\Cref{sec:sidekick:sender}).
+The wire format of the quACK reflects its communication cost in a Sidekick
+connection. Although the actual mechanism in which quACKs are transmitted over
+the wire is not tied to the design, we assume quACKs to be written in the
+payload of a UDP datagram, possibly with a small header. Assuming we use 32-bit
+integers as packet identifiers, the actual quACK consists of three fields:
 
-\subsubsection{Serializing the IBLT quACK in a packet MTU.}
+\begin{enumerate}[label=(\roman*),noitemsep]
+\item The 4-byte count of received elements,
+\item The 4-byte identifier of the last element received, and
+\item $t$ symbols, where $t$ determines the number of missing elements that can be decoded.
+\end{enumerate}
 
-The main disadvantage of the IBLT in
-the Packrat setting is its size in practice. The IBLT typically requires a constant factor
-more symbols than the number of items in the set to decode the set without a
-collision. Compared to power sums, each symbol also requires a count. While
-these constant factors are inconsequential in larger distributed systems,
-which reconcile larger sets with encodings much larger than an MTU, they
-matter here.
+The count and last element received are valuable for efficient decoding in the
+quACK context. The sender uses the count to calculate the number of missing
+packets $m$, which is not known ahead of time, by subtracting the count of the
+quACK transmitted by the receiver from its own count. The last element received
+is an optimization that allows $m$ to represent just the ``holes'' among the
+packets being selectively ACKed, excluding the consecutive elements that are
+in-flight (\Cref{sec:sidekick:sender:loss-detection}).
 
-We carefully selected the bit widths for each field. Note that each quACK needs
-to fit in a single UDP datagram, which limits us to $\approx\!1400$ bytes
-excluding headers. If each XOR is $4$ bytes, then there can be at most $350$
-packets in the set difference. Note that $8$-byte identifiers are unnecessary
-because collisions are unlikely in these small set difference sizes. The count
-in each symbol needs to be as large as the set difference size. It can also be
-an unsigned integer because we do subset (and not set) reconciliation, and we
-can subtract with overflow. An 8-bit integer goes up to $255$, which is
-sufficiently close. Thus the largest quACK contains $255$ symbols or $4 +
-4 + 255 \cdot 5 = 1283$ bytes in the \texttt{quACK} payload.
+The wire format of the symbol depends on the construction of the quACK. In the
+power sum construction, the symbol is just a power sum of the elements, and
+uses 4 bytes. In the IBLT construction, the symbol consists of both an XOR of
+the elements and a count. With 4-byte identifiers, the count uses just one byte
+for a total of 5 bytes. The total communication cost of the quACK (excluding
+headers) is either $8+4\cdot t$ or $8+5\cdot t$ bytes, depending on the
+construction.
+
+\subsubsection{Why is a single byte sufficient for the count in an IBLT cell?}
+
+Note that a quACK needs to fit in a single UDP datagram, which limits us to
+$\approx\!1400$ bytes excluding headers. If each XOR is $4$ bytes, then there
+can be at most $350$ packets in the set difference. Note that $8$-byte
+identifiers are unnecessary because collisions are unlikely in these small set
+difference sizes. The count in each symbol needs to be as large as the set
+difference size. It can also be an unsigned integer because we do subset
+(and not set) reconciliation, and we can subtract with overflow. An 8-bit
+integer goes up to $255$, which is sufficiently close. Thus the largest IBLT
+quACK contains $255$ symbols or $4 + 4 + 255 \cdot 5 = 1283$ bytes on the wire.
 
 \subsection{QuACK API}
 
+We define a common API for quACK implementations, shown in
+\Cref{lst:quack-interface}. Our optimized implementations of the power sum and
+IBLT quACK constructions adhere to this interface and are available as a
+software library at \url{https://www.github.com/ygina/quack}.
+
+The API for the quACK consists of the basic operations for encoding and
+decoding elements as described in \Cref{sec:quack:constructions}. The
+\texttt{encode()} and \texttt{remove()} functions add and remove a single
+element, respectively, either by updating all power sums or by updating the XOR
+and counts in the mapped IBLT cells. The \texttt{sub()} function calculates the
+set difference between two quACKs, and the \texttt{decode()} function returns
+the decoded elements in that set difference. The values returned by the
+\texttt{count()} and \texttt{last\_identifier()} functions are incrementally
+updated as elements are added and removed.
+
+We explored many optimizations to improve the performance of each quACK.
+In the power sum quACK, this includes optimized modular arithmetic operations
+for various bit widths to explore the tradeoff between identifier collisions
+and computation cost. In the IBLT quACK, the pseudorandom mapping algorithm
+needs to be fast so that the computational complexity outweighs constant factor
+overheads even when $t$ is small.
+In \Cref{sec:quack:psum-microbenchmarks,sec:quack:iblt-microbenchmarks},
+we run microbenchmarks to demonstrate the practicality of our implementation
+for in-line packet processing, and also evaluate the impact of our design
+decisions on the computation cost.
+
 \input{packrat-paper/listings/quack_interface}
-
-The API for the quACK consists of \texttt{encode()} and \texttt{remove()}
-functions to add and remove individual packet identifiers from the quACK,
-respectively. When the sender receives a quACK to decode, it \texttt{sub()}s
-it from the quACK that has encoded its sent packets, and then \texttt{decode()}s
-the subsequent difference quACK to get the elements in the difference.
-
-The power sum quACK implements the \texttt{encode()}, \texttt{remove()},
-\texttt{sub()}, and \texttt{decode()} functions of the programming interface...
-
-The IBLT quACK implements
-the interface defined in \Cref{lst:quack-interface} and makes direct use of the Rateless IBLT.
-The \texttt{encode()} and \texttt{remove()} functions implement IBLT insertion
-and deletion, while \texttt{sub()} and \texttt{decode()} implement
-the decoding process of the difference IBLT.
-Each item in the encoding is a 4-byte identifier referring to a packet.
-Each \texttt{Symbol} (\Cref{fig:payloads:client}) corresponds to a
-cell, containing an XOR of 4-byte identifiers and a count.
-
-The main advantage of the IBLT quACK is the computational complexity of its
-operations (\Cref{tab:quack-complexity}). Unlike the power sum quACK,
-which encodes each item in all $t$ symbols, the IBLT quACK only uses
-$O(\log(t))$ symbols, making both encoding and decoding more efficient.
 
 \section{Power sum microbenchmarks}
 \label{sec:quack:psum-microbenchmarks}
