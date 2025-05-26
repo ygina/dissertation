@@ -190,11 +190,10 @@ overheads matter more.
 \subsection{Power sums: A space-optimal and deterministic solution}
 \label{sec:quack:constructions:power-sum}
 
-Now we describe a solution to the quACK problem based on the insight
-that we can model the problem as a system of power sum polynomial equations
-when we have a bound on the maximum number of missing elements, a threshold $t$.
-Unlike the previous strawmen, this construction is efficient to decode, and
-its size is proportional only to $t$.
+We describe a construction of the quACK that models the problem as a system of
+power sum polynomial equations when we have an exact bound on the maximum
+number of missing elements, a threshold $t$. Unlike the previous strawmen, this
+construction is efficient to decode, and its size is proportional only to $t$.
 
 Consider the simplest case, when the receiver is only missing a single element.
 The receiver maps packet identifiers to a finite field,
@@ -206,8 +205,8 @@ and subtracts the sum from the receiver, calculating:
 \[
     \sum_{x \in S} x - \sum_{x \in R} x = \sum_{x \in S\setminus R} x,
 \]
-which is the sum of elements in the set difference. In this case, the sum is
-exactly the value of the missing element.
+which is the sum of elements in the set difference. In the case of a single
+missing element, the sum is exactly the value of the missing element.
 
 In fact, we can generalize this scheme to any number of missing elements $m$.
 Instead of transmitting only a single sum, the receiver communicates
@@ -229,30 +228,64 @@ exactly $x \in S \setminus R$.
 \subsection{Invertible Bloom lookup table: A computationally scalable approach}
 \label{sec:quack:constructions:iblt}
 
-In this section, we apply
-the Rateless Invertible Bloom Lookup Table~\cite{yang2024practical}
-to describe a new probabilistic construction of an acknowledgment
-for encrypted packets. We describe its data structure and implementation
-and formalize an interface for these acknowledgments in \Cref{lst:quack-interface}.
+Now we apply the IBLT to describe a probabilistic construction of the quACK in
+a Bloom-filter-like data structure. The IBLT construction has better computation
+complexity than the power sum construction, but incurs higher constant factor
+overheads and is probabilistic.
+Recall that the IBLT data structure consists of some number of cells, where each
+cell contains an XOR and a count of elements in the cell. In the IBLT, $t$ is
+only an approximate bound on the number of missing elements, so we set the
+number of cells to some multiplicative factor more than $t$.
 
-\subsubsection{Rateless IBLT crash course.} The IBLT is like the final boss version
- of the Bloom filter~\cite{goodrich2011invertible}. The data structure consists of $t$ cells. Each
- cell is represented by an XOR and a count of items in the cell. A
- deterministic hash function maps each item to a small number of randomly
- distributed cells. The Rateless IBLT presents a novel pseudorandom mapping
- algorithm that maps an item to $O(\log(t))$ cells, with greater density in
- cells with smaller indexes~\cite{yang2024practical}. We leverage this
- efficient mapping and its rateless properties in the quACK.
+When the sender or receiver adds an element to the IBLT, we leverage the
+pseudorandom mapping algorithm of the Rateless IBLT~\cite
+{yang2024practical}. This algorithm maps each element to $O(\log(t))$ cells,
+with a greater density in the cells with smaller indexes. This resembles
+rateless error-correcting codes with an infinite stream of coded symbols in
+that a prefix of an IBLT with an infinite number of cells can be used to
+deterministically decode the elements in the IBLT.
 
-The IBLT allows the insertion and deletion of items. To find the set difference
-between the items in two IBLTs, we first ``subtract'' the corresponding XORs
-and counts. Then we decode the items in the difference IBLT by deleting items
-from cells with a count of 1 or -1 until no such cells remain. Decoding is
-successful if all counts and XORs are 0 at the end, and can fail
-probabilistically due to hash collisions.
+The IBLT also allows the removal of elements and subtraction of two IBLTs with
+the same number of cells. To find the set difference between the elements in
+two IBLTs, we first ``subtract'' the corresponding XORs and counts. To decode
+the elements encoded in the difference IBLT, we remove elements from cells with
+a count of 1 until no such cells remain. (Note that the count cannot be
+negative with subset reconciliation.) Decoding is successful if all counts
+and XORs are 0 at the end, and can fail probabilistically due to collisions in
+the mapping algorithm.
+
+% the Rateless Invertible Bloom Lookup Table~\cite{yang2024practical}
+% to describe a new probabilistic construction of an acknowledgment
+% for encrypted packets. We describe its data structure and implementation
+% and formalize an interface for these acknowledgments in \Cref{lst:quack-interface}.
+
+% \subsubsection{Rateless IBLT crash course.} The IBLT is like the final boss version
+%  of the Bloom filter~\cite{goodrich2011invertible}. The data structure consists of $t$ cells. Each
+%  cell is represented by an XOR and a count of items in the cell. A
+%  deterministic hash function maps each item to a small number of randomly
+%  distributed cells. The Rateless IBLT presents a novel pseudorandom mapping
+%  algorithm that maps an item to $O(\log(t))$ cells, with greater density in
+%  cells with smaller indexes~\cite{yang2024practical}. We leverage this
+%  efficient mapping and its rateless properties in the quACK.
+
+% The IBLT allows the insertion and deletion of items. To find the set difference
+% between the items in two IBLTs, we first ``subtract'' the corresponding XORs
+% and counts. Then we decode the items in the difference IBLT by deleting items
+% from cells with a count of 1 or -1 until no such cells remain. Decoding is
+% successful if all counts and XORs are 0 at the end, and can fail
+% probabilistically due to hash collisions.
 
 \section{Implementation}
 \label{sec:quack:implementation}
+
+The implementation of the quACK must be practical for packet-scale settings. The
+communication must fit in a single network packet, ideally even less to be
+considered a control packet for congestion control purposes. For example, a TCP
+ACK is only 20 bytes on the wire, excluding Ethernet and IP headers. The
+computation cost must also be practical for decoding set differences at
+millisecond-RTT timescales and encoding packets when they arrive every few
+nanoseconds. The implementation should also provide a convenient interface to
+interchangeably use different constructions of the quACK.
 
 \subsection{Wire format}
 
@@ -266,7 +299,7 @@ takes the difference between the number of packets it has sent and the count in
 the quACK to calculate $m$. Sending the last element received is an
 optimization that allows $m$ to represent just the ``holes'' among the packets
 being selectively ACKed, excluding the possibly many consecutive elements that
-are in-flight(\Cref{sec:sidekick:sender}).
+are in-flight (\Cref{sec:sidekick:sender}).
 
 \subsubsection{Serializing the IBLT quACK in a packet MTU.}
 
