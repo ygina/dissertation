@@ -32,7 +32,7 @@ the quACK represents. The IBLT quACK takes 42~ns to encode a single packet and
 well with several alternatives
 (\Cref{sec:quack:psum-microbenchmarks,sec:quack:iblt-microbenchmarks}).
 
-\input{sidekick-paper/tables/strawmen-practical.tex}
+\input{quack/tables/strawmen-practical.tex}
 
 \section{The QuACK Problem}
 \label{sec:quack:problem}
@@ -81,7 +81,7 @@ When $n=25$, \gina{use $n=500$?} using $4$ bytes results in an almost negligible
 collision while using $2$ bytes results in a 0.04\% chance
 (\Cref{tab:collision-prob}).
 
-\input{sidekick-paper/tables/collision-prob.tex}
+\input{quack/tables/collision-prob.tex}
 
 When handling collisions, a sender who is decoding a quACK has a list of $n$
 packets it is trying to classify as received or missing
@@ -331,7 +331,7 @@ quACK contains $255$ symbols or $4 + 4 + 255 \cdot 5 = 1283$ bytes on the wire.
 
 \subsection{QuACK API}
 
-\input{packrat-paper/listings/quack_interface}
+\input{quack/listings/quack_interface}
 
 We define a common API for quACK implementations, shown in
 \Cref{lst:quack-interface}. Our optimized implementations of the power sum and
@@ -363,7 +363,7 @@ decisions on the computation cost.
 \section{Power sum microbenchmarks}
 \label{sec:quack:psum-microbenchmarks}
 
-\input{sidekick-paper/figures_tex/quack.tex}
+\input{quack/figures_tex/quack.tex}
 
 In this section, we benchmark the power sum quACK construction and evaluate the
 computation cost for different parameters in packet-scale settings.
@@ -438,7 +438,7 @@ microbenchmarks on a single core of an AWS m4.xlarge instance.
 \subsection{Encoding and decoding time scalability}
 \label{sec:quack:iblt-microbenchmarks:scalability}
 
-\input{packrat-paper/figures_tex/quack_cpu}
+\input{quack/figures_tex/quack_cpu}
 
 Encoding and decoding operations in the IBLT quACK update a logarithmic number
 of symbols per-packet, compared to all of the symbols in the power sum quACK.
@@ -460,7 +460,7 @@ the complexity of symmetric polynomial factorization.
 \subsection{Probabilistic correctness}
 \label{sec:quack:iblt-microbenchmarks:correctness}
 
-\input{packrat-paper/figures_tex/quack_correctness}
+\input{quack/figures_tex/quack_correctness}
 
 It is unknown how many symbols are required in the IBLT quACK to decode the same
 number of $m$ missing packets using power sums in the previous benchmarks.
@@ -482,8 +482,8 @@ more scalable encoding overheads.
 \section{Summary}
 \label{sec:quack:summary}
 
-\input{sidekick-paper/tables/strawmen-theoretical.tex}
-\input{packrat-paper/tables/quack_complexity}
+\input{quack/tables/strawmen-theoretical.tex}
+\input{quack/tables/quack_complexity}
 
 The power sum and IBLT constructions of the quACK are efficient to decode, add
 reasonable link overhead, and are cumulative representations of the packets
