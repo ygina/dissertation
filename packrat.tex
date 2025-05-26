@@ -444,6 +444,14 @@ packets. This frequency is typically the same as that of the underlying
 acknowledgment scheme. The quACKs are cumulative representations of all the
 packets ever received since sending the last \texttt{Init}.
 
+Another way to reduce the impact of decoding at the proxy is simply to send smaller
+and fewer quACKs. When the quACK sender is at the proxy, such as in Sidekick,
+it doesn't have much flexibility in changing how often it quACKs given
+the base protocol is completely encrypted. But when the quACK sender is co-located
+with an application endpoint, the endpoint can leverage its knowledge about the
+base acknowledgment scheme to dynamically adjust the quACK.
+We describe two optimizations: \textit{rateless quACKs} and \textit{selective quACKing}.
+
 \subsection{Selective quACKs}
 \label{sec:packrat:receiver:selective}
 
