@@ -1,15 +1,15 @@
 \begin{lstfloat}[t]
 \begin{lstlisting}[language=Rust]
-trait quACKK {
+trait quACK {
     fn count() -> usize;
     fn last_identifier() -> u32;
     fn encode(item: u32);
     fn remove(item: u32);
-    fn sub(rhs: quACKK) -> quACKK;
+    fn sub(rhs: quACK) -> quACK;
     fn decode() -> &[u32];
 }
 \end{lstlisting}
-\captionof{lstlisting}{Pseudocode interface for the implementation of the quACKK
+\captionof{lstlisting}{Pseudocode interface for the implementation of the quACK
  in the \texttt{quack} library. Each item is a 4-byte random identifier
  referring to a network packet.}
 \label{lst:quack-interface}
