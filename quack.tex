@@ -32,6 +32,8 @@ the quACK represents. The IBLT quACK takes 42~ns to encode a single packet and
 well with several alternatives
 (\Cref{sec:quack:psum-microbenchmarks,sec:quack:iblt-microbenchmarks}).
 
+\input{sidekick-paper/tables/strawmen-practical.tex}
+
 \section{The QuACK Problem}
 \label{sec:quack:problem}
 
@@ -78,6 +80,7 @@ this probability is equal to $1-(1 - 1/256^{b})^{n-1}$.
 When $n=25$, \gina{use $n=500$?} using $4$ bytes results in an almost negligible chance of
 collision while using $2$ bytes results in a 0.04\% chance
 (\Cref{tab:collision-prob}).
+
 \input{sidekick-paper/tables/collision-prob.tex}
 
 When handling collisions, a sender who is decoding a quACK has a list of $n$
@@ -91,9 +94,6 @@ mechanism (e.g., retransmission).
 
 \subsection{Strawman solutions}
 \label{sec:quack:problem:strawmen}
-
-\input{sidekick-paper/tables/strawmen-theoretical.tex}
-\input{packrat-paper/tables/quack_complexity}
 
 A problem that is simple with cumulative and selective acknowledgments of
 plaintext sequence numbers is deceivingly challenging for pseudorandom
@@ -331,6 +331,8 @@ quACK contains $255$ symbols or $4 + 4 + 255 \cdot 5 = 1283$ bytes on the wire.
 
 \subsection{QuACK API}
 
+\input{packrat-paper/listings/quack_interface}
+
 We define a common API for quACK implementations, shown in
 \Cref{lst:quack-interface}. Our optimized implementations of the power sum and
 IBLT quACK constructions adhere to this interface and are available as a
@@ -358,13 +360,10 @@ we run microbenchmarks to demonstrate the practicality of our implementation
 for in-line packet processing, and also evaluate the impact of our design
 decisions on the computation cost.
 
-\input{packrat-paper/listings/quack_interface}
-
 \section{Power sum microbenchmarks}
 \label{sec:quack:psum-microbenchmarks}
 
 \input{sidekick-paper/figures_tex/quack.tex}
-\input{sidekick-paper/tables/strawmen-practical.tex}
 
 In this section, we benchmark the power sum quACK construction and evaluate the
 computation cost for different parameters in packet-scale settings.
@@ -372,12 +371,6 @@ We explore different bit widths for the identifier and settle on
 using 32-bit packet identifiers.
 Our microbenchmarks used an m4.xlarge AWS instance with a 4-CPU Intel Xeon E5
 processor @ 2.30 GHz and 16 GB memory.
-
-A power sum quACK that represents $n=25$ outstanding packets
-(packets in consideration on that path segment not yet known to be received or lost)
-and up to $t=10$ missing
-packets with $b=4$-byte identifiers adds $33$\,ns of encoding time per
-packet and takes $2.82$\,$\mu$s to decode (\Cref{tab:strawmen-practical}).
 
 \subsection{Identifier bit widths}
 \label{sec:quack:psum-microbenchmarks:bit-widths}
@@ -488,6 +481,9 @@ more scalable encoding overheads.
 
 \section{Summary}
 \label{sec:quack:summary}
+
+\input{sidekick-paper/tables/strawmen-theoretical.tex}
+\input{packrat-paper/tables/quack_complexity}
 
 The power sum and IBLT constructions of the quACK are efficient to decode, add
 reasonable link overhead, and are cumulative representations of the packets
