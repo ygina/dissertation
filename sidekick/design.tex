@@ -59,15 +59,8 @@ more than outside a Sidekick setting.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% \subsection{Handshake}
-% \label{sec:sidekick:design:handshake}
-
-% Upon receiving the sidekick-reply packet, the sender begins communicating
-% directly with the proxy from a different UDP port.  It initially sends
-% back the session ID and configuration parameters to start receiving
-% quACKs.
-
 \subsection{Sidekick protocol messages}
+\label{sec:sidekick:design:messages}
 
 \input{sidekick/figures_tex/payloads.tex}
 
@@ -113,7 +106,7 @@ base protocol's end-to-end mechanisms.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsection{Path-aware sender behavior enabled by the quACK}
-\label{sec:sidekick:sender}
+\label{sec:sidekick:design:sender}
 
 Now we discuss two particular sender-side behaviors that are enabled by the
 Sidekick protocol and which are helpful across several scenarios: detecting
@@ -122,7 +115,6 @@ packet loss from a decoded quACK and path-aware congestion control.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{Loss detection}
-\label{sec:sidekick:sender:loss-detection}
 
 The sender knows definitively which packets have been received by the proxy from
 a decoded quACK. Next, it must determine from the remaining packets which ones
@@ -153,7 +145,6 @@ algorithm for TCP~\cite{rfc8985}.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{Path-aware CUBIC congestion control}
-\label{sec:sidekick:sender:pacubic}
 
 Congestion-controlled base protocols must have a congestion response to lost
 packets that they retransmit due to quACKs, similar to if the loss were
@@ -167,9 +158,9 @@ throughput compared to end-to-end CUBIC, while remaining fair to competing flows
 
 Recall that CUBIC~\cite{ha2008cubic} reduces its congestion window by a
 multiplicative decrease factor,
-$\beta = \beta^* = 0.7$, when observing loss (a congestion event), and otherwise increases
-its window based on a real-time dependent cubic function with scaling factor
-$C=C^*=0.4$:
+$\beta = \beta^* = 0.7$, when observing loss (a congestion event), and otherwise
+increases its window based on a real-time dependent cubic function with scaling
+factor $C=C^*=0.4$:
 \[
 cwnd = C(T-K)^3 + w_{max} \text{ where } K = \sqrt[3]{\frac{w_{max}(1-\beta)}{C}}.
 \]
@@ -191,10 +182,10 @@ of where the last congestion event occurred.
 Let $r$ be the estimated ratio of the RTT of the near path segment
 (between the data sender and the proxy) to the RTT of the entire connection
 (between end hosts).
-We use $r$ as a proxy for the ratio of the number of in-flight bytes.
-If the last congestion event came from a quACK, we use the same real-time
-dependent cubic function but with the following
-constants\footnote{See \Cref{sec:sidekick:appendix} for more intuition behind $\beta'$ and $C'$.}
+We use $r$ as a proxy for the ratio of the number of in-flight bytes. If the
+last congestion event came from a quACK, we use the same real-time dependent
+cubic function but with the following constants\footnote{See \Cref
+{sec:sidekick:appendix} for more intuition behind $\beta'$ and $C'$.}
 \[
 \beta = 1 - r(1-\beta^*)\text{ and }C = \frac{C^*}{r^3}.
 \]
@@ -203,7 +194,8 @@ the original $\beta$ and $C$ as above.
 
 While this algorithm resembles the congestion behavior of split CUBIC, it is
 simply an approximation. PACUBIC does not know the exact number of bytes
-in-flight on each path segment, and the sum of the two congestion windows is simply a
-heuristic for an inherently different split connection. The main takeaway is
-that knowing where loss occurs can inform congestion control. We generally
-hope that quACKs can lead to the development of smarter, path-aware algorithms.
+in-flight on each path segment, and the sum of the two congestion windows is
+simply a heuristic for an inherently different split connection. The main
+takeaway is that knowing where loss occurs can inform congestion control. We
+generally hope that quACKs can lead to the development of smarter, path-aware
+algorithms.

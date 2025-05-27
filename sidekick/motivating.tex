@@ -29,13 +29,14 @@ high de-jitter buffer delays from waiting for retransmitted packets to be
 played in order (\Cref{fig:sidekick:real-world:media} in the real world,
 \Cref{fig:sidekick:main-results:media} in emulation).
 
-In the Sidekick approach, a Sidekick on the Wi-Fi access point sends quACKs to the audio
-application on the user's laptop, assisting the base connection's data sender.
-The sender uses quACKs to retransmit packets sooner than they would have using
-negative acknowledgments (NACKs) from the receiver. The end result is similar
-to the effect of prior PEPs, such as Snoop~\cite{balakrishnan1995snoop} and
-Milliproxy~\cite{polese2017milliproxy}, that leverage TCP's cleartext sequence
-numbers to trigger early retransmission on lossy wireless paths.
+In the Sidekick approach, a Sidekick on the Wi-Fi access point sends quACKs to
+the audio application on the user's laptop, assisting the base connection's
+data sender. The sender uses quACKs to retransmit packets sooner than they
+would have using negative acknowledgments (NACKs) from the receiver. The end
+result is similar to the effect of prior PEPs, such as
+Snoop~\cite{balakrishnan1995snoop} and Milliproxy~\cite{polese2017milliproxy},
+that leverage TCP's cleartext sequence numbers to trigger early retransmission
+on lossy wireless paths.
 
 \subsection{Emulating split congestion control in an HTTP/3 file upload}
 \label{sec:sidekick:motivating:http}
@@ -56,7 +57,7 @@ the congestion-control behavior. This leads to reduced upload speeds
 
 With help from the same Sidekick PEP, the QUIC sender combines information from
 quACKs and end-to-end ACKs to emulate the congestion-control behavior of a
-split TCP connection (\Cref{sec:sidekick:sender}). The
+split TCP connection (\Cref{sec:sidekick:design:sender}). The
 application considers whether packets are lost on the near or far path
 segments, and adjusts the congestion window accordingly while respecting the
 opacity of the end-to-end base connection. The application also retransmits the
@@ -79,7 +80,8 @@ and contention over half-duplex links~\cite{custura2023reducing,li2020tack}.
 The ACK frequency can be configured with a TCP kernel setting or proposed
 QUIC extension~\cite{ietf-quic-ack-frequency-07}.
 
-However, ACK reduction can also degrade throughput~\cite{custura2023reducing,custura2020impact}
+However, ACK reduction can also degrade
+throughput~\cite{custura2023reducing,custura2020impact}
 (\Cref{fig:sidekick:main-results:ack-reduction} in emulation).
 The sender receives more delayed feedback about loss, and has to carefully
 pace packets to avoid bursts in the large delay between ACKs.

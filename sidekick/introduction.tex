@@ -96,9 +96,9 @@ their existing algorithms for, e.g., loss detection and retransmission, which
 have gotten increasingly complex over time. To explore this, we designed a
 Sidekick protocol and integrated it into client implementations in three scenarios:
 \begin{itemize}[noitemsep,topsep=2pt]
-\item A low-latency audio stream over an Internet path that includes a Wi-Fi path segment
-  (low latency with loss), followed by a WAN path segment (higher latency
-  with low loss). Can the Sidekick PEP reduce the de-jitter buffer delay
+\item A low-latency audio stream over an Internet path that includes a Wi-Fi
+  path segment (low latency with loss), followed by a WAN path segment (higher
+  latency with low loss). Can the Sidekick PEP reduce the de-jitter buffer delay
   by triggering earlier retransmissions on loss?
 
 \item An upload over the same path. Can a secure transport protocol like QUIC,
@@ -133,8 +133,8 @@ In real-world experiments using an unmodified local Wi-Fi network to access our
 nearest AWS datacenter, the Sidekick was able to trigger early retransmissions
 to fill in gaps in the audio of a latency-sensitive audio stream, reducing the
 receiver's de-jitter delay from 2.3~seconds to 204~ms---about a 91\% reduction
-(\Cref{fig:sidekick:real-world}). The Sidekick was also able to improve the speed of an
-HTTP/3 (QUIC) upload by about 50\%.
+(\Cref{fig:sidekick:real-world}). The Sidekick was also able to improve the
+speed of an HTTP/3 (QUIC) upload by about 50\%.
 
 In emulation experiments of the ``battery-powered receiver'' scenario,
 the Sidekick PEP was able to reduce the need for the receiver to send ACKs
@@ -148,15 +148,15 @@ Also in an emulation experiment, we confirmed that PACUBIC's
 performance approximates a split CUBIC connection (two TCP CUBIC
 connections separated by a PEP), responding to loss events on the
 different path segments similarly to how the individual CUBIC flows would
-(\Cref{fig:sidekick:fairness-line}). The results indicate that the Sidekick protocol's gains
-do not come at the
+(\Cref{fig:sidekick:fairness-line}). The results indicate that the Sidekick
+protocol's gains do not come at the
 expense of congestion-control fairness relative to a split CUBIC connection.
 
 \smallskip
 
 The rest of this chapter discusses three motivating scenarios for the Sidekick
 (\Cref{sec:sidekick:motivating}), describes the concrete Sidekick protocol we
-built around power sum quACKs (\Cref{sec:sidekick:init,sec:sidekick:sender}) and
+built around power sum quACKs (\Cref{sec:sidekick:design}) and
 its implementation in two base protocols (\Cref{sec:sidekick:implementation}),
 and then evaluates the protocol in real-world (\Cref{sec:sidekick:real-world})
 and emulation experiments (\Cref{sec:sidekick:emulation}).
