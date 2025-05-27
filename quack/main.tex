@@ -297,7 +297,7 @@ packets $m$, which is not known ahead of time, by subtracting the count of the
 quACK transmitted by the receiver from its own count. The last element received
 is an optimization that allows $m$ to represent just the ``holes'' among the
 packets being selectively ACKed, excluding the consecutive elements that are
-in-flight (\Cref{sec:sidekick:sender:loss-detection}).
+in-flight (\Cref{sec:sidekick:design:sender}).
 
 The wire format of the symbol depends on the construction of the quACK. In the
 power sum construction, the symbol is just a power sum of the elements, and
