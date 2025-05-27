@@ -40,16 +40,17 @@ TCP extended options, and multipath TCP~\cite
 In response to this ossification, and to an increased emphasis on privacy and
 security, post-TCP transport protocols have been designed to be impervious to
 meddling middleboxes, by encrypting and authenticating the transport header. We
-call these newer transport protocols ``opaque.'' The most prevalent is
-QUIC~\cite{rfc9000}, found in billions of installed Web browsers and millions
-of servers~\cite{zirngibl2021quicdeployment}; other opaque transport protocols
-are used in WebRTC/SRTP~\cite{rfc8834webrtc}, Zoom~\cite
-{zoom}, BitTorrent~\cite{bittorrent}, and Mosh/SSP~\cite{winstein2012mosh}.
+refer to these newer transport protocols as ``secure'' transport protocols. The
+most prevalent is QUIC~\cite{rfc9000}, found in billions of installed Web
+browsers and millions of servers~\cite{zirngibl2021quicdeployment}; other secure
+transport protocols are used in WebRTC/SRTP~\cite{rfc8834webrtc},
+Zoom~\cite{zoom}, BitTorrent~\cite{bittorrent}, and
+Mosh/SSP~\cite{winstein2012mosh}.
 
-This opacity means that middleboxes can't interpose themselves on a connection
-or understand the sequence numbers of packets in transit.  This prevents PEPs
-from providing assistance, reducing---in some situations---the performance of
-opaque transport protocols~\cite
+This encryption means that middleboxes can't interpose themselves on a
+connection or understand the sequence numbers of packets in transit. This
+prevents PEPs from providing assistance, reducing---in some situations---the
+performance of secure transport protocols~\cite
 {border2020quicsat-presentation,kuhn2021quic-over-sat,martin2022bbr-quic-sat,border2020evaluating,kosek2022quicpep}.
 It's possible to co-design protocols and PEPs to preserve security and privacy
 while permitting assistance from credentialed middleboxes~\cite
@@ -57,9 +58,9 @@ while permitting assistance from credentialed middleboxes~\cite
 challenging to do so without tightly coupling these components, risking
 ossification and fragility.
 
-In this paper, we propose a method for in-network assistance of opaque transport
+In this chapter, we propose a method for in-network assistance of secure transport
 protocols that tries to resolve this tension. Our approach leaves the transport
-protocol unchanged on the wire: a secure end-to-end connection between hosts,
+protocol unchanged on the wire: an encrypted end-to-end connection between hosts,
 opaque to middleboxes and free to evolve. No PEPs are credentialed to decrypt
 the transport protocol's headers.
 
@@ -67,27 +68,25 @@ Instead, we propose a second protocol to be spoken on an adjacent connection
 between an end host and a PEP. We call this the \emph{\bf Sidekick protocol},
 and its contents are \emph{about} the packets of the underlying, or ``base,''
 connection. Sidekick PEPs assist end hosts by reporting what they've observed
-about the packets of the opaque base connection, without coupling their
+about the packets of the encrypted base connection, without coupling their
 assistance to the details of the base protocol. End hosts use this information
 to influence decisions about how and when to send or resend packets on the base
 connection, approximating some of the performance benefits of traditional PEPs.
-A similar functional separation was first proposed by \cite
-{yuan2022sidecar}, but this paper presents the first concrete realization of
-the idea and its nuanced interactions with real transport protocols.
+We first proposed a similar functional separation in \cite{yuan2022sidecar},
+and presented a concrete realization of the idea and its nuanced
+interactions with real transport protocols in \cite{yuan2024sidekick}.
 
 One key technical challenge with this approach is how the Sidekick can
-efficiently refer to ranges of packets in an opaque base connection. These
+efficiently refer to ranges of packets in an encrypted base connection. These
 packets appear random to the middlebox, and referring to a range of, e.g., 100
-opaque packets in the presence of loss and reordering is not as simple as
+encrypted packets in the presence of loss and reordering is not as simple as
 saying ``up to 100'' when there are cleartext sequence numbers. In \Cref
-{sec:quack}, we present and evaluate a mathematical tool called a \emph
-{\bf quACK} that concisely represents a selective acknowledgment of opaque,
-randomly identified packets. The quACK is based on the insight that we can
-model the problem as a system of power sum polynomial equations if there is a
-practical bound on the maximum number of ``holes'' among the packets being
-ACKed. We created an optimized implementation~\cite{quack-github}, building on
-related theoretical work~\cite
-{eppstein2011straggler,minsky2003set,karpovsky2003data}.
+{sec:quack}, we presented and evaluated a mathematical tool called a \emph
+{\bf quACK} that concisely represents a selective acknowledgment of randomly
+encrypted packets. In this chapter, we leverage the power sum quACK,
+based on the insight that we can model the problem as a system of power
+sum polynomial equations if there is a practical bound on the maximum number of
+``holes'' among the packets being ACKed.
 
 A second challenge is how the end host should use information from a Sidekick
 connection to obtain a performance benefit for its base connection. Since the
@@ -102,7 +101,7 @@ Sidekick protocol we call Robin, and implemented it in three scenarios:
   with low loss). Can the Sidekick PEP reduce the de-jitter buffer delay
   by triggering earlier retransmissions on loss?
 
-\item An upload over the same path. Can an opaque transport protocol like QUIC,
+\item An upload over the same path. Can a secure transport protocol like QUIC,
   aided by a Sidekick PEP at the point between these two path segments, match
   the throughput of TCP over a connection-splitting PEP?
 
@@ -155,10 +154,9 @@ expense of congestion-control fairness relative to a split CUBIC connection.
 
 \smallskip
 
-The rest of this paper describes the concrete Sidekick protocol we
-built around quACKs (\Cref{sec:sidekick:init,sec:sidekick:sender}),
-discusses three motivating scenarios (\Cref{sec:sidekick:motivating}) and
-the implementation of the Sidekick protocol in two
-base protocols (\Cref{sec:sidekick:implementation}), and then evaluates the
-protocol in real-world and emulation experiments
-(\Cref{sec:sidekick:real-world,sec:sidekick:emulation}).
+The rest of this chapter discusses three motivating scenarios for the Sidekick
+(\Cref{sec:sidekick:motivating}), describes the concrete Sidekick protocol we
+built around power sum quACKs (\Cref{sec:sidekick:init,sec:sidekick:sender}) and
+its implementation in two base protocols (\Cref{sec:sidekick:implementation}),
+and then evaluates the protocol in real-world (\Cref{sec:sidekick:real-world})
+and emulation experiments (\Cref{sec:sidekick:emulation}).
