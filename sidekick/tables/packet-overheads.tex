@@ -1,5 +1,5 @@
-\begin{figure}[ht]
-\begin{subfigure}{\columnwidth}
+\begin{table}[ht]
+\begin{subtable}{\columnwidth}
   \setlength{\tabcolsep}{2pt}
   \centering
   \begin{tabular}{lccccccc}
@@ -14,10 +14,10 @@
     \bf \textcolor{black!50!blue}{Power Sum}   & \textcolor{black!50!blue}{\bf 0.94$\times$} & \textcolor{black!50!blue}{\bf 1.00$\times$} & \textcolor{black!50!blue}{\bf 1.03$\times$} & \textcolor{black!50!blue}{\bf 1.07$\times$} & \textcolor{black!50!blue}{\bf 1.00$\times$} & \textcolor{black!50!blue}{\bf 1.03$\times$} & \cellcolor{LightGreen}{\textcolor{black!50!blue}{\bf 3.55$\times$}} \\
     \bottomrule
   \end{tabular}
-  \caption{Scenario \#2: Connection-splitting PEP emulation.}
-  \label{tab:packet-overhead:retx}
-\end{subfigure}
-\begin{subfigure}{\columnwidth}
+  \caption{Scenario \#2: Connection-splitting PEP emulation.\\}
+  \label{tab:sidekick:packet-overheads:retx}
+\end{subtable}
+\begin{subtable}{\columnwidth}
   \setlength{\tabcolsep}{2pt}
   \centering
   \begin{tabular}{lccccccc}
@@ -33,8 +33,8 @@
     \bottomrule
   \end{tabular}
   \caption{Scenario \#3: ACK reduction.}
-  \label{tab:packet-overhead:ackr}
-\end{subfigure}
+  \label{tab:sidekick:packet-overheads:ackr}
+\end{subtable}
 \caption{Link overheads for a 10 MB upload. The cells represent the multiplier
 relative to the end-to-end QUIC baseline for each type of quACK\@.
 Lower is better for number of packets and bytes sent on a link.
@@ -42,5 +42,5 @@ Higher goodput is better. The power sum quACK achieves the success metric
 for each scenario without incurring the link overheads of the strawmen.
 We did not evaluate the contrived protocol in Scenario \#1.
 }
-\label{tab:packet-overhead}
-\end{figure}
+\label{tab:sidekick:packet-overheads}
+\end{table}

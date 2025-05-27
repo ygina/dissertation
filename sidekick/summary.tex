@@ -61,7 +61,7 @@ connections.
 \subsubsection{Deeper analysis of path-aware congestion control.}
 
 The correspondence between endpoint-driven PACUBIC and ``split CUBIC'' is good,
-and both are better than end-to-end CUBIC in \Cref{fig:loss-vs-tput}), but not
+and both are better than end-to-end CUBIC in \Cref{fig:sidekick:fairness-line}), but not
 exact. The appropriateness of the PACUBIC heuristic, and in general the idea of
 path-aware congestion control, needs to be further explored. We discuss this
 more in \Cref{sec:sidekick:appendix}.
@@ -75,7 +75,7 @@ a mathematical technique called a \textit{quACK} that enables proxies to refer
 to packets of the underlying connection without the ability to observe
 cleartext sequence numbers. We augmented a streaming protocol and a production
 QUIC implementation (Cloudflare quiche) to make use of information arriving
-from a proxy on a Sidekick connection, including a path-aware congestioncontrol
+from a proxy on a Sidekick connection, including a path-aware congestion control
 mechanism called \textit{PACUBIC}. In emulation and a real-world evaluation,
 the Sidekick protocol was able to improve the performance---tail latency,
 throughput, or energy usage---of these end-to-end base protocols without

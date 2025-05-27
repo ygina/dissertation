@@ -133,7 +133,7 @@ In real-world experiments using an unmodified local Wi-Fi network to access our
 nearest AWS datacenter, the Sidekick was able to trigger early retransmissions
 to fill in gaps in the audio of a latency-sensitive audio stream, reducing the
 receiver's de-jitter delay from 2.3~seconds to 204~ms---about a 91\% reduction
-(\Cref{fig:real-world}). The Sidekick was also able to improve the speed of an
+(\Cref{fig:sidekick:real-world}). The Sidekick was also able to improve the speed of an
 HTTP/3 (QUIC) upload by about 50\%.
 
 In emulation experiments of the ``battery-powered receiver'' scenario,
@@ -142,13 +142,13 @@ by sending proxy acknowledgments on its behalf---ACKs the sender used
 to advance its flow-control and congestion-control windows. The
 receiver only needed to wake up its radio to send occasional
 end-to-end ACKs, which the sender used to discard data from its
-buffer (\Cref{fig:ack-reduction}).
+buffer (\Cref{fig:sidekick:main-results:ack-reduction}).
 
 Also in an emulation experiment, we confirmed that PACUBIC's
 performance approximates a split CUBIC connection (two TCP CUBIC
 connections separated by a PEP), responding to loss events on the
 different path segments similarly to how the individual CUBIC flows would
-(\Cref{fig:loss-vs-tput}). The results indicate that the Sidekick protocol's gains
+(\Cref{fig:sidekick:fairness-line}). The results indicate that the Sidekick protocol's gains
 do not come at the
 expense of congestion-control fairness relative to a split CUBIC connection.
 

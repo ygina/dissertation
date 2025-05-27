@@ -1,0 +1,13 @@
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.8\columnwidth]{sidekick/figures/fig6_legend.pdf}
+\includegraphics[width=0.8\columnwidth]{sidekick/figures/fig6_loss_bw100_10M_delay_25ms_1ms.pdf}
+\caption{Connection-splitting PEP emulation as a function of near-segment
+	loss rate. In this emulation experiment, QUIC+Sidekick (running PACUBIC)
+  performs similarly to TCP+PEP (each connection running CUBIC)
+  and improves goodput compared with end-to-end protocols. The graph shows
+  median goodput of a 10~MByte upload. QuACK interval is 30~ms, threshold
+is 10. Error bars show IQR of 10 trials.
+}
+\label{fig:sidekick:fairness-line}
+\end{figure}

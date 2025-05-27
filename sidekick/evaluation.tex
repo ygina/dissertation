@@ -1,14 +1,14 @@
 \section{Implementation}
 \label{sec:sidekick:implementation}
 
-\input{sidekick-paper/tables/lines-of-code.tex}
+\input{sidekick/tables/lines-of-code.tex}
 
 We now describe our implementation of the Sidekick protocol for several
 applications. We integrated Sidekick functionality with a simple media client
 for low-latency streaming and an HTTP/3 (QUIC) client. We used the power sum
 construction of the quACK from our quACK library in \Cref
 {sec:quack:implementation}. The total implementation of the proxy and client
-integrations used 4591 LOC (\Cref{tab:lines-of-code}).
+integrations used 4591 LOC (\Cref{tab:sidekick:lines-of-code}).
 
 \subsection{End-to-end applications}
 \label{sec:sidekick:implementation:applications}
@@ -55,7 +55,7 @@ The modifications were in two parts: following the discovery mechanism to
 establish bi-directional communication with the proxy, and using the information
 in the quACK to modify transport layer behavior.
 
-\input{sidekick-paper/tables/experimental-scenarios.tex}
+\input{sidekick/tables/experimental-scenarios.tex}
 
 \paragraph{Low-latency media client.} The media client has two open UDP sockets:
 one for the base connection and one for the Sidekick connection. When it receives a
@@ -95,19 +95,19 @@ configuration messages.
 \section{Evaluation methodology}
 \label{sec:sidekick:methodology}
 
-\input{sidekick-paper/figures_tex/experimental-setup.tex}
+\input{sidekick/figures_tex/real-setup.tex}
 
 We modeled the scenarios from \Cref{sec:sidekick:motivating}. We use the same
 m4.xlarge AWS instance as before for the emulated experiments.
 
 \subsubsection{Emulation experiments.}
 
-We emulated a two-hop network topology (\Cref{fig:sc-protocols}) in mininet,
+We emulated a two-hop network topology (\Cref{fig:sidekick:overview}) in mininet,
 configuring the link properties using \texttt{tc}.
 In emulation, we represented
 each link by a constant delay (with variability induced by the queue), a random
 loss percentage, and a maximum bandwidth.
-\Cref{tab:experimental-scenarios} describes the parameters
+\Cref{tab:sidekick:experimental-scenarios} describes the parameters
 for each link to model---e.g., lossy Wi-Fi or a high-latency cellular
 path---as well as the metrics for success in that scenario.
 Link 1 connects the data sender (client) to the proxy,
@@ -118,7 +118,7 @@ a connection-splitting TCP PEP~\cite{caini2006pepsal}, or nothing at all.
 \subsubsection{Real-world experiments.}
 
 To test its robustness, we also evaluated the Sidekick protocol over a real-world
-environment that resembled the scenario on the train (\Cref{fig:setup:real}).
+environment that resembled the scenario on the train (\Cref{fig:sidekick:real-setup}).
 In this setup, a Lenovo ThinkPad laptop, running Ubuntu 22.04.3 with a 4-Core
 Intel i7 CPU @ 2.60 GHz and 16 GB memory, acted as a client to an AWS instance in
 the nearest geographical region. The ThinkPad used as an access point (AP)
@@ -144,7 +144,7 @@ minimum RTTs and average loss percentages.
 \section{Real-world results}
 \label{sec:sidekick:real-world}
 
-\input{sidekick-paper/figures_tex/real-world.tex}
+\input{sidekick/figures_tex/real-world.tex}
 
 We discuss the results of our experiments replicating two of our scenarios in
 the real world, using as context
@@ -160,14 +160,15 @@ these main differences between emulation and the real-world:
   and depends on the time of day.
 \end{itemize}
 
-\Cref{fig:real-world} shows the results of running the low-latency media and
+\Cref{fig:sidekick:real-world} shows the results of running the low-latency media and
 connection-splitting PEP emulation experiments in the real-world. The baseline
 protocol with a Sidekick is able to
 reduce the 99th percentile de-jitter latency of an audio stream
 from 2.3~seconds to 204~ms---about a 91\% reduction---and
 improve the goodput of a 50 MB HTTP/3 upload by about 50\%.
 Although the improvements are more conservative compared to emulation in
-\Cref{fig:media} and \Cref{fig:baseline-line}, each case still benefits the
+\Cref{fig:sidekick:main-results:media} and
+\Cref{fig:sidekick:main-results:pep-emulation}, each case still benefits the
 base protocol under all circumstances, compared to end-to-end mechanisms alone.
 
 Part of the difference can be attributed to the network setting. When there is
@@ -190,7 +191,7 @@ to traffic patterns in the real world.
 \section{Emulation results}
 \label{sec:sidekick:emulation}
 
-\input{sidekick-paper/figures_tex/main-results.tex}
+\input{sidekick/figures_tex/main-results.tex}
 
 We evaluated our implementation of the Sidekick protocol in a more controlled
 emulation environment to answer the following questions:
@@ -222,7 +223,7 @@ The Sidekick can reduce tail latencies in a low-latency media stream, representi
 fewer drops and better quality of experience.
 The early retransmissions induced by the Sidekick reduced the 99th percentile
 latency of the de-jitter buffer delay from 48.6 ms to 2.2 ms---a 95\%
-reduction (\Cref{fig:media}).
+reduction (\Cref{fig:sidekick:main-results:media}).
 As long as the quACK interval is less than the end-to-end RTT, the connection
 benefits from the Sidekick.
 
@@ -232,7 +233,7 @@ its de-jitter buffer.
 The end-to-end mechanism takes one additional received packet to notify of the
 loss and
 one end-to-end RTT to retransmit and play the packet (20+52=72ms), resulting in
-three delayed packets (the three ``steps" in \Cref{fig:media}) in most cases.
+three delayed packets (the three ``steps" in \Cref{fig:sidekick:main-results:media}) in most cases.
 The Sidekick takes up to two additional packets and one near path segment RTT
 (20+2=22ms or 20$\times$2+2=42ms), delaying either one or two packets in comparison.
 Dropped ACKs and quACKs account for the $<2\%$ of packets with even greater
@@ -243,7 +244,7 @@ The Sidekick improves upload speeds when there is a lossy, low-latency link
 by using quACKs to inform the sender's congestion control.
 In a scenario with $1\%$ random loss on the link between the proxy and the
 data sender, the HTTP/3 (QUIC) client achieves $3.6\times$ the goodput for a 10 MB
-upload with a Sidekick compared to end-to-end QUIC (\Cref{fig:baseline-line}).
+upload with a Sidekick compared to end-to-end QUIC (\Cref{fig:sidekick:main-results:pep-emulation}).
 
 When there is no random loss, the Sidekick does not impact the performance
 of QUIC\@.
@@ -265,7 +266,7 @@ Using quACKs in lieu of end-to-end ACKs allows the data receiver to
 significantly reduce its ACK frequency while maintaining high goodput.
 In our experiment, QUIC with a Sidekick sent $96\%$ fewer packets (mainly ACKs)
 than end-to-end QUIC before the goodput dropped below 8.5 Mbit/s
-(\Cref{fig:ack-reduction}).
+(\Cref{fig:sidekick:main-results:ack-reduction}).
 The quACK enables the data sender to promptly move the flow-control window forward,
 as long as the last hop is reliable.
 
@@ -273,15 +274,15 @@ The goodput significantly degrades when reducing the end-to-end ACK frequency
 without a Sidekick. When end-to-end QUIC reduces the ACK frequency to every
 80 ms, the data receiver sends $247 / 138 = 1.8\times$ the packets at
 $4.5 / 8.4 = 0.5\times$ the goodput, worse than QUIC with the Sidekick
-in both dimensions (\Cref{fig:ack-reduction}). With a Sidekick,
+in both dimensions (\Cref{fig:sidekick:main-results:ack-reduction}). With a Sidekick,
 the data sender also does not need to change packet pacing to avoid bursts in
 response to infrequent ACKs, which is why end-to-end QUIC cannot send fewer
 than $\approx 240$ packets.
 
 \subsubsection{Discussion: Configuring the Sidekick connection.}
-\Cref{tab:experimental-scenarios} shows the quACK interval and threshold we
+\Cref{tab:sidekick:experimental-scenarios} shows the quACK interval and threshold we
 elected for each scenario based on the considerations in
-\Cref{sec:sidekick:init}. In each experiment in \Cref{fig:main-results},
+\Cref{sec:sidekick:init}. In each experiment in \Cref{fig:sidekick:main-results},
 we also show how with less frequent quACKs ($2\times$ and $4\times$ the
 interval) and proportionally-adjusted thresholds, the protocol performs worse,
 or more variably. Less frequent quACKs means the client reacts later to
@@ -293,13 +294,13 @@ protocol with any Sidekick at all performs better than the base protocol alone\@
 \subsection{Link overheads from sending quACKs}
 \label{sec:sidekick:emulation:link-overheads}
 
-\input{sidekick-paper/tables/packet-overheads.tex}
+\input{sidekick/tables/packet-overheads.tex}
 
 The other cost in terms of using Sidekick protocols is the additional data
 sent by the proxy to the data sender.
 Too many additional bytes use up bandwidth, and additional packets use
 up CPU\@.
-\Cref{tab:packet-overhead} shows the number of packets and bytes sent at each
+\Cref{tab:sidekick:packet-overheads} shows the number of packets and bytes sent at each
 node comparing the strawmen and power sum quACK to no Sidekick connection at all.
 
 Using power sum quACKs increases the packets sent from the proxy to the data
@@ -331,10 +332,10 @@ We did not evaluate Strawman 2 due to its impractical decode time.
 \subsection{CPU overheads of encoding at the proxy}
 \label{sec:sidekick:emulation:cpu-overheads}
 
-\input{sidekick-paper/figures_tex/cpu-overheads.tex}
+\input{sidekick/tables/cpu-overheads.tex}
 
 The main bottleneck of Sidekick on a proxy is the CPU\@.
-\Cref{tab:cpu-overhead} shows a breakdown of the number of CPU cycles in each
+\Cref{tab:sidekick:cpu-overheads} shows a breakdown of the number of CPU cycles in each
 step. The largest overhead was reading the packet contents from the network
 interface ($97.5\%$ of the CPU cycles).
 
@@ -369,7 +370,8 @@ using symmetric RSS hashing~\cite{woo2012scalable}.
 \subsection{TCP friendliness of path-aware CUBIC}
 \label{sec:sidekick:emulation:pacubic}
 
-\input{sidekick-paper/figures_tex/fairness-results.tex}
+\input{sidekick/figures_tex/fairness-bar.tex}
+\input{sidekick/figures_tex/fairness-line.tex}
 
 It is easy to improve performance without regard to competing flows;
 however, we demonstrate that PACUBIC can
@@ -381,14 +383,14 @@ near path segment.
 We first compare QUIC to TCP without either PEP\@.
 As both connections use CUBIC, they exhibit similar
 congestion control behavior and achieve nearly maximum throughput in the
-emulated network with no random loss (\Cref{fig:baseline-bar:loss0p}).
+emulated network with no random loss (\Cref{fig:sidekick:fairness-bar:loss0p}).
 We attribute the differences to the slightly different retranmission and
 loss recovery behaviors of QUIC and TCP\@. The PEPs do not affect the
 performance.
 
 With even a little loss on the near path segment, both QUIC and TCP dramatically
 worsen, respectively achieving $28\%$ and $42\%$ of the goodput at $0\%$ loss,
-for a 10 MB upload (\Cref{fig:baseline-bar:loss1p}).
+for a 10 MB upload (\Cref{fig:sidekick:fairness-bar:loss1p}).
 % 0.305 / 1.098 = 27.8%
 % 0.467 / 1.121 = 41.7%
 In both protocols, CUBIC treats every transmission error as a congestion event,
@@ -397,7 +399,7 @@ QUIC and TCP perform similarly to each other with proxy assistance and 1\%
 loss on the near path segment.
 
 \subsubsection{Sidekick vs.\ TCP PEP\@.}
-\Cref{fig:loss-vs-tput} shows that QUIC with a Sidekick roughly matches---as
+\Cref{fig:sidekick:fairness-line} shows that QUIC with a Sidekick roughly matches---as
  intended---the behavior of TCP with a PEP-assisted split connection. At higher
 loss rates, the near path segment becomes the bottleneck link even with earlier
 feedback about loss, causing the performance of TCP with proxy assistance to

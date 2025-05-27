@@ -1,11 +1,11 @@
 \section{Motivating scenarios}
 \label{sec:sidekick:motivating}
 
-\input{sidekick-paper/figures_tex/examples.tex}
+\input{sidekick/figures_tex/overview.tex}
 
 We focus on three scenarios where end hosts benefit from in-network assistance.
 In each one, a proxy server provides feedback in the form of a quACK to an end
-host: the data sender (\Cref{fig:sc-protocols}). Recall that a quACK is a
+host: the data sender (\Cref{fig:sidekick:overview}). Recall that a quACK is a
 ``cumulative ACK + selective ACK'' over encrypted sequence numbers. The data
 sender uses this feedback to influence its behavior on the base connection,
 without altering the wire format.
@@ -26,8 +26,8 @@ segment (the Wi-Fi hop) followed by a high-latency, low-loss ``far'' path
 segment (the cellular and wired path over the Internet). The friend probably
 suffers from poor connection quality, experiencing drops in the audio stream or
 high de-jitter buffer delays from waiting for retransmitted packets to be
-played in order (\Cref{fig:real-world:scenario1} in the real world,
-\Cref{fig:media} in emulation).
+played in order (\Cref{fig:sidekick:real-world:media} in the real world,
+\Cref{fig:sidekick:main-results:media} in emulation).
 
 In the Sidekick approach, a Sidekick on the Wi-Fi access point sends quACKs to the audio
 application on the user's laptop, assisting the base connection's data sender.
@@ -51,8 +51,8 @@ However, secure transport protocols like QUIC can't benefit from (nor be harmed
 by) connection-splitting PEPs. Without a PEP, QUIC relies on end-to-end
 mechanisms over the entire path to detect losses, recover from them, and adjust
 the congestion-control behavior. This leads to reduced upload speeds
-(\Cref{fig:real-world:scenario2} in the real world, \Cref{fig:baseline-line} in
-emulation).
+(\Cref{fig:sidekick:real-world:pep-emulation} in the real world,
+\Cref{fig:sidekick:main-results:pep-emulation} in emulation).
 
 With help from the same Sidekick PEP, the QUIC sender combines information from
 quACKs and end-to-end ACKs to emulate the congestion-control behavior of a
@@ -80,7 +80,7 @@ The ACK frequency can be configured with a TCP kernel setting or proposed
 QUIC extension~\cite{ietf-quic-ack-frequency-07}.
 
 However, ACK reduction can also degrade throughput~\cite{custura2023reducing,custura2020impact}
-(\Cref{fig:ack-reduction} in emulation).
+(\Cref{fig:sidekick:main-results:ack-reduction} in emulation).
 The sender receives more delayed feedback about loss, and has to carefully
 pace packets to avoid bursts in the large delay between ACKs.
 One proposal has the PEP acknowledge packets on behalf of the

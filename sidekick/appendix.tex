@@ -3,39 +3,39 @@
 
 \begin{figure*}[ht]
 \centering
-\includegraphics[width=0.8\linewidth]{sidekick-paper/figures/cwnd/cwnd_legend.pdf}\\
+\includegraphics[width=0.8\linewidth]{sidekick/figures/cwnd_legend.pdf}\\
 \begin{subfigure}{0.32\linewidth}
-  \includegraphics[width=\linewidth]{sidekick-paper/figures/cwnd/cwnd_split_loss0p.pdf}
+  \includegraphics[width=\linewidth]{sidekick/figures/cwnd_split_loss0p.pdf}
   \caption{Split CUBIC, 0\% loss.}
   \label{fig:time-cwnd:split-loss0p}
 \end{subfigure}
 \begin{subfigure}{0.32\linewidth}
-  \includegraphics[width=\linewidth]{sidekick-paper/figures/cwnd/cwnd_pacubic_loss0p.pdf}
+  \includegraphics[width=\linewidth]{sidekick/figures/cwnd_pacubic_loss0p.pdf}
   \caption{PACUBIC, 0\% loss.}
   \label{fig:time-cwnd:pacubic-loss0p}
 \end{subfigure}
 \begin{subfigure}{0.32\linewidth}
-  \includegraphics[width=\linewidth]{sidekick-paper/figures/cwnd/cwnd_cubic_loss0p.pdf}
+  \includegraphics[width=\linewidth]{sidekick/figures/cwnd_cubic_loss0p.pdf}
   \caption{CUBIC, 0\% loss.}
   \label{fig:time-cwnd:cubic-loss0p}
 \end{subfigure}
 \begin{subfigure}{0.32\linewidth}
-  \includegraphics[width=\linewidth]{sidekick-paper/figures/cwnd/cwnd_split_loss1p.pdf}
+  \includegraphics[width=\linewidth]{sidekick/figures/cwnd_split_loss1p.pdf}
   \caption{Split CUBIC, 1\% loss.}
   \label{fig:time-cwnd:split-loss1p}
 \end{subfigure}
 \begin{subfigure}{0.32\linewidth}
-  \includegraphics[width=\linewidth]{sidekick-paper/figures/cwnd/cwnd_pacubic_loss1p.pdf}
+  \includegraphics[width=\linewidth]{sidekick/figures/cwnd_pacubic_loss1p.pdf}
   \caption{PACUBIC, 1\% loss.}
   \label{fig:time-cwnd:pacubic-loss1p}
 \end{subfigure}
 \begin{subfigure}{0.32\linewidth}
-  \includegraphics[width=\linewidth]{sidekick-paper/figures/cwnd/cwnd_cubic_loss1p.pdf}
+  \includegraphics[width=\linewidth]{sidekick/figures/cwnd_cubic_loss1p.pdf}
   \caption{CUBIC, 1\% loss.}
   \label{fig:time-cwnd:cubic-loss1p}
 \end{subfigure}
 \caption{Congestion window of a long-running upload in Scenario \#2
-(\Cref{tab:experimental-scenarios}) with $0\%$ and $1\%$ loss on the near
+(\Cref{tab:sidekick:experimental-scenarios}) with $0\%$ and $1\%$ loss on the near
 path segmenet.
 The cwnd is measured at the data sender,
 except for split CUBIC whose split connection also has a cwnd at the proxy.
@@ -52,7 +52,7 @@ Here, we dive deeper into the intuition behind the PACUBIC constants
 algorithm achieves similar congestion behavior to the CUBIC algorithm in a split
 connection---we call this behavior ``split CUBIC''.
 
-Consider the same network topology as \Cref{fig:sc-protocols} in which a
+Consider the same network topology as \Cref{fig:sidekick:overview} in which a
 data sender uploads a large file to a data receiver, with help from a Sidekick
 proxy in the middle of the connection. The near path segment connects the sender
 to the proxy, and the far path segment connects the proxy to the receiver.
@@ -60,7 +60,7 @@ The near segment is low-delay with varying random loss, and the far segment is
 high-delay with no random loss. The far segment is the bottleneck link in terms
 of bandwidth.
 The actual link parameters are the same as in Scenario \#2 of
-\Cref{tab:experimental-scenarios}.
+\Cref{tab:sidekick:experimental-scenarios}.
 
 We first discuss how split CUBIC would behave in this setting to conceptually
 motivate PACUBIC.
@@ -73,7 +73,7 @@ regardless of the loss on the near path segment.
 The window at the data sender independently determines whether the packets
 that reach the proxy will be able to fully utilize the window set at the far
 path segment. The data sender is able to achieve this at low random loss rates, but
-becomes the bottleneck as loss rates increase (\Cref{fig:loss-vs-tput}).
+becomes the bottleneck as loss rates increase (\Cref{fig:sidekick:fairness-line}).
 
 While split CUBIC has two windows, PACUBIC only has one
 window representing the in-flight bytes of the end-to-end connection.
@@ -138,7 +138,7 @@ detect a congestion event via the end-to-end ACK.
 
 PACUBIC has several limitations. Although it beats end-to-end CUBIC, it
 still performs worse than split CUBIC, especially at
-high loss rates (\Cref{fig:loss-vs-tput}). Also, it doesn't consider loss on the
+high loss rates (\Cref{fig:sidekick:fairness-line}). Also, it doesn't consider loss on the
 far path segment any differently than original CUBIC, unlike split CUBIC
 which treats the two split connections independently. PACUBIC
 emulates the congestion control behavior and fairness of split CUBIC
