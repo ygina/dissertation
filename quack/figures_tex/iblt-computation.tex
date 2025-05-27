@@ -13,9 +13,10 @@
         \label{fig:quack:iblt-computation:decode}
     \end{subfigure}
     \caption{IBLT vs. power sum quACK microbenchmarks. The number of trials is
-     such that the cumulative time is at least $100$ ms. With rateless quACKs,
-     the client can encode much larger numbers of symbols $t$ while the proxy
-     decodes fewer symbols in the common case.
+     such that the cumulative time is at least $100$ ms. With rateless quACKs
+     (\Cref{sec:packrat:receiver:rateless}),
+     the receiver can encode much larger numbers of symbols $t$ while the
+     sender decodes fewer symbols in the common case.
      % The logscale axes emphasize the overheads at smaller numbers.
      }
     \label{fig:quack:iblt-computation}

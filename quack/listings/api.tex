@@ -2,15 +2,15 @@
 \begin{lstlisting}[language=Rust]
 trait quACK {
     fn count() -> usize;
-    fn last_identifier() -> u32;
-    fn encode(item: u32);
-    fn remove(item: u32);
+    fn last_element() -> u32;
+    fn encode(element: u32);
+    fn remove(element: u32);
     fn sub(rhs: quACK) -> quACK;
     fn decode() -> &[u32];
 }
 \end{lstlisting}
-\captionof{lstlisting}{Pseudocode interface for the implementation of the quACK
- in the \texttt{quack} library. Each item is a 4-byte random identifier
+\captionof{lstlisting}{Pseudocode interface for the quACK implementations in
+ the software library. Each element is a 4-byte random identifier
  referring to a network packet.}
 \label{lst:quack:api}
 \end{lstfloat}
