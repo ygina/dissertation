@@ -1,5 +1,5 @@
 \section{Design}
-\label{sec:sidekick:init}
+\label{sec:sidekick:design}
 
 This section describes our design for a Sidekick protocol built around
 quACKs. This includes the setup and configuration of a Sidekick
@@ -9,24 +9,8 @@ protocols.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% \subsection{PEP discovery}
-% \label{sec:sidekick:init:discovery}
-
-% Now we describe the messages that are exchanged in the
-% Sidekick protocol (\Cref{fig:payloads}), starting with the handshake.
-
-% Sidekicks are distinguished from other types of proxies such as VPNs and
-% transparent PEPs in that the proxy is on the path and the client is knowingly
-% receiving in-network retransmissions. In order to discover Sidekick proxies on the
-% path, the client sends a magic discovery packet along the base connection
-% 4-tuple, after it has established that connection. Proxies respond by
-% announcing that they support Sidekick and their supported configurations, and the
-% server discards the invalid magic packet. Clients can choose to accept
-% assistance from a proxy by replying with an \texttt{Init} and their
-% configuration request. The proxy completes the handshake with an \texttt
-% {InitACK} and a new UDP address specific to this base connection.
-
 \subsection{PEP discovery mechanism}
+\label{sec:sidekick:design:discovery}
 
 % In most settings, such as 4G/5G cellular networks,
 PEPs have traditionally been deployed as transparent proxies, silently
@@ -76,7 +60,7 @@ more than outside a Sidekick setting.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % \subsection{Handshake}
-% \label{sec:sidekick:init:handshake}
+% \label{sec:sidekick:design:handshake}
 
 % Upon receiving the sidekick-reply packet, the sender begins communicating
 % directly with the proxy from a different UDP port.  It initially sends
