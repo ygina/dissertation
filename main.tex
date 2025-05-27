@@ -66,6 +66,21 @@
 \definecolor{LighterRed}{RGB}{255,150,150}
 \definecolor{LightestRed}{RGB}{255,200,200}
 
+\lstdefinelanguage{Python} {
+ keywords={class, def, return, instanceof, if},
+ keywordstyle=\color{BrickRed}\bfseries,
+ ndkeywords={NetworkModel, self},
+ ndkeywordstyle=\color{NavyBlue}\bfseries,
+ basicstyle=\small\ttfamily,
+ identifierstyle=\color{black},
+ sensitive=false,
+ comment=[l]{\#},
+ commentstyle=\color{gray}\ttfamily\bfseries,
+ showstringspaces=false,
+ string=[s]{"}{"},
+ stringstyle=\color{ForestGreen}\ttfamily,
+}
+
 \lstdefinelanguage{Rust} {
  keywords={fn, trait, struct, bool, u32, u64, u16, u8, usize},
  keywordstyle=\color{BrickRed}\bfseries,
@@ -119,7 +134,7 @@
 \input{quack/main.tex}
 \input{sidekick/main.tex}
 \input{packrat/main.tex}
-\input{heuristic}
+\input{splitting/main.tex}
 \input{conclusion}
 
 \appendix

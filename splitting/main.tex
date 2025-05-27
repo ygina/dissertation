@@ -1,6 +1,26 @@
 \chapter{Split Throughput Heuristic}
 \label{sec:splitting}
 
+In the 1990s, many networks deployed performance-enhancing proxies
+(PEPs) that transparently split TCP connections to aid performance,
+especially over lossy, long-delay paths. Two recent
+developments have cast doubts on their relevance: the
+BBR congestion-control algorithm, which de-emphasizes loss as a
+congestion signal, and the QUIC transport protocol, which prevents
+transparent connection-splitting yet empirically matches or exceeds
+TCP's performance in wide deployment, using the same congestion control.
+
+In light of this, are PEPs obsolete? This chapter presents a range of
+emulation measurements indicating: ``probably not.'' While BBR's
+original 2016 version didn't benefit markedly from connection-splitting, more
+recent versions of BBR \textit{do} and, in some cases, even \textit{more} so
+than earlier ``loss-based'' congestion-control algorithms.  We also find that
+QUIC implementations of the ``same'' congestion-control algorithms vary
+dramatically and further differ from those of Linux TCP---frustrating
+head-to-head comparisons.
+Notwithstanding their controversial nature, our results suggest
+that PEPs remain relevant to Internet performance for the foreseeable future.
+
 \section{Introduction}
 \label{sec:splitting:intro}
 
@@ -54,7 +74,7 @@ schemes, it has been suggested that BBR has led to
 a sharp decline in the use of PEPs~\cite{frode}.
 
 \textbf{Do BBR and QUIC make connection-splitting obsolete?} In this
-paper, we present findings that suggest that neither of these
+chapter, we present findings that suggest that neither of these
 developments should be regarded as reliable;
 Connection-splitting may yet play a performance-enhancing role
 on the Internet, despite its controversial nature.
@@ -71,8 +91,8 @@ protocols (QUIC) that we cannot directly measure.
 
 We present three major findings:
 
-\paragraph{Finding 1: Splitting has become significantly more beneficial to TCP
- BBR since it was initially released in 2016.}
+\subsubsection{Finding 1: Splitting has become significantly more beneficial to
+ TCP BBR since it was initially released in 2016.}
 
 We confirm that BBR's initial ``v1'' release does not benefit markedly from splitting, unlike earlier
 congestion-control schemes. But as the BBR algorithm
@@ -92,8 +112,8 @@ Thus, we find that BBR and its split behavior continue
 to evolve, and that the model-based BBR algorithm has \textit{not} made the
 performance enhancements of connection-splitting obsolete.
 
-\paragraph{Finding 2: There exist classes of network paths where TCP BBR would
- significantly benefit from splitting but TCP CUBIC would not.}
+\subsubsection{Finding 2: There exist classes of network paths where TCP BBR
+ would significantly benefit from splitting but TCP CUBIC would not.}
 
 Splitting not only benefits BBRv3 in all the same scenarios as CUBIC (in terms
 of long-lived throughput), it also benefits BBRv3 in \textit{new} scenarios. In
@@ -113,9 +133,10 @@ loss, particularly in satellite and wireless ad-hoc networks~\cite
 evaluate the behavior of split CCAs in new types of networks, especially in
 space.
 
-\paragraph{Finding 3: Implementations of the ``same'' congestion-control schemes
-in QUIC vary significantly, and further differ those of Linux TCP---frustrating
-attempts to directly compare performance between QUIC and TCP.}
+\subsubsection{Finding 3: Implementations of the ``same'' congestion-control
+ schemes in QUIC vary significantly, and further differ those of Linux
+ TCP---frustrating attempts to directly compare performance between QUIC and
+ TCP.}
 
 In an initial study of three QUIC implementations, we find that the end-to-end
 behaviors of the same congestion control schemes vary significantly by implementation.
@@ -146,7 +167,7 @@ assistance without the ossification downsides.
 In this section, we provide additional context on some concepts that we refer to
 throughout the text.
 
-\paragraph{Performance-enhancing proxies.}
+\subsubsection{Performance-enhancing proxies.}
 
 The idea of in-network assistance has long brought pain to the hearts of
 Internet researchers, protocol designers, and network operators. In particular,
@@ -167,11 +188,11 @@ length of the feedback loop for signals of loss and congestion. The PEP also
 allows each side of the split connection to better optimize congestion control
 and flow control for network conditions local to the path segment. We can
 expect PEPs to impact a variety of performance metrics, including startup time,
-packet jitter, retransmission overheads, and more. In this paper, we focus
+packet jitter, retransmission overheads, and more. In this chapter, we focus
 only on the impact of connection-splitting on the \textit{sustained throughput}
 of long-lived data transfers.
 
-\paragraph{Congestion control.}
+\subsubsection{Congestion control.}
 
 Congestion control was originally deployed in the 1980s to manage the explosive
 growth of the Internet~\cite{vjk}. Foundational algorithms such as slow start
@@ -185,12 +206,12 @@ The word ``TCP'' is sometimes used synonomously with the congestion control
 algorithms that it implements. In reality, the two are distinct, though deeply
 intertwined. For example, the QUIC transport protocol implements many of the
 same algorithms as TCP to manage network traffic, even though it runs over UDP~\cite{rfc9000}.
-In this paper, we refer to ``TCP'' and ``QUIC'' as the transport protocols,
+We refer to ``TCP'' and ``QUIC'' as the transport protocols,
 ``Linux TCP'' as the implementation of TCP in the Linux kernel, and congestion
 control schemes as the particular manifestations of a congestion control
 algorithm in a transport protocol implementation.
 
-\paragraph{BBR.}
+\subsubsection{BBR.}
 
 Today, the focus on congestion control has shifted towards BBR. BBR is sometimes
 referred to as a ``model-based'' congestion control scheme because it relies on
@@ -223,7 +244,7 @@ implementation, and some such as Cloudflare, Meta, and Cisco are actively
 experimenting with variants of BBRv2+ in their QUIC stacks~\cite
 {cardwell2024bbrv3-ietf119-qna}.
 
-\paragraph{QUIC.}
+\subsubsection{QUIC.}
 
 The QUIC transport protocol was originally developed by Google in 2012 to
 improve performance for HTTPS traffic and to enable the rapid
@@ -259,7 +280,7 @@ combinations of path segments to evaluate, as the parameter space for
 combinations of path segments can be quite large. Also, not all CCA
 implementations can be trivially split.
 
-For this paper, we refer to \textit{throughput} as the throughput of a
+For this chapter, we refer to \textit{throughput} as the throughput of a
 long-lived data transfer in an emulated network, using a single flow.
 We do not evaluate other metrics such as startup time, retransmission
 overheads, or short-lived data transfers, which have been of interest to
@@ -378,7 +399,7 @@ to the network model, we implement functions to \texttt{compose()} a model of
 an end-to-end network path from two path segments and to
 query the end-to-end \texttt{throughput()} of a segment.
 
-\paragraph{The \texttt{compose()} function.}
+\subsubsection{The \texttt{compose()} function.}
 Since our network model consists of three parameters, we describe how to compose
 each of these parameters to model the end-to-end network path. Bandwidth is the
 minimum of the two bandwidths, which is the bottleneck.
@@ -393,14 +414,14 @@ network path. This makes sense because regardless of where on the network path
 loss occurs or which path segment has the bottleneck bandwidth, from an
 end-to-end perspective, the network properties look the same.
 
-\paragraph{The \texttt{throughput()} function.}
+\subsubsection{The \texttt{throughput()} function.}
 This is the throughput of a long-running HTTPS connection in a
 \texttt{mininet} emulation. The emulated network is parameterized
 by the network model of a single path segment, and the HTTPS implementation
 uses the congestion control scheme of interest. We describe additional details
 about the emulation in \Cref{sec:splitting:methodology}.
 
-\paragraph{Calculating the split improvement.}
+\subsubsection{Calculating the split improvement.}
 
 \Cref{lst:pred-throughput-api} demonstrates how we can estimate the split
 throughput benefit using the interface in \Cref
@@ -432,7 +453,7 @@ for a single connection, and are within the CPU constraints of emulation. Random
 loss rates range from $0\%$ for a stable connection to $4\%$ for random loss
 caused by e.g., wireless interference and extraterrestrial weather.
 
-\paragraph{Modifying the \texttt{compose()} function.}
+\subsubsection{Modifying the \texttt{compose()} function.}
 We make some subtle changes to the compose function to keep composed network
 models within our parameter space.
 In some sense, each parameter e.g., delay, can be thought of as an algebraic
@@ -445,7 +466,7 @@ with $1$ ms delay. For loss, note that when loss rates are small, $loss1 \cdot
 loss2$ is negligibly small. In our case, the loss is always below $4\%$, so we
 omit the term in the composition and loss becomes additive.
 
-\paragraph{Collecting data efficiently.}
+\subsubsection{Collecting data efficiently.}
 For some CCAs, we expect a large number of network settings in the parameter
 space to have extremely low throughput. Thus we set a utilization threshold of
 $5\%$ of the link rate below which we are not interested in the exact throughput
@@ -515,7 +536,7 @@ transfers. In this section,
 we describe our emulated network configurations, HTTPS endpoints and
 PEP, and other specifications.
 
-\paragraph{Network configuration.}
+\subsubsection{Network configuration.}
 
 We used two linear network topologies: a one-segment topology for caching
 end-to-end measurements and a two-segment topology for evaluation with a
@@ -538,7 +559,7 @@ Each link is symmetric in
 the uplink and downlink directions. For some versions of BBR, we set an \texttt
 {fq} qdisc on the host nodes' egress interfaces for pacing.
 
-\paragraph{Host configuration.}
+\subsubsection{Host configuration.}
 
 We create simple HTTPS wrappers around each transport protocol implementation to
 evaluate the congestion control schemes in \Cref{tab:cca-implementations}. The TCP
@@ -570,7 +591,7 @@ copying data between the two sockets. Note that
 discussions of split QUIC are based only on the split throughput heuristic
 and do not use an actual splitter.
 
-\paragraph{Experiment specification.}
+\subsubsection{Experiment specification.}
 In each experiment, the HTTPS client requests a specific number of bytes to be
 transferred from the server in the HTTPS payload. This number corresponds to the
 amount of data that can be transmitted through the bottleneck link over a
@@ -583,7 +604,7 @@ completion time (from when the client sends a request to when it receives a
 complete response). Due to header overhead and request latency, this metric
 will never equal the link rate.
 
-\paragraph{Machine specification.} All experiments use CloudLab~\cite
+\subsubsection{Machine specification.} All experiments use CloudLab~\cite
  {duplyakin2019design} x86\_64 rs630 nodes in the Massachusetts cluster running
  Ubuntu 22.04.2. The nodes use the default Linux kernel v5.15.0-122-generic,
  except for TCP BBRv2 and BBRv3.%, in which they use the Google fork of v6.4.0+.
@@ -642,7 +663,7 @@ and BBRv3 show significant throughput gains from connection-splitting.
  split throughput remained relatively high, suggesting that BBRv3 today would
  still benefit from connection-splitting.
 
-\paragraph{Analysis.}
+\subsubsection{Analysis.}
 To explore why CUBIC and BBRv3 benefit from splitting but BBRv1 does not, we
 analyze end-to-end throughputs of each CCA and apply the split throughput
 heuristic (\Cref{fig:heuristic}). As described in \Cref{sec:splitting:heuristic},
@@ -693,7 +714,7 @@ It is possible that the BBR algorithm continues to evolve in this direction
 given that BBR's unfairness remains contentious today~\cite
 {datta2023replication,zeynali2024promises}.
 
-\paragraph{Summary.}
+\subsubsection{Summary.}
 
 While BBR may not have benefited from splitting with the release of ``v1'' in 2016, BBRv2 and
 now BBRv3 have evolved to behave more conventionally---similar to traditional,
@@ -733,7 +754,7 @@ These emulations empirically demonstrate that CUBIC only benefits in the first
 class, while BBRv3 benefits in all three.
 BBRv1 does not need splitting in any context.
 
-\paragraph{Analysis.}
+\subsubsection{Analysis.}
 To identify which network paths benefit from connection-splitting and where
 along the paths PEPs should be deployed, we apply the
 heuristic (\Cref{fig:heuristic}).
@@ -771,7 +792,7 @@ and delay is more gradual than abrupt, so it is more likely to benefit when
 splitting a lossy, high-delay network path in any way. In comparison, CUBIC's
 throughput falls off a cliff for many of these segmentations.
 
-\paragraph{Discussion.}
+\subsubsection{Discussion.}
 Do these results reflect where PEP deployments have been useful in the real
 world? Connection-splitters have traditionally been found in satellite,
 cellular, and Wi-Fi networks with a wireless link or rate policer~\cite
@@ -809,7 +830,7 @@ network path.
 We leave network operators to decide how best to model their networks and apply
 the heuristic to evaluate potential PEP deployments.
 
-\paragraph{Summary.}
+\subsubsection{Summary.}
 While TCP CUBIC only benefits from connection-splitting when the PEP is located
 at the lossy last-mile, TCP BBRv3 can also benefit when there is loss on both
 sides of the PEP and when there are longer propagation delays. This suggests
@@ -852,7 +873,7 @@ We highlight that the Cloudflare and \texttt
  in-network assistance should be considered along with not just the CCA but its
  specific implementations.
 
-\paragraph{Analysis.}
+\subsubsection{Analysis.}
 
 The Google QUIC (\Cref{fig:quic:google-bbr1,fig:quic:google-bbr3,fig:quic:google-cubic})
 and TCP (\Cref{fig:quic:tcp-bbr1,fig:quic:tcp-bbr3,fig:quic:tcp-cubic})
@@ -904,7 +925,7 @@ benefit in new network settings where TCP CUBIC does not, while the various
 QUIC BBRv3 implementations exhibit non-uniform end-to-end behavior and thus no
 clear trend in split behavior.
 
-\paragraph{Discussion.}
+\subsubsection{Discussion.}
 
 Why do we believe we can extrapolate split behavior from the end-to-end behavior
 of QUIC? Previous studies explore the effects of QUIC's transport protocol
@@ -948,7 +969,7 @@ no significant variance. However, given the dynamic nature of BBR and the
 Linux networking stack, it
 is possible there will still be changes to the split behavior of TCP in the future.
 
-\paragraph{Summary.}
+\subsubsection{Summary.}
 
 We believe it is important to understand the end-to-end behavior of a congestion
 control scheme in the context of its entire implementation.
@@ -987,11 +1008,13 @@ nor how the accuracy would extrapolate to QUIC connections with custom
 connection splitters. It may be interesting to explore how to incorporate
 such factors into the network model and heuristic.
 
-\paragraph{Methodology.} Recall that for a given network path composed of two
- path segments, we can obtain both the predicted end-to-end and split
- throughputs, and the ground truth throughputs in an emulated network with and
- without a TCP PEP. Then for a network setting, we can compute the accuracy as
- the percent error in predicted vs. measured throughput.
+\subsubsection{Methodology.}
+
+Recall that for a given network path composed of two path segments, we can
+obtain both the predicted end-to-end and split throughputs, and the ground
+truth throughputs in an emulated network with and without a TCP PEP. Then for a
+network setting, we can compute the accuracy as the percent error in predicted
+vs. measured throughput.
 
 We perform an empirical accuracy analysis of BBRv3 for two end-to-end network paths with
 identical bandwidth and delay, both without (0\%) and with (4\%) loss. We test
@@ -1050,3 +1073,25 @@ long-lived throughput in a simplified network model.
 
 \section{Summary}
 \label{sec:splitting:summary}
+
+We performed an emulation measurement study on the impact of
+connection-splitting PEPs on sustained throughput in the context of recent
+developments such as BBR and QUIC. We found that TCP BBR benefits more from
+splitting today than when it was first released, and its current version
+benefits in settings where TCP CUBIC does not. QUIC congestion-control
+implementations exhibit substantial variability both within QUIC and with
+Linux TCP.
+
+In the short term, we urge researchers to refer to congestion-control schemes
+by algorithm/implementation/version, not just ``BBR'' or even ``QUIC BBRv1''.
+We urge the community to create regression and acceptance tests---possibly
+including our heatmaps with ``permissible zones''---for a scheme to call
+itself an implementation of the XYZv1 algorithm.
+
+For connection-splitting to truly be relevant again, there must be clear
+scenarios where PEPs offer significant benefits but end-to-end solutions fall
+short. This paper is a first step, but real-world studies are needed. Next,
+even though the problem is old, the solution need not be to ``just do the same
+things.'' We hope this paper motivates the community to pursue
+protocol-agnostic approaches to in-network assistance and destigmatize the
+controversial nature of PEPs.
