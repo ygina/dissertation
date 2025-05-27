@@ -94,7 +94,7 @@ performance benefit comes from changing behavior at the end host rather than
 the middlebox, transport protocols need to incorporate this information into
 their existing algorithms for, e.g., loss detection and retransmission, which
 have gotten increasingly complex over time. To explore this, we designed a
-Sidekick protocol we call Robin, and implemented it in three scenarios:
+Sidekick protocol and integrated it into client implementations in three scenarios:
 \begin{itemize}[noitemsep,topsep=2pt]
 \item A low-latency audio stream over an Internet path that includes a Wi-Fi path segment
   (low latency with loss), followed by a WAN path segment (higher latency
@@ -124,7 +124,7 @@ CUBIC connection while making its decisions entirely on the host.
 
 \paragraph{Summary of results.}
 
-We implemented Robin in a low-latency media client
+We implemented the Sidekick protocol in a low-latency media client
 based on the WebRTC standard, and an HTTP/3 client using the Cloudflare
 implementation of QUIC~\cite{quiche} and the \texttt{libcurl}~\cite{libcurl}
 implementation of HTTP/3. We evaluated the three scenarios in

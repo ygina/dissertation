@@ -25,61 +25,8 @@ in-network retransmissions intuitively reduce load in the network and it may be
 interesting to explore how these retransmissions benefit not just
 applications but the network itself.
 
-\paragraph{Multipath scenarios.}
-We have only considered Sidekick proxies along a single path, and not thought
-extensively about how quACKs would interact with protocols such as
-\mbox{TCPLS}~\cite{rochet2020tcpls} that use multiple paths or streams,
-or even multipath QUIC~\cite{de2017multipath}.
-To begin thinking about this question, we would have a more complex model of
-the network: multiple PEPs along a single path, multiple paths each with varying
-numbers of PEPs, and so on. The proxy can include
-additional information in the Sidekick-reply packet to indicate which path the
-PEP assistance is on, and the sender can infer from the RTT how far along a path each PEP
-is relative to others. New Sidekick algorithms that come from this model could
-diagnose troublesome paths, or better allocate network traffic in a multipath
-connection. Existing algorithms could be applied to individual paths as if they
-were single-path connections.
-
-\paragraph{Even more diverse network scenarios.}
-The three scenarios we explored all consisted of a lossy Wi-Fi link and a
-high-latency WAN link. Not all scenarios will be favorable to the
-Sidekick protocol we designed.
-If the ``lossy'' section of a network path were on the far path segment from the
-sender, the sender would not have any more information about the problematic
-link. To accomodate scenarios like this, Sidekick protocols will need
-more features. For example, the \emph{proxy} would need some way to receive
-quACKs from the data \emph{receiver}, as well as a mechanism to buffer and
-retransmit packets~\cite{balakrishnan1995snoop,caini2006pepsal}.
-
-There are likely other scenarios that could benefit from Sidekick protocols as
-described, but we did not evaluate them. For example, if we replaced the lossy Wi-Fi
-link with a modern wireless link that has a fluctuating physical
-capacity~\cite{niu2015survey,burchardt2014vlc,koenig2013wireless},
-the sender may be able to more quickly adapt and make
-data available for transmission whenever capacity intermittently becomes available.
-
 \subsection{Deployment and standardization}
 \label{sec:conclusion:future:deployment}
-
-The implementation of Robin exists as a research system that has been evaluated
-in emulation and a limited set of real-world scenarios. Since Sidekick protocols
-require the cooperation of middleboxes and client applications, more work will
-be needed to standardize the discovery protocol and wire format of Sidekick messages
-described in \Cref{sec:sidekick:init}, ideally with interest from the IETF.
-The standards will need to establish several design choices such as how
-identifiers are computed, how quACKs are transmitted, and the exact mechanisms
-for security and backwards compatibility.
-We may also want to standardize sender behavior for specific base protocols,
-though this could be opaque except to the sender.
-
-The deployment of Sidekick protocols can be gradual and backwards-compatible
-with parties that are either unaware of or do not want to participate in Sidekick
-protocols.
-To migrate existing client applications, one needs to modify the code to
-discover a PEP and use information in a quACK to inform the base protocol.
-To migrate middleboxes, they would need to be modified to listen for
-Sidekick-request markers, then accumulate and send quACKs for participating
-connections.
 
 The question for any research system is how can it be deployed and useful in
 the real world. The simplest deployment today could look like a simple in-line

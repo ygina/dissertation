@@ -4,8 +4,8 @@
   \small
   \begin{tabular}{lllll}
     \toprule
-    & \bf Data Sender  & \bf Proxy $\leftrightarrow$ Data & \bf QuACK     & \\
-    & \bf (Client) $\leftrightarrow$ Proxy & \bf Receiver (Server) & \bf Interval & \bf Threshold \\
+    & \bf Data Sender  & \bf Proxy $\leftrightarrow$ Data & \bf QuACK     & \bf Num \\
+    & \bf (Client) $\leftrightarrow$ Proxy & \bf Receiver (Server) & \bf Interval & \bf Symbols \\
     \midrule
     \#1 Low-latency media & $1$ms, $100$ Mbit/s, & $25$ms, $10$ Mbit/s, & $2$ pkts & $8$ \\
                           & $3.6\%$ loss         & $0\%$ loss           &          &     \\
@@ -19,7 +19,7 @@
   \end{tabular}
   \caption{Experimental scenarios. Link 1 connects the data sender (client) to
   the proxy, while Link 2 connects the proxy to the data receiver (server).
-  The quACK interval and threshold represent our Sidekick configuration.
+  The quACK interval and number of symbols represent our Sidekick configuration.
   }
   \label{tab:experimental-scenarios}
 \end{table*}

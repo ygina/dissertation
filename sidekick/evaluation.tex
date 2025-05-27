@@ -3,19 +3,20 @@
 
 \input{sidekick-paper/tables/lines-of-code.tex}
 
-We now describe our implementation of Robin~\cite{sidekick-github} for several applications.
-We integrated Sidekick functionality with a simple media client for low-latency streaming
-and an HTTP/3 (QUIC) client.
-The total implementation of the quACK library, and proxy and client
-integrations used 6363 LOC (\Cref{tab:lines-of-code}).
+We now describe our implementation of the Sidekick protocol for several
+applications. We integrated Sidekick functionality with a simple media client
+for low-latency streaming and an HTTP/3 (QUIC) client. We used the power sum
+construction of the quACK from our quACK library in \Cref
+{sec:quack:implementation}. The total implementation of the proxy and client
+integrations used 4591 LOC (\Cref{tab:lines-of-code}).
 
 \subsection{End-to-end applications}
 \label{sec:sidekick:implementation:applications}
 
-The baselines we evaluated against were the performance of two opaque transport
+The baselines we evaluated against were the performance of two secure transport
 protocols without proxy assistance, and the fairness of a split CUBIC connection.
 
-\paragraph{Low-latency media application.}
+\subsubsection{Low-latency media application.}
 We implemented a simple server and client in Rust for streaming low-latency
 media. The client sends a numbered packet containing 240 bytes of data every
 20 milliseconds, representing an audio stream at 96 kbit/s.
@@ -31,7 +32,7 @@ and play them as soon as the next packet in the sequence is available. The
 de-jitter buffer delay is the length of time between when the packet is stored
 to when it can be played in-order. Some packets can be played immediately.
 
-\paragraph{HTTP/3 file upload application.}
+\subsubsection{HTTP/3 file upload application.}
 We used the popular \texttt{libcurl}~\cite{libcurl} file transfer library as the basis for
 our HTTP client, and an \texttt{nginx} webserver. The client makes an HTTP
 POST request to the server. Both are patched with \texttt{quiche}~\cite{quiche}, a production
@@ -48,8 +49,8 @@ Both clients use CUBIC congestion control.
 \subsection{Client integrations with Sidekick}
 \label{sec:sidekick:implementation:client-integrations}
 
-In each application, we modified only the \emph{client} to speak Robin
-and respond to in-network feedback. The server remained unchanged.
+In each application, we modified only the \emph{client} to speak the Sidekick
+protocol and respond to in-network feedback. The server remained unchanged.
 The modifications were in two parts: following the discovery mechanism to
 establish bi-directional communication with the proxy, and using the information
 in the quACK to modify transport layer behavior.
@@ -94,10 +95,12 @@ configuration messages.
 \section{Evaluation methodology}
 \label{sec:sidekick:methodology}
 
+\input{sidekick-paper/figures_tex/experimental-setup.tex}
+
 We modeled the scenarios from \Cref{sec:sidekick:motivating}. We use the same
 m4.xlarge AWS instance as before for the emulated experiments.
 
-\subsubsection{Emulation}
+\subsubsection{Emulation experiments.}
 
 We emulated a two-hop network topology (\Cref{fig:sc-protocols}) in mininet,
 configuring the link properties using \texttt{tc}.
@@ -112,9 +115,9 @@ while Link 2 connects the proxy to the data receiver (server).
 On the proxy, we either run a Sidekick,
 a connection-splitting TCP PEP~\cite{caini2006pepsal}, or nothing at all.
 
-\subsubsection{Real World}
+\subsubsection{Real-world experiments.}
 
-To test its robustness, we also evaluated Robin over a real-world
+To test its robustness, we also evaluated the Sidekick protocol over a real-world
 environment that resembled the scenario on the train (\Cref{fig:setup:real}).
 In this setup, a Lenovo ThinkPad laptop, running Ubuntu 22.04.3 with a 4-Core
 Intel i7 CPU @ 2.60 GHz and 16 GB memory, acted as a client to an AWS instance in
@@ -187,13 +190,13 @@ to traffic patterns in the real world.
 \section{Emulation results}
 \label{sec:sidekick:emulation}
 
-\input{sidekick-paper/figures_tex/experimental-setup.tex}
 \input{sidekick-paper/figures_tex/main-results.tex}
 
-We evaluated Robin to answer the following questions:
+We evaluated our implementation of the Sidekick protocol in a more controlled
+emulation environment to answer the following questions:
 \begin{enumerate}[noitemsep,topsep=0pt]
-	\item Can Sidekicks improve the performance of opaque transport protocols
-	in a variety of scenarios while preserving the opaque behavior of the
+	\item Can Sidekicks improve the performance of secure transport protocols
+	in a variety of scenarios while preserving the end-to-end behavior of the
 	base protocols?
 	\item Can a path-aware congestion control algorithm match the fairness of
 	split TCP PEPs using CUBIC?
@@ -206,15 +209,15 @@ We evaluated Robin to answer the following questions:
 \subsection{Performance of secure transport protocols with Sidekick}
 \label{sec:sidekick:emulation:performance}
 
-We first evaluate Robin's main performance goal: In each of the motivating
-scenarios, we show that Robin can improve performance compared to the base
-protocol alone, which would not be able to benefit from existing PEPs.
-Each scenario has a different metric for success---tail latency, throughput,
-or number of packets sent by the data receiver (corresponding to energy usage
-or chance of Wi-Fi collisions)---demonstrating the versatility of the Sidekick
-protocol.
+We first evaluate Sidekick's main performance goal: In each of the motivating
+scenarios, we show that the Sidekick protocol can improve performance compared
+to the base protocol alone, which would not be able to benefit from existing
+PEPs. Each scenario has a different metric for success---tail latency,
+throughput, or number of packets sent by the data receiver (corresponding to
+energy usage or chance of Wi-Fi collisions)---demonstrating the versatility of
+the Sidekick protocol.
 
-\paragraph{Low-Latency Media.}
+\subsubsection{Low-latency media application.}
 The Sidekick can reduce tail latencies in a low-latency media stream, representing
 fewer drops and better quality of experience.
 The early retransmissions induced by the Sidekick reduced the 99th percentile
@@ -235,7 +238,7 @@ The Sidekick takes up to two additional packets and one near path segment RTT
 Dropped ACKs and quACKs account for the $<2\%$ of packets with even greater
 de-jitter latencies.
 
-\paragraph{Connection-Splitting PEP Emulation.}
+\subsubsection{Connection-splitting PEP emulation.}
 The Sidekick improves upload speeds when there is a lossy, low-latency link
 by using quACKs to inform the sender's congestion control.
 In a scenario with $1\%$ random loss on the link between the proxy and the
@@ -256,7 +259,7 @@ in-flight on each path segment. In \Cref{sec:sidekick:emulation:pacubic}, we
 will show that our path-aware congestion control algorithm still matches the
 fairness of connection-splitting TCP PEPs.
 
-\paragraph{ACK Reduction.}
+\subsubsection{ACK reduction scenario.}
 
 Using quACKs in lieu of end-to-end ACKs allows the data receiver to
 significantly reduce its ACK frequency while maintaining high goodput.
@@ -275,7 +278,7 @@ the data sender also does not need to change packet pacing to avoid bursts in
 response to infrequent ACKs, which is why end-to-end QUIC cannot send fewer
 than $\approx 240$ packets.
 
-\subsubsection{Configuring the Sidekick Connection}
+\subsubsection{Discussion: Configuring the Sidekick connection.}
 \Cref{tab:experimental-scenarios} shows the quACK interval and threshold we
 elected for each scenario based on the considerations in
 \Cref{sec:sidekick:init}. In each experiment in \Cref{fig:main-results},
@@ -330,7 +333,7 @@ We did not evaluate Strawman 2 due to its impractical decode time.
 
 \input{sidekick-paper/figures_tex/cpu-overheads.tex}
 
-The main bottleneck of Robin on a proxy is the CPU\@.
+The main bottleneck of Sidekick on a proxy is the CPU\@.
 \Cref{tab:cpu-overhead} shows a breakdown of the number of CPU cycles in each
 step. The largest overhead was reading the packet contents from the network
 interface ($97.5\%$ of the CPU cycles).
@@ -342,28 +345,26 @@ CPU, the proxy would be able to process $31$ million packets/second on a single
 core. The hash table lookup used $251$ cycles and parsing the pseudorandom
 payload as an identifier used $22$ cycles.
 
-In practice, we measured the maximum throughput of Robin to
+In practice, we measured the maximum throughput of our Sidekick proxy to
 be 464k packets/s with 25-byte payloads and 5.5 Gbit/s (458k packets/s) with
 1468-byte packet payloads on a single core (assuming 1500-byte MTUs).
 This experiment used multiple \texttt{iperf3} clients to simulate high
-load until Robin was unable to keep up with the load on a single core.
+load until the proxy was unable to keep up with the load on a single core.
 The packet payload size did not seem to affect results.
 
-We find these achieved throughputs acceptable for edge routers such as Wi-Fi
-APs and base stations.
-To deploy Robin on core routers, we would need to reduce the overhead of reading
-packets from the NIC, such as by bypassing the kernel/user-space
-protection boundary\footnote{
-A kernel-bypass system like Retina~\cite{wan2022retina} can achieve
-25 Gbps on 2 cores while processing raw packets with a 1000-cycle callback
-(Figure 5(a) in \cite{wan2022retina}). The Sidekick equivalent would be a 500-cycle
-callback, and assuming all traffic has requested Sidekick help. Throughput scales
-almost linearly with the number of cores using symmetric RSS hashing.
-Thus we don't expect proxy overheads to be an issue with modern 100 Gbps network
-speeds and an optimized implementation even on commodity hardware.
-}~\cite{dpdk,mccanne1993bsd,wan2022retina}
-or using native hardware~\cite{bosshart2014p4}.
-We could also scale on multiple cores using symmetric RSS hashing~\cite{woo2012scalable}.
+We find these achieved throughputs acceptable for edge routers such as Wi-Fi APs
+and base stations. To deploy the Sidekick proxy on core routers, we would need
+to reduce the overhead of reading packets from the NIC, such as by bypassing
+the kernel/user-space protection boundary\footnote{ A kernel-bypass system like
+Retina~\cite{wan2022retina} can achieve 25 Gbps on 2 cores while processing raw
+packets with a 1000-cycle callback(Figure 5(a) in \cite{wan2022retina}). The
+Sidekick equivalent would be a 500-cycle callback, and assuming all traffic has
+requested Sidekick help. Throughput scales almost linearly with the number of
+cores using symmetric RSS hashing. Thus we don't expect proxy overheads to be
+an issue with modern 100 Gbps network speeds and an optimized implementation
+even on commodity hardware. }~\cite{dpdk,mccanne1993bsd,wan2022retina} or using
+native hardware~\cite{bosshart2014p4}. We could also scale on multiple cores
+using symmetric RSS hashing~\cite{woo2012scalable}.
 
 \subsection{TCP friendliness of path-aware CUBIC}
 \label{sec:sidekick:emulation:pacubic}
@@ -376,7 +377,7 @@ match the fairness of split CUBIC in a TCP PEP connection\@.
 We evaluate fairness using Scenario \#2 with varying amounts of loss on the
 near path segment.
 
-\paragraph{QUIC vs.\ TCP\@.}
+\subsubsection{QUIC vs.\ TCP\@.}
 We first compare QUIC to TCP without either PEP\@.
 As both connections use CUBIC, they exhibit similar
 congestion control behavior and achieve nearly maximum throughput in the
@@ -395,7 +396,7 @@ even though no amount of reducing the congestion window affects the error rate.
 QUIC and TCP perform similarly to each other with proxy assistance and 1\%
 loss on the near path segment.
 
-\paragraph{Sidekick vs.\ TCP PEP\@.}
+\subsubsection{Sidekick vs.\ TCP PEP\@.}
 \Cref{fig:loss-vs-tput} shows that QUIC with a Sidekick roughly matches---as
  intended---the behavior of TCP with a PEP-assisted split connection. At higher
 loss rates, the near path segment becomes the bottleneck link even with earlier
