@@ -7,6 +7,41 @@
 \section{Future work}
 \label{sec:conclusion:future}
 
+% % \subsubsection{Real-world studies}
+% Our emulations model non-congestive loss as random, independent loss,
+% which may not accurately reflect the real world. While non-congestive loss
+% does exists, its various behaviors are not well-characterized. This work
+% would benefit from a measurement study on the patterns of non-congestive loss
+% to better understand the scope of the problem and its impact.
+
+% We base this work on the idea that proxies and link-layer approaches are
+% deployed for a reason, and understanding the impact that encrypted transport
+% protocols have in these real-world network paths would better motivate the need
+% for protocol-agnostic proxies at all. This is also true on paths where
+% reliable connectivity is not a solved problem. Also,
+% in-network retransmissions intuitively reduce load in the network and it may be
+% interesting to explore how these retransmissions benefit not just
+% applications but the network itself.
+
+% % \subsubsection{Deployment and standardization}
+% The question for any research system is how can it be deployed and useful in
+% the real world. The simplest deployment today could look like a simple in-line
+% Packrat proxy between a Wi-Fi router and Internet modem. Public hotspots and
+% dense urban apartments make good candidates for smaller-scale lossy path
+% segments.
+% The client integration could be a browser extension for QUIC or a simple
+% modified media client.
+% The Packrat protocol has the advantage that only one endpoint in addition to the
+% proxy needs to speak the protocol.
+
+% % \subsubsection{Set reconciliation in packet-scale settings}
+% In this paper, we explored an alternative construction of the quACK that is
+% optimized for computational efficiency at a small granularity. An extension to
+% this is finding other applications of the quACK in the setting of network
+% packet analysis. We may also be able to further improve the link overheads of
+% the IBLT quACK at millisecond timescales using, e.g., interactive quACKing
+% between the proxy and endpoint.
+
 \section{Concluding Remarks}
 \label{sec:conclusion:remarks}
 ...

@@ -83,9 +83,9 @@ encrypted packets in the presence of loss and reordering is not as simple as
 saying ``up to 100'' when there are cleartext sequence numbers. In \Cref
 {sec:quack}, we presented and evaluated a mathematical tool called a \emph
 {\bf quACK} that concisely represents a selective acknowledgment of randomly
-encrypted packets. In this chapter, we leverage the power sum quACK,
-based on the insight that we can model the problem as a system of power
-sum polynomial equations if there is a practical bound on the maximum number of
+encrypted packets. In this chapter, we leverage the power sum quACK by
+modeling the problem as a system of power sum
+polynomial equations when there is a practical bound on the maximum number of
 ``holes'' among the packets being ACKed.
 
 A second challenge is how the end host should use information from a Sidekick
@@ -158,5 +158,7 @@ The rest of this chapter discusses three motivating scenarios for the Sidekick
 (\Cref{sec:sidekick:motivating}), describes the concrete Sidekick protocol we
 built around power sum quACKs (\Cref{sec:sidekick:design}) and
 its implementation in two base protocols (\Cref{sec:sidekick:implementation}),
-and then evaluates the protocol in real-world (\Cref{sec:sidekick:real-world})
-and emulation experiments (\Cref{sec:sidekick:emulation}).
+and then evaluates the protocol (\Cref{sec:sidekick:methodology}) in real-world
+(\Cref{sec:sidekick:real-world}) and emulation experiments
+(\Cref{sec:sidekick:emulation}). Finally, we discuss limitations to our approach
+(\Cref{sec:sidekick:limitations}) and conclude (\Cref{sec:sidekick:summary}).

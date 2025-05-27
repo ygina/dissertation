@@ -5,16 +5,16 @@ In response to concerns about protocol ossification and privacy, post-TCP
 transport protocols such as QUIC and Web\-RTC include end-to-end encryption and
 authentication at the transport layer. This makes their packets opaque to
 middleboxes, freeing the transport protocol to evolve but preventing some
-in-network innovations and performance improvements. This paper describes
+in-network innovations and performance improvements. This chapter describes
 \emph{Sidekick protocols}: an approach to in-network assistance for opaque
 transport protocols where in-network intermediaries help endpoints by sending
 information adjacent to the underlying connection, which remains opaque and
 unmodified on the wire.
 
-In real-world and emulation-based evaluations, the Sidekick improved performance
-in several scenarios: early retransmission over lossy Wi-Fi paths, proxy
-acknowledgments to save energy, and a path-aware congestion-control mechanism
-we call \emph{PACUBIC} that emulates a ``split'' connection.
+In real-world and emulation-based evaluations, the Sidekick protocol improves
+performance in several scenarios: early retransmission over lossy Wi-Fi paths,
+proxy acknowledgments to save energy, and a path-aware congestion-control
+mechanism we call \emph{PACUBIC} that emulates a ``split'' connection.
 
 \input{sidekick/introduction.tex}
 \input{sidekick/motivating.tex}
