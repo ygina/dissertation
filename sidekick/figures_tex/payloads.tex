@@ -9,18 +9,18 @@ base_conn: [u8; 12];
 quack_ty: u8;
 num_symbols: u8;
 id_offset: u16;
-mem_bytes: u32;
+quack_pkts: u16;
+quack_ms: u16;
             \end{lstlisting}
         \end{protopayload}
-        \begin{protopayload}{\texttt{quACK}}
+        \begin{protopayload}{\texttt{Reset}}
             \begin{lstlisting}[language=Rust,basicstyle=\footnotesize]
-count: u32;
-last_element: u32;
-code: Vec<Symbol>;
+epoch: u32;
+errno: u32;
             \end{lstlisting}
         \end{protopayload}
         \caption{Client payloads.}
-        \label{fig:payloads:client}
+        \label{fig:sidekick:payloads:client}
     \end{subfigure}
     \hfill
     % Proxy payloads
@@ -32,24 +32,18 @@ udp_port: u16;
 errno: u32;
             \end{lstlisting}
         \end{protopayload}
-        \begin{protopayload}{\texttt{Reset}}
+        \begin{protopayload}{\texttt{QuACK}}
             \begin{lstlisting}[language=Rust,basicstyle=\footnotesize]
-epoch: u32;
-errno: u32;
-            \end{lstlisting}
-        \end{protopayload}
-        \begin{protopayload}{\texttt{Retransmit}}
-            \begin{lstlisting}[language=Rust,basicstyle=\footnotesize]
-udp_payload: Vec<u8>;
+count: u32;
+last_element: u32;
+code: Vec<Symbol>;
             \end{lstlisting}
         \end{protopayload}
         \caption{Proxy payloads.}
-        \label{fig:payloads:proxy}
+        \label{fig:sidekick:payloads:proxy}
     \end{subfigure}
   % Caption
-  \caption{Packrat protocol messages to initialize the connection and generate
-   retransmissions. There are two constructions of the quACK: power sum and
-   IBLT (\Cref{sec:quack}). The \texttt{Symbol} uses 5 and 4 bytes in each
-   type, respectively.}
-  \label{fig:payloads}
+  \caption{Sidekick protocol messages to configure and reset the Sidekick
+  connection.}
+  \label{fig:sidekick:payloads}
 \end{figure}
