@@ -113,13 +113,6 @@ where network functions are the ones interpreting acknowledgments over
 encrypted sequence numbers from many connections in parallel and
 triggering retransmissions as a result.
 
-% \begin{figure}
-%     \centering
-%     \includegraphics[width=\linewidth,height=35mm]{figures/packrat-scope.pdf}
-%     \caption{Just a suggestion from Michael, to include a diagram like this. The editable pptx file is in the figures folder.}
-%     \label{fig:packrat-scope}
-% \end{figure}
-
 We integrate the Packrat protocol with several applications built on encrypted
 transport protocols, and show that it can enable a variety of performance
 enhancements in various settings with a lossy path segment near the data receiver,
@@ -131,7 +124,11 @@ compared to end-to-end loss recovery schemes:
 \item Application 3: Reduced end-to-end retransmissions at the server of a reliable multicast RTP stream.
 \end{enumerate}
 
-\noindent Unlike link-layer retransmissions, the assistance from a Packrat can be
+\input{packrat/figures_tex/packrat-scope.tex}
+
+\noindent \Cref{fig:packrat:packrat-scope} shows the scope of Packrat compared
+to other methods of in-network retransmissions over lossy path segments.
+Unlike link-layer retransmissions, the assistance from a Packrat can be
 deployed anywhere along the network path and tailored to the performance
 demands of each base connection. Compared to existing transport-layer
 solutions, Packrat can be applied to arbitrary transport protocols without
@@ -144,12 +141,12 @@ an adjacent connection, without involving the data sender nor modifying the
 wire format of the underlying connection. We make the following contributions:
 
 \begin{itemize}[noitemsep]
-    \item The Packrat protocol and a mechanism at the \textit{endpoint} to correct
+    \item A mechanism at the \textit{endpoint} to correct
      end-to-end reordering signals when there are in-network retransmissions
      (\Cref{sec:packrat:problem}).
-    \item Optimizations to improve proxy
+    \item The Packrat protocol and optimizations to improve proxy
      scalability based on the co-location of the endpoint and quACK sender
-     (\Cref{sec:packrat:receiver}).
+     (\Cref{sec:packrat:design}).
     \item An implementation of the Packrat proxy and integrations with three
      applications that use encrypted transport (\Cref{sec:packrat:implementation}).
     \item An emulation study of the performance enhancements, as well as the CPU,
@@ -244,29 +241,7 @@ but to send network-originated retransmissions.
 \section{The reordering problem and spurious retransmissions}
 \label{sec:packrat:problem}
 
-\begin{figure}
-    \centering
-    \begin{subfigure}[b]{0.8\linewidth}
-        \includegraphics[width=\linewidth, trim=0 10 0 10, clip]{packrat-paper/figures/reordering_unmodified.pdf}
-        \caption{Unmodified ACK.}
-        \label{fig:reordering-problem:unmodified}
-    \end{subfigure}
-    \begin{subfigure}[b]{0.8\linewidth}
-        \includegraphics[width=\linewidth, trim=0 9 0 10, clip]{packrat-paper/figures/reordering_delayed_ack.pdf}
-        \caption{Na\"ive delayed ACK.}
-        \label{fig:reordering-problem:delayed-ack}
-    \end{subfigure}
-    \begin{subfigure}[b]{0.8\linewidth}
-        \includegraphics[width=\linewidth, trim=0 9 0 10, clip]{packrat-paper/figures/reordering_with_signal.pdf}
-        \caption{ACK with Packrat reorder delay of 10 ms.}
-        \label{fig:reordering-problem:packrat}
-    \end{subfigure}
-    \caption{The reordering problem where in-network retransmissions with
-    millisecond RTTs cause the server to send spurious retransmissions. The
-    end-to-end ACKs constructed with a Packrat reorder delay prevent this problem.
-    }
-    \label{fig:reordering-problem}
-\end{figure}
+\input{packrat/figures_tex/reordering.tex}
 
 Most acknowledgment schemes allow for some reordering but not at the level
 incurred by in-network retransmissions. For example, TCP fast retransmit requires
@@ -279,7 +254,7 @@ the proxy on the order of tens of milliseconds.
 We call this the \textit{reordering problem}.
 
 Consider an example using selective ACKs, where a gap is considered a missing
-packet (\Cref{fig:reordering-problem:unmodified}): The server sends 1250-byte packets at 10 Mbit/s,
+packet (\Cref{fig:packrat:reordering:unmodified}): The server sends 1250-byte packets at 10 Mbit/s,
 which is 1 packet every ms. The client drops packet \#2 but
 receives \#1, \#3, \#4, etc. If the RTT between the client and proxy is 10 ms,
 by the time the client receives the in-network retransmission of \#2 (from
@@ -313,7 +288,7 @@ packet \#2 before sending an ACK, at which point it would have received the
 retransmission for \#2 and be able to ACK the full range from \#1-13. This
 seems promising at first, but in the time the client was waiting,
 another loss could have occurred (\#12)
-and the new ACK would have the same problem (\Cref{fig:reordering-problem:delayed-ack}).
+and the new ACK would have the same problem (\Cref{fig:packrat:reordering:delayed-ack}).
 
 Various other solutions exist, such as changing a server configuration, but it
 is also undesirable to require certain features in all data senders as they
@@ -341,7 +316,7 @@ least the time it takes for the proxy to retransmit. This
 as well as any delay in sending the quACK.
 In the example, 10 ms after detecting the gap in \#2, the ACK consists
 of packets \#1-2 and any cumulative sequence numbers beyond \#2 (up to \#11)
-(\Cref{fig:reordering-problem:packrat}).
+(\Cref{fig:packrat:reordering:packrat}).
 We assume
 that most loss is near the client, and that the RTT to the proxy is less than
 the loss detection timeout.
@@ -355,6 +330,7 @@ certain delay before they can be referenced in the client's underlying
 acknowledgments.
 
 \section{Design}
+\label{sec:packrat:design}
 
 The Packrat protocol is spoken between a client and an on-path proxy, where the
 client is a data \textit{receiver}. We imagine the proxy to exist near the data
@@ -382,12 +358,12 @@ connections. We assume each message is transmitted in an unreliable UDP
 datagram.
 
 \subsection{Packrat protocol messages}
-\label{sec:packrat:handshake}
+\label{sec:packrat:design:messages}
 
-\input{packrat-paper/figures_tex/payloads}
+\input{packrat/figures_tex/payloads.tex}
 
 Now we describe the messages that are exchanged in the
-Packrat protocol (\Cref{fig:payloads}), starting with the handshake.
+Packrat protocol (\Cref{fig:packrat:payloads}), starting with the handshake.
 
 Packrats are distinguished from other types of proxies such as VPNs and
 transparent PEPs in that the proxy is on the path and the client is knowingly
@@ -401,7 +377,7 @@ configuration request. The proxy completes the handshake with an \texttt
 {InitACK} and a new UDP address specific to this base connection.
 
 The client configuration in \texttt{Init} includes several parameters (\Cref
-{fig:payloads:client}). This includes: the type of encoding used for the quACK,
+{fig:packrat:payloads:client}). This includes: the type of encoding used for the quACK,
 the number of symbols to use in the encoding, the byte offset in the randomly
 encrypted payload at which to parse the 4-byte identifier, and the size of the
 requested cache. The client may dynamically adjust these configurations with
@@ -412,7 +388,7 @@ and is ready to cache packets and retransmit. On receiving an \texttt{InitACK},
 the client is free to send quACKs.
 
 \subsection{Proxy retransmissions enabled by the quACK}
-\label{sec:packrat:proxy}
+\label{sec:packrat:design:proxy}
 
 The behavior of the proxy is to decode incoming quACKs and retransmit missing
 packets, and to cache and evict packets from the base connection for
@@ -472,7 +448,7 @@ assistance is better suited to mobility and handoffs if the connection ever
 changes network paths.
 
 \subsection{Rateless and sparse quACKing at the client}
-\label{sec:packrat:receiver}
+\label{sec:packrat:design:client}
 
 In addition to modifying end-to-end acknowledgments to avoid sending excessive
 reordering signals to the server, the primary behavior of the client is
@@ -613,24 +589,24 @@ variants as ordered and unordered tunnels.
 \subsection{Client integrations with Packrat}
 \label{sec:packrat:implementation:client-integrations}
 
-\input{packrat-paper/listings/quacker_interface}
+\input{packrat/listings/quacker-interface.tex}
 
 Clients participate in the Packrat protocol by knowingly opting in to proxy
 assistance and sending quACKs. Clients share much of the same functionality,
 such as initializing the Packrat connection, maintaining a cumulative quACK of
 received packets, and determining when to quACK based on a set frequency. We
-implement a library for this shared functionality (\Cref{lst:quacker-interface})
+implement a library for this shared functionality (\Cref{lst:packrat:quacker-interface})
 and integrate it into our three clients.
 The library uses $\approx\!700$ lines of Rust and includes C bindings.
 % quacker$ cloc .
 
-The library can serialize and deserialize messages in the Packrat connection, but
-the client is responsible for reading and writing to the actual socket. Each
-application uses a packet loop to interact with a socket for the base
-connection. We incorporate the Packrat socket into the same loop, which allows us to
-consider hints from the application for rateless and sparse quACKing
-(\Cref{sec:packrat:receiver}). We also
-incorporate a reorder delay in the base connection (\Cref{sec:packrat:problem}).
+The library can serialize and deserialize messages in the Packrat connection,
+but the client is responsible for reading and writing to the actual socket.
+Each application uses a packet loop to interact with a socket for the base
+connection. We incorporate the Packrat socket into the same loop, which allows
+us to consider hints from the application for rateless and sparse quACKing
+(\Cref{sec:packrat:design:client}). We also incorporate a reorder delay in the
+base connection (\Cref{sec:packrat:problem}).
 
 \subsection{Packrat proxy}
 \label{sec:packrat:implementation:proxy}
@@ -643,7 +619,7 @@ data packets.
 
 The proxy inspects each packet for magic discovery packets, those that match the
 4-tuples of the base connections it is helping, and also quACKs. It handles
-each packet as described in \Cref{sec:packrat:proxy}. We use
+each packet as described in \Cref{sec:packrat:design:proxy}. We use
 our \texttt{quack} library to encode and decode quACKs. The proxy use
 $\approx\!1000$ lines of Rust.
 
@@ -706,11 +682,11 @@ In the tunnel proxy case, we add an additional proxy
 node near the client to transparently decapsulate traffic from the other
 proxy.
 
-\input{packrat-paper/tables/experimental_setup}
+\input{packrat/tables/experiment-config.tex}
 
 \subsubsection{Experimental configuration.}
 
-\Cref{tab:experiment-config} describes the default experimental configuration
+\Cref{tab:packrat:experiment-config} describes the default experimental configuration
 for each application. The network settings model scenarios with a lossy path
 segment near the data receiver. The delay on the lossy link approximates the
 location of the proxy relative to the data receiver---behind a Wi-Fi access
@@ -720,7 +696,7 @@ network core. The bottleneck bandwidth is on this link, which
 representing the congested backhaul. Importantly, the emulated loss is
 attributed to non-congestive factors such as wireless interference.
 
-The remaining configurations in \Cref{tab:experiment-config} are for the Packrat
+The remaining configurations in \Cref{tab:packrat:experiment-config} are for the Packrat
 protocol. We set the quACK frequency to the same as the protocol's underlying
 acknowledgment scheme. The number of symbols determines how many missing
 packets can be decoded between each quACK. Though the IBLT quACK needs more symbols
@@ -760,8 +736,9 @@ the following questions:
     \item What are the performance advantages of the Packrat protocol over the
      end-to-end, connection-splitting, and tunnel baselines in network settings
      with a lossy path segment near the data \textit{receiver}?
-    \item How do the rateless and sparse optimizations in \Cref
-     {sec:packrat:receiver:rateless} impact the link overheads of the Packrat protocol?
+    \item How do the rateless and sparse optimizations in
+     \Cref{sec:packrat:design:client} impact the link overheads of the Packrat
+     protocol?
     \item How much memory does the cache use at the proxy?
     \item How much traffic can a CPU-constrained proxy handle?
 \end{enumerate}
@@ -773,7 +750,7 @@ We find that
 in-network retransmissions via the Packrat protocol enable a variety of performance
 enhancements---higher throughput, lower latency, and lower link overheads than
 end-to-end retransmissions---for a variety of encrypted transport protocols
-when the data receiver is near a lossy path segment (\Cref{fig:perf}).
+when the data receiver is near a lossy path segment (\Cref{fig:packrat:perf}).
 Our link-layer tunnels both harm and help performance depending on their
 configurations, but they are transparent to the applications that share the link.
 % The Packrat protocol enables similar improvements to connection-splitting PEPs without ossifying the protocol. Unlike link-layer retransmissions, the Packrat protocol can be tailored to each application.
@@ -786,7 +763,7 @@ $2.7\times$
 % packrat 18.30892838311422
 % 18.3... / 6.67... = 2.744..
 compared to end-to-end with 4\% loss on the near path segment (\Cref
-{fig:perf:http}). End-to-end QUIC with CUBIC, in line with other studies on
+{fig:packrat:perf:http}). End-to-end QUIC with CUBIC, in line with other studies on
 ``loss-based'' congestion control, achieves poor link utilization in even
 minimally lossy environments. While the performance of CCAs differ by
 implementation, \texttt{picoquic} CUBIC has been shown to be one of the more
@@ -806,13 +783,13 @@ sender. This suggests that the congestion response to loss with Packrat can be
 both as good and as fair as QUIC with a connection splitter, without fate
 sharing or decrypting the connection at the proxy.
 
-\input{packrat-paper/figures_tex/main_results}
+\input{packrat/figures_tex/perf.tex}
 
 For the HTTP/3 download in this low-latency, low-loss network setting, the
 ordered tunnel outperforms QUIC with a Packrat. The unordered tunnel does not
 perform as well because the retransmits at millisecond timesecales arrive
 out-of-order. The end-to-end ACKs subsequently cause the server to send
-spurious retransmissions (\Cref{fig:http:spurious}). The congestion response to
+spurious retransmissions (\Cref{fig:packrat:spurious:http}). The congestion response to
 spurious retransmissions is not well-defined in standards, and \texttt
 {picoquic} makes some attempt to revert the congestion window that leads to
 this result, which is a similar result we observe when using Packrat with no
@@ -823,7 +800,7 @@ interpret as a congestion signal.
 \subsubsection{Low-latency media with FEC.}
 
 Packrat enables fewer and shorter stalls in a low-latency media stream over a
-high-delay satellite network (\Cref{fig:perf:media}). In this network setting,
+high-delay satellite network (\Cref{fig:packrat:perf:media}). In this network setting,
 the minimum one-way latency of a packet is already 190 ms (40 ms encoding + 150
 ms delay). For reference, 150 ms is the normal latency for VoIP, and anything
 above produces a noticeable drop in quality. Thus network-generated
@@ -875,11 +852,11 @@ detrimental for performance.
 \subsection{Link overheads using rateless and sparse quACKing}
 \label{sec:packrat:emulation:link-overheads}
 
-\input{packrat-paper/figures_tex/link_overheads}
+\input{packrat/figures_tex/link-overheads.tex}
 
 In this section, we analyze how sending quACKs with the optimizations in \Cref
 {sec:packrat:receiver:rateless} impacts the link overheads in the network.
-\Cref{fig:link-overheads} displays the number of packets and bytes sent on each
+\Cref{fig:packrat:link-overheads} displays the number of packets and bytes sent on each
 link between the client, proxy, and server in the HTTP and media applications.
 As a proportion of the volume in bytes sent by both endpoints of the
 application, the HTTP client makes up $1.3\%$ of the traffic with Packrat and
@@ -890,8 +867,8 @@ control packets in the common case.
 \subsubsection{Rateless quACKs.}
 Using the rateless property to send smaller quACKs
 reduces the number of bytes the client sends by $3.6\!\times$ (\Cref
-{fig:link-overheads:http-bytes}) and $1.8\!\times$ (\Cref
-{fig:link-overheads:media-bytes}) compared to Packrat without the optimization.
+{fig:packrat:link-overheads:http-bytes}) and $1.8\!\times$ (\Cref
+{fig:packrat:link-overheads:media-bytes}) compared to Packrat without the optimization.
 % http sender tx_bytes 1266149.5 -> 351208.0
 % 1266149.5/351208.0=3.6x
 % media sender tx_bytes 6397.578993802214 -> 3632.7542920194414 -> 1.8x
@@ -905,7 +882,7 @@ non-emulation environments.
 % media sender tx_packets 25.786554138093248 -> 12.33599987063784
 Sending a quACK only when the client would otherwise send a NACK reduces the
 number of packets the media client sends $1.9\!\times$ (\Cref
-{fig:link-overheads:media-packets}). Note that without sending on NACK, we
+{fig:packrat:link-overheads:media-packets}). Note that without sending on NACK, we
 configured the media client to quACK every other packet to balance latency with
 frequent quACKing. The media client sends more packets than end-to-end because
 although it only ACKs when there is a missing \textit{frame}, it quACKs when
@@ -917,14 +894,14 @@ there is a missing \textit{packet} because the FEC is opaque to the proxy.
 
 Even though the HTTP client quACKs at a similar frequency to which it ACKs, the
 client sends a similar number of packets with and without the Packrat (\Cref
-{fig:link-overheads:http-packets}). The proxy in the end-to-end scenario sends
+{fig:packrat:link-overheads:http-packets}). The proxy in the end-to-end scenario sends
 nearly twice as many ACKs to the server because the number of ACKs depends on
 the length of the connection. Packrat improves the throughput so much that the
 number of net packets sent by the client are similar.
 
 The IP multicast application demonstrates how Packrat can reduce congestion closer
 to the server by caching retransmissions in the middle of the network (\Cref
-{fig:perf:multicast}). This is especially impactful if the data is shared by
+{fig:packrat:perf:multicast}). This is especially impactful if the data is shared by
 multiple clients.\\
 
 \noindent Note that the tunnels aggressively ACK and retransmit in both
@@ -997,14 +974,14 @@ hardware.
 \subsection{Memory overheads of the proxy cache}
 \label{sec:packrat:emulation:memory-overheads}
 
-\input{packrat-paper/figures_tex/memory_overheads}
+\input{packrat/figures_tex/memory.tex}
 
 We find that the Packrat proxy needs no more memory
 than similar proxies for unencrypted transport protocols, and that the optimistic
 eviction policy is an effective fallback for when the cache exceeds its memory limits.
 Like any in-network retransmission mechanism,
 the most significant memory usage at the proxy comes from the packet
-cache. \Cref{fig:memory} shows the number of bytes in the packet contents of
+cache. \Cref{fig:packrat:memory} shows the number of bytes in the packet contents of
 the cache over a 10-second period of each application in our chosen
 network settings. The maximum cache size
 at the Packrat proxy is 64kB per connection, similar to a typical TCP window size.
@@ -1013,7 +990,7 @@ at the Packrat proxy is 64kB per connection, similar to a typical TCP window siz
 
 The cache grows quickly because each data packet is large, but evicts
 packets every 10~ms when
-it receives a quACK (\Cref{fig:memory:http}). The minimum cache size is
+it receives a quACK (\Cref{fig:packrat:memory:http}). The minimum cache size is
 $\approx\!10$ kB, the size of the outstanding packets between the client and
 proxy. A spike occurs when a quACK is dropped, at which point the proxy
 optimistically evicts. The proxy resets the connection if there is an
@@ -1023,7 +1000,7 @@ size to 0.
 \subsubsection{Low-latency media with FEC.}
 
 The media application relies on optimistic eviction to keep the cache small
-since the client sparsely quACKs (\Cref{fig:memory:media}). The
+since the client sparsely quACKs (\Cref{fig:packrat:memory:media}). The
 line plateaus at the maximum cache size because the proxy
 assumes these packets have been received. The cache size only needs to fit 1-2
 RTTs of packets between the client and proxy.
@@ -1031,7 +1008,7 @@ RTTs of packets between the client and proxy.
 \subsubsection{Reliable IP multicast stream.}
 
 The multicast application has a fixed packet cache size of 64 kB, and we analyze
-the memory overheads of the per-client virtual caches (\Cref{fig:memory:multicast}).
+the memory overheads of the per-client virtual caches (\Cref{fig:packrat:memory:multicast}).
 In particular, we calculate the overhead of each virtual cache as 4 bytes for
 the first global index and then 8 bytes for each insertion pair
 (\Cref{sec:packrat:implementation:proxy}). When there are 16 clients, the proxy
@@ -1042,6 +1019,7 @@ retransmissions.
 % average = 0.17788111888111888 KB = 1
 
 \section{Limitations}
+\label{sec:packrat:limitations}
 
 % \subsubsection{Real-world studies}
 Our emulations model non-congestive loss as random, independent loss,

@@ -1,24 +1,24 @@
 \begin{figure}[t]
     \centering
     \begin{subfigure}[b]{0.54\linewidth}
-        \includegraphics[width=\linewidth]{packrat-paper/figures/http_benchmark.pdf}
+        \includegraphics[width=\linewidth]{packrat/figures/http_benchmark.pdf}
         \caption{QUIC HTTP/3 file download.}
-        \label{fig:perf:http}
+        \label{fig:packrat:perf:http}
     \end{subfigure}
     \begin{subfigure}[b]{0.6\linewidth}
-        \includegraphics[width=\linewidth]{packrat-paper/figures/media_benchmark.pdf}
+        \includegraphics[width=\linewidth]{packrat/figures/media_benchmark.pdf}
         \caption{Low-latency media stream with FEC.}
-        \label{fig:perf:media}
+        \label{fig:packrat:perf:media}
     \end{subfigure}
     \begin{subfigure}[b]{0.6\linewidth}
-        \includegraphics[width=\linewidth]{packrat-paper/figures/multicast_benchmark.pdf}
+        \includegraphics[width=\linewidth]{packrat/figures/multicast_benchmark.pdf}
         \caption{Reliable IP multicast stream.}
-        \label{fig:perf:multicast}
+        \label{fig:packrat:perf:multicast}
     \end{subfigure}
     \caption{The Packrat protocol achieves better throughput, latency, and link
      overheads in lossy network settings compared to end-to-end
      retransmissions. Applications using the tunnel differ in how much they
      benefit based on the tunnel configuration, which is a disadvantage of
      link-layer retransmissions.}
-    \label{fig:perf}
+    \label{fig:packrat:perf}
 \end{figure}

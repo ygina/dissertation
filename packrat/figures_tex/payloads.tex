@@ -3,7 +3,7 @@
     % Client payloads
     \begin{subfigure}[b]{0.48\linewidth}
         \begin{protopayload}{\texttt{Init}}
-            \begin{lstlisting}[language=Rust,basicstyle=\footnotesize]
+            \begin{lstlisting}[language=Rust]
 epoch: u32;
 base_conn: [u8; 12];
 quack_ty: u8;
@@ -13,43 +13,43 @@ mem_bytes: u32;
             \end{lstlisting}
         \end{protopayload}
         \begin{protopayload}{\texttt{quACK}}
-            \begin{lstlisting}[language=Rust,basicstyle=\footnotesize]
+            \begin{lstlisting}[language=Rust]
 count: u32;
 last_element: u32;
 code: Vec<Symbol>;
             \end{lstlisting}
         \end{protopayload}
         \caption{Client payloads.}
-        \label{fig:payloads:client}
+        \label{fig:packrat:payloads:client}
     \end{subfigure}
     \hfill
     % Proxy payloads
     \begin{subfigure}[b]{0.48\linewidth}
         \begin{protopayload}{\texttt{InitACK}}
-            \begin{lstlisting}[language=Rust,basicstyle=\footnotesize]
+            \begin{lstlisting}[language=Rust]
 epoch: u32;
 udp_port: u16;
 errno: u32;
             \end{lstlisting}
         \end{protopayload}
         \begin{protopayload}{\texttt{Reset}}
-            \begin{lstlisting}[language=Rust,basicstyle=\footnotesize]
+            \begin{lstlisting}[language=Rust]
 epoch: u32;
 errno: u32;
             \end{lstlisting}
         \end{protopayload}
         \begin{protopayload}{\texttt{Retransmit}}
-            \begin{lstlisting}[language=Rust,basicstyle=\footnotesize]
+            \begin{lstlisting}[language=Rust]
 udp_payload: Vec<u8>;
             \end{lstlisting}
         \end{protopayload}
         \caption{Proxy payloads.}
-        \label{fig:payloads:proxy}
+        \label{fig:packrat:payloads:proxy}
     \end{subfigure}
   % Caption
   \caption{Packrat protocol messages to initialize the connection and generate
    retransmissions. There are two constructions of the quACK: power sum and
    IBLT (\Cref{sec:quack}). The \texttt{Symbol} uses 5 and 4 bytes in each
    type, respectively.}
-  \label{fig:payloads}
+  \label{fig:packrat:payloads}
 \end{figure}

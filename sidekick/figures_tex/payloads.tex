@@ -3,7 +3,7 @@
     % Client payloads
     \begin{subfigure}[b]{0.48\linewidth}
         \begin{protopayload}{\texttt{Init}}
-            \begin{lstlisting}[language=Rust,basicstyle=\footnotesize]
+            \begin{lstlisting}[language=Rust]
 epoch: u32;
 base_conn: [u8; 12];
 quack_ty: u8;
@@ -14,7 +14,7 @@ quack_ms: u16;
             \end{lstlisting}
         \end{protopayload}
         \begin{protopayload}{\texttt{Reset}}
-            \begin{lstlisting}[language=Rust,basicstyle=\footnotesize]
+            \begin{lstlisting}[language=Rust]
 epoch: u32;
 errno: u32;
             \end{lstlisting}
@@ -26,14 +26,14 @@ errno: u32;
     % Proxy payloads
     \begin{subfigure}[b]{0.48\linewidth}
         \begin{protopayload}{\texttt{InitACK}}
-            \begin{lstlisting}[language=Rust,basicstyle=\footnotesize]
+            \begin{lstlisting}[language=Rust]
 epoch: u32;
 udp_port: u16;
 errno: u32;
             \end{lstlisting}
         \end{protopayload}
         \begin{protopayload}{\texttt{QuACK}}
-            \begin{lstlisting}[language=Rust,basicstyle=\footnotesize]
+            \begin{lstlisting}[language=Rust]
 count: u32;
 last_element: u32;
 code: Vec<Symbol>;
