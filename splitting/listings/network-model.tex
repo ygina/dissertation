@@ -1,0 +1,24 @@
+\begin{lstfloat}[t]
+\begin{lstlisting}[language=Python]
+class NetworkModel:
+    def __init__(self, delay, bw, loss):
+        self.delay = delay
+        self.bw = bw
+        self.loss = loss
+
+def compose(s1: NetworkModel,
+            s2: NetworkModel) -> NetworkModel:
+    delay = s1.delay + s2.delay
+    bw = min(s1.bw, s2.bw)
+    loss = s1.loss * (1-s1.loss)*s2.loss
+    return NetworkModel(delay, bw, loss)
+
+def throughput(s: NetworkModel) -> float:
+    return run_emulation(s)
+\end{lstlisting}
+\captionof{lstlisting}{An interface for modeling a network path and estimating
+ throughput. The \texttt{compose()} function models an end-to-end network path
+ from two path segments. The \texttt{throughput()} function obtains a throughput
+ measurement for a path segment.}
+\label{lst:splitting:network-model}
+\end{lstfloat}

@@ -1,0 +1,16 @@
+\begin{lstfloat}[t]
+\begin{lstlisting}[language=Python]
+def pred_split_throughput(s1: NetworkModel,
+                          s2: NetworkModel) -> float:
+    return min(throughput(s1), throughput(s2))
+
+def pred_e2e_throughput(s1: NetworkModel,
+                        s2: NetworkModel) -> float:
+    s = compose(s1, s2)
+    return throughput(s)
+\end{lstlisting}
+\captionof{lstlisting}{Functions that apply our simplified network model and the
+ split throughput heuristic (\Cref{fig:splitting:heuristic}) to predict split and
+ end-to-end throughput, using the interface in \Cref{lst:splitting:network-model}.}
+\label{lst:splitting:pred-throughput-api}
+\end{lstfloat}

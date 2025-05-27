@@ -24,7 +24,7 @@ that PEPs remain relevant to Internet performance for the foreseeable future.
 \section{Introduction}
 \label{sec:splitting:intro}
 
-\input{splitting-paper/figures_tex/bbr-over-time.tex}
+\input{splitting/figures_tex/bbr-over-time.tex}
 
 A stylized history of connection-splitting over the Internet could go
 roughly as follows: In the 1970s, TCP was designed as a host-to-host
@@ -99,7 +99,7 @@ congestion-control schemes. But as the BBR algorithm
 has evolved into BBRv2 in 2019 and now BBRv3 in 2023, it has also evolved to
 behave more conventionally in the sense that it benefits from being
 split---just like more traditional, loss-based congestion control schemes such
-as CUBIC (\Cref{fig:bbr-over-time}).
+as CUBIC (\Cref{fig:splitting:bbr-over-time}).
 
 The regression in split throughput follows directly from the regression
 in end-to-end throughput, via the heuristic. While BBRv1 nearly always achieves
@@ -122,10 +122,10 @@ very low bottleneck link rate utilization \textit{without} a PEP, but a high
 bottleneck link rate utilization \textit{with} a PEP.
 
 More specifically, in addition to edge deployments with a lossy last-mile (\Cref
-{fig:bbr-over-time:class1}), BBRv3 can also benefit from splitting in
+{fig:splitting:bbr-over-time:class1}), BBRv3 can also benefit from splitting in
 scenarios where there is loss on both path segments (\Cref
-{fig:bbr-over-time:class2}), and when the connection-splitter is located
-farther from the edge (\Cref{fig:bbr-over-time:class3}). This suggests that in
+{fig:splitting:bbr-over-time:class2}), and when the connection-splitter is located
+farther from the edge (\Cref{fig:splitting:bbr-over-time:class3}). This suggests that in
 these network classes, simple split BBRv3 can replace the
 proprietary protocols that have traditionally been used to address middle-mile
 loss, particularly in satellite and wireless ad-hoc networks~\cite
@@ -294,17 +294,7 @@ understood for any combination of CCA, transport protocol, and network setting,
 the end-to-end throughput often \textit{is}. We make the following insight
 based on an ideal setting:
 
-\begin{figure}[h]
-  \centering
-  \begin{tcolorbox}[colback=yellow!20, width=\linewidth, sharp corners]
-    \textbf{Split Throughput Heuristic:} We can estimate the long-lived ``split
-     throughput'' of a connection by measuring the long-lived ``end-to-end
-     throughput'' on each segment of the split path and taking the minimum.
-  \end{tcolorbox}
-  \caption{A heuristic for evaluating split behavior from end-to-end behavior in
-   an emulated network.}
-  \label{fig:heuristic}
-\end{figure}
+\input{splitting/figures_tex/heuristic.tex}
 
 \noindent Thus if we know the throughput of the much smaller parameter
  space of end-to-end connections, we can easily derive:
@@ -343,48 +333,8 @@ extensions.
 \subsection{Analyzing split throughput benefit in a single network setting}
 \label{sec:splitting:heuristic:example}
 
-\begin{lstfloat}[t]
-\begin{lstlisting}[language=Python]
-class NetworkModel:
-    def __init__(self, delay, bw, loss):
-        self.delay = delay
-        self.bw = bw
-        self.loss = loss
-
-def compose(s1: NetworkModel,
-            s2: NetworkModel) -> NetworkModel:
-    delay = s1.delay + s2.delay
-    bw = min(s1.bw, s2.bw)
-    loss = s1.loss * (1-s1.loss)*s2.loss
-    return NetworkModel(delay, bw, loss)
-
-def throughput(s: NetworkModel) -> float:
-    return run_emulation(s)
-\end{lstlisting}
-\captionof{lstlisting}{An interface for modeling a network path and estimating
- throughput. The \texttt{compose()} function models an end-to-end network path
- from two path segments. The \texttt{throughput()} function obtains a throughput
- measurement for a path segment.}
-\label{lst:multi-segment-network-model}
-\end{lstfloat}
-
-\begin{lstfloat}[t]
-\begin{lstlisting}[language=Python]
-def pred_split_throughput(s1: NetworkModel,
-                          s2: NetworkModel) -> float:
-    return min(throughput(s1), throughput(s2))
-
-def pred_e2e_throughput(s1: NetworkModel,
-                        s2: NetworkModel) -> float:
-    s = compose(s1, s2)
-    return throughput(s)
-\end{lstlisting}
-\captionof{lstlisting}{Functions that apply our simplified network model and the
- split throughput heuristic (\Cref{fig:heuristic}) to predict split and
- end-to-end throughput, using the interface in \Cref
- {lst:multi-segment-network-model}.}
-\label{lst:pred-throughput-api}
-\end{lstfloat}
+\input{splitting/listings/network-model.tex}
+\input{splitting/listings/pred-throughput-api.tex}
 
 Given a network model of the two path segments that compose an end-to-end
 network path, we would like to be able to estimate the expected throughput
@@ -394,7 +344,7 @@ parameters: delay, bandwidth, and loss.
 
 We explicitly define the interface we
 use to query split and end-to-end throughput in \Cref
-{lst:multi-segment-network-model,lst:pred-throughput-api}. In addition
+{lst:splitting:network-model,lst:splitting:pred-throughput-api}. In addition
 to the network model, we implement functions to \texttt{compose()} a model of
 an end-to-end network path from two path segments and to
 query the end-to-end \texttt{throughput()} of a segment.
@@ -423,9 +373,9 @@ about the emulation in \Cref{sec:splitting:methodology}.
 
 \subsubsection{Calculating the split improvement.}
 
-\Cref{lst:pred-throughput-api} demonstrates how we can estimate the split
+\Cref{lst:splitting:pred-throughput-api} demonstrates how we can estimate the split
 throughput benefit using the interface in \Cref
-{lst:multi-segment-network-model}. We \texttt{pred\_split\_throughput()} by taking
+{lst:splitting:network-model}. We \texttt{pred\_split\_throughput()} by taking
 the minimum measured throughput on each network path segment, and \texttt
 {pred\_e2e\_throughput()} by composing the path segments into an end-to-end
 network path and using the measured throughput of that network path. The split
@@ -443,7 +393,7 @@ we select a parameter space of delay, bandwidth, and loss within our network
 model and cache the end-to-end emulation results for this parameter space. We
 describe our choice of parameter space and other modifications as follows:
 
-\input{splitting-paper/tables/parameters.tex}
+\input{splitting/tables/parameters.tex}
 
 We select a range of values we thought would realistically reflect network
 settings in which we'd see a PEP (\Cref{tab:parameters}). We select propagation
@@ -526,8 +476,8 @@ in \Cref{sec:splitting:accuracy}.
 \section{Measurement methodology}
 \label{sec:splitting:methodology}
 
-\input{splitting-paper/figures_tex/mininet.tex}
-\input{splitting-paper/tables/cca-implementations.tex}
+\input{splitting/figures_tex/mininet.tex}
+\input{splitting/tables/cca-implementations.tex}
 
 We want to evaluate different congestion control schemes in a variety of network
 settings. To do this, we run emulation experiments in \texttt{mininet} with
@@ -540,7 +490,7 @@ PEP, and other specifications.
 
 We used two linear network topologies: a one-segment topology for caching
 end-to-end measurements and a two-segment topology for evaluation with a
-connection-splitting PEP (\Cref{fig:mininet}). Both have
+connection-splitting PEP (\Cref{fig:splitting:mininet}). Both have
 a client and server node at each end. The two-segment topology additionally has
 a router node in between. Each path segment has a bridging node to emulate network
 properties on the link.
@@ -612,7 +562,7 @@ will never equal the link rate.
 \section{Results}
 \label{sec:splitting:results}
 
-\input{splitting-paper/figures_tex/2d-heatmap.tex}
+\input{splitting/figures_tex/2d-heatmap.tex}
 
 In our emulation measurement study, we aim to answer three questions to gain a
 more comprehensive understanding of the relevance of connection-splitting with
@@ -654,7 +604,7 @@ evolved into BBRv2 in 2019 and now BBRv3 in 2023, it has also evolved to behave
 more conventionally in the sense that it benefits from being split---just like
 more traditional, loss-based congestion control schemes such as CUBIC.
 
-\Cref{fig:bbr-over-time} shows three different network settings in which BBRv2
+\Cref{fig:splitting:bbr-over-time} shows three different network settings in which BBRv2
 and BBRv3 show significant throughput gains from connection-splitting.
  When BBRv1 was released, its throughput both with and
  without the connection-splitter were roughly the same, and nearly achieved the
@@ -666,16 +616,16 @@ and BBRv3 show significant throughput gains from connection-splitting.
 \subsubsection{Analysis.}
 To explore why CUBIC and BBRv3 benefit from splitting but BBRv1 does not, we
 analyze end-to-end throughputs of each CCA and apply the split throughput
-heuristic (\Cref{fig:heuristic}). As described in \Cref{sec:splitting:heuristic},
+heuristic (\Cref{fig:splitting:heuristic}). As described in \Cref{sec:splitting:heuristic},
 this methodology allows us to study split settings by measuring the much smaller
 parameter space of end-to-end connections. We find that connection-splitting is
 likely to improve throughput on lossy paths for CUBIC, BBRv2, and BBRv3
 connections, but not for BBRv1.
 
-\Cref{fig:2d-heatmap} visualizes our cached end-to-end measurements as link rate
+\Cref{fig:splitting:2d-heatmap} visualizes our cached end-to-end measurements as link rate
  utilization heatmaps of loss vs. delay.
  Here is an example for how to interpret these graphs using \Cref
- {fig:2d-heatmap:bbr3-10}. The top-left cell represents a 100 ms 0\% segment
+ {fig:splitting:2d-heatmap:bbr3-10}. The top-left cell represents a 100 ms 0\% segment
  with 0.82 utilization of the 10 Mbit/s link rate, and the bottom-right cell
  represents a 1 ms 4\% segment with 0.85 utilization of the 10 Mbit/s link
  rate. The predicted split utilization of a network path composed of these two
@@ -685,7 +635,7 @@ connections, but not for BBRv1.
  throughput of this network path.
 
 BBRv1 achieves high link rate utilization in all settings (\Cref
-{fig:2d-heatmap:bbr1-10}), showing it has little to gain from splitting.
+{fig:splitting:2d-heatmap:bbr1-10}), showing it has little to gain from splitting.
 In fact, previous studies have shown that BBRv1 achieves $\approx\!85\%$
 link utilization regardless of loss (same as our findings) before it reaches
 a cliff point at around 20\% loss~\cite{cao2019use,cardwell2017bbr}.
@@ -701,13 +651,13 @@ supports why the two are so similar. We focus on BBRv3 since Google hopes to
 now deprecate BBRv2~\cite{cardwell2024bbrv3-ietf119}.
 
 BBRv3 is more sensitive to loss than its previous versions (\Cref
-{fig:2d-heatmap:bbr3-10}), and more similar to CUBIC (\Cref
-{fig:2d-heatmap:cubic-10}) in that there exist scenarios where end-to-end
+{fig:splitting:2d-heatmap:bbr3-10}), and more similar to CUBIC (\Cref
+{fig:splitting:2d-heatmap:cubic-10}) in that there exist scenarios where end-to-end
 throughput suffers.
 These reflect existing findings of lower utilization in BBRv2 and BBRv3~\cite
 {datta2023replication,song2021understanding,zeynali2024promises}.
 Based on the heuristic, it is clear that in some lossy networks
-such as the ones empirically evaluated in \Cref{fig:bbr-over-time},
+such as the ones empirically evaluated in \Cref{fig:splitting:bbr-over-time},
 connection-splitting
 can significantly increase the throughput of BBRv3 connections.
 It is possible that the BBR algorithm continues to evolve in this direction
@@ -747,7 +697,7 @@ We partition these scenarios into three classes of network settings:
 \end{enumerate}
 
 \noindent \Cref
- {fig:bbr-over-time:class1,fig:bbr-over-time:class2,fig:bbr-over-time:class3}
+ {fig:splitting:bbr-over-time:class1,fig:splitting:bbr-over-time:class2,fig:splitting:bbr-over-time:class3}
 represent network settings in each class, respectively.
 ``Asymmetric'' refers to the delays on the two path segments.
 These emulations empirically demonstrate that CUBIC only benefits in the first
@@ -757,7 +707,7 @@ BBRv1 does not need splitting in any context.
 \subsubsection{Analysis.}
 To identify which network paths benefit from connection-splitting and where
 along the paths PEPs should be deployed, we apply the
-heuristic (\Cref{fig:heuristic}).
+heuristic (\Cref{fig:splitting:heuristic}).
 For each CCA, we conduct an exhaustive search of the $15 \cdot 21 \cdot 25 =
 7875$ combinations of settings within our parameter space (\Cref
 {tab:parameters}), and efficiently predict the split and end-to-end throughputs.
@@ -771,7 +721,7 @@ these criteria in 942 and 188 scenarios, respectively. CUBIC benefits from
 splitting in more scenarios because its end-to-end utilization is more
 frequently low, so it more frequently has a large split improvement.
 
-\input{splitting-paper/tables/network-path-analysis.tex}
+\input{splitting/tables/network-path-analysis.tex}
 
 Since the distribution of network paths in our parameter space does not reflect
 any meaningful real world distribution, we are more interested in the \textit
@@ -783,11 +733,11 @@ I only accounts for $21\%$ of the relevant network settings for BBRv3. We
 identify Class II, which is the same as I, except both path segments have
 non-zero loss. Class III is the same as II, except both path segments have
 $>1$ ms delay. We used the results to select three representative network
-settings to empirically evaluate in \Cref{fig:bbr-over-time}.
+settings to empirically evaluate in \Cref{fig:splitting:bbr-over-time}.
 
 Intuitively, we can understand why BBRv3 benefits more from splitting in lossy
 scenarios than CUBIC based on how it reacts to loss and delay (\Cref
-{fig:2d-heatmap:bbr3-10}). BBRv3's sensitivity to loss
+{fig:splitting:2d-heatmap:bbr3-10}). BBRv3's sensitivity to loss
 and delay is more gradual than abrupt, so it is more likely to benefit when
 splitting a lossy, high-delay network path in any way. In comparison, CUBIC's
 throughput falls off a cliff for many of these segmentations.
@@ -847,7 +797,7 @@ in space.
 % QUIC implementations of the same congestion control schemes
 %  vary significantly, and further differ from Linux's TCP implementations.
 
-\input{splitting-paper/figures_tex/quic.tex}
+\input{splitting/figures_tex/quic.tex}
 
 How does CCA implementation impact end-to-end behavior, and therefore split
 behavior? Might claims about ``split throughput'' depend not just on the CCA,
@@ -863,27 +813,26 @@ explicit connection-splitting PEP for each QUIC implementation, we apply the
 split throughput heuristic and argue that these implementations
 will likewise respond differently to connection-splitting PEPs.
 
-\Cref{fig:quic} visualizes the end-to-end behavior of these schemes.
-We highlight that the Cloudflare and \texttt
- {picoquic} CUBIC implementations are less sensitive to loss than Google or
- TCP; the former may benefit from splitting in more classes of network settings
- than the latter. Additionally, their BBR implementations exhibit non-uniform
- behavior, suggesting a non-uniform response to
- connection-splitting. These variations indicate that the benefits of
- in-network assistance should be considered along with not just the CCA but its
- specific implementations.
+\Cref{fig:splitting:quic} visualizes the end-to-end behavior of these schemes.
+We highlight that the Cloudflare and \texttt{picoquic} CUBIC implementations are
+less sensitive to loss than Google or TCP; the former may benefit from splitting
+in more classes of network settings than the latter. Additionally, their BBR
+implementations exhibit non-uniform behavior, suggesting a non-uniform response
+to connection-splitting. These variations indicate that the benefits of
+in-network assistance should be considered along with not just the CCA but its
+specific implementations.
 
 \subsubsection{Analysis.}
 
-The Google QUIC (\Cref{fig:quic:google-bbr1,fig:quic:google-bbr3,fig:quic:google-cubic})
-and TCP (\Cref{fig:quic:tcp-bbr1,fig:quic:tcp-bbr3,fig:quic:tcp-cubic})
+The Google QUIC (\Cref{fig:splitting:quic:google-bbr1,fig:splitting:quic:google-bbr3,fig:splitting:quic:google-cubic})
+and TCP (\Cref{fig:splitting:quic:tcp-bbr1,fig:splitting:quic:tcp-bbr3,fig:splitting:quic:tcp-cubic})
 implementations are most similar to each other for each CCA.
 This is reasonable if we take the community-based CUBIC implementation in
 Linux to be the standard, and considering that Google contributed to the Linux
 BBR implementations. In general, Google QUIC achieves slightly higher
 utilization than Linux TCP.
 
-The Cloudflare QUIC BBR implementations (\Cref{fig:quic:cloudflare-bbr1,fig:quic:cloudflare-bbr2})
+The Cloudflare QUIC BBR implementations (\Cref{fig:splitting:quic:cloudflare-bbr1,fig:splitting:quic:cloudflare-bbr2})
 exhibit profoundly different behavior from Linux TCP in baseline performance.
 Note that Cloudflare uses BBRv1 for TCP but their use of BBR in QUIC
 is experimental. Anecdotally, a
@@ -895,7 +844,7 @@ be desirable yet challenging for these same companies to correctly incorporate
 BBRv3 into their QUIC stacks in the coming years.
 % Maybe cite narayan2018restructuring
 
-The \texttt{picoquic} BBR implementations (\Cref{fig:quic:picoquic-bbr1,fig:quic:picoquic-bbr3})
+The \texttt{picoquic} BBR implementations (\Cref{fig:splitting:quic:picoquic-bbr1,fig:splitting:quic:picoquic-bbr3})
 are more similar to Linux TCP, although its BBRv3 implementation seems to have
 a contradicting reaction to delay.
 We note that \texttt{picoquic} is intended for experimental use in the
@@ -907,18 +856,18 @@ in the IETF~\cite{cardwell2024bbr-ietf-draft} indicate
 that there is no monolith yet of ``the BBR algorithm.''
 
 The Cloudflare QUIC and \texttt{picoquic} implementations of CUBIC
-(\Cref{fig:quic:cloudflare-cubic,fig:quic:picoquic-cubic}) interestingly
+(\Cref{fig:splitting:quic:cloudflare-cubic,fig:splitting:quic:picoquic-cubic}) interestingly
 both exhibit a more gradual degradation in response to loss and delay than Linux TCP
-(\Cref{fig:quic:tcp-cubic}). We
+(\Cref{fig:splitting:quic:tcp-cubic}). We
 find this harder to explain, given that TCP CUBIC has been around since 2006,
 and perhaps can be attributed to transport protocol mechanisms in QUIC.
 Nevertheless, this indicates that it is important to understand the
 behavior of a CCA in the context of its entire
 implementation.
 
-\input{splitting-paper/figures_tex/quic-predictions.tex}
+\input{splitting/figures_tex/quic-predictions.tex}
 
-\Cref{fig:quic-predictions} applies the heuristic to show how split behavior
+\Cref{fig:splitting:quic-predictions} applies the heuristic to show how split behavior
 can vary for CCA implementations with different end-to-end behaviors.
 Some QUIC CUBIC implementations
 benefit in new network settings where TCP CUBIC does not, while the various
@@ -982,7 +931,7 @@ re-evaluate these claims.
 \section{Accuracy analysis}
 \label{sec:splitting:accuracy}
 
-\input{splitting-paper/figures_tex/accuracy-split.tex}
+\input{splitting/figures_tex/accuracy.tex}
 
 Our analysis of connection-splitting for TCP and its extensions to QUIC rely on
 the accuracy of the split throughput heuristic. In this section, we are
@@ -1030,7 +979,7 @@ path segments to use the cached measurements from \Cref
 
 Each of our splits composes to the same end-to-end network path, so we predict
 the same end-to-end throughput for each. Our experimental
-results in \Cref{fig:accuracy:e2e} show that the measured end-to-end
+results in \Cref{fig:splitting:accuracy:e2e} show that the measured end-to-end
 throughputs are also roughly uniform, especially without loss, indicating that
 our method of composing network path segments in emulation represents the same
 end-to-end network path.
@@ -1039,7 +988,7 @@ end-to-end network path.
 \label{sec:splitting:accuracy:split}
 
 The split throughput predictions accurately reflect trends in loss, delay, and
-bandwidth (\Cref{fig:accuracy:split}). For example, split throughput is
+bandwidth (\Cref{fig:splitting:accuracy:split}). For example, split throughput is
 generally higher when the high-bandwidth link is paired with high delay
 (the yellow-est cells). It is also lower when the lossy link is paired with
 high delay (columns 1 and 2) or low bandwidth (columns 3-5).
@@ -1059,7 +1008,7 @@ connection probes for and utilizes available link rate capacity.
 Another factor is the proximity of the bottleneck link to the sender. While
 our heuristic does not account for this, the real split throughputs for
 symmetric pairs of network paths (e.g., the left three and right three columns
-in \Cref{fig:accuracy:split}), show that we slightly overestimate
+in \Cref{fig:splitting:accuracy:split}), show that we slightly overestimate
 when the low-bandwidth bottleneck link is far from the sender.
 Based on our reasoning about queues, this would suggest that the far path
 segment, already the bottleneck, is even further under-saturated.
