@@ -1,13 +1,14 @@
 \chapter{Introduction}
 \label{sec:introduction}
 
-This thesis will refer to many concepts about the Internet, both old and new.
-It is important to understand why things in the Internet were designed the way
-they were, so that we have the proper context for why they no longer fit with
-how we use the Internet today. In the very beginning of the Internet in the
-1960s, ARPANET was a small research network of four stationary hosts that
-communicated over wired links. ARPANET introduced the concept of packet
-switching, by delivering large amounts of data as small, individual packets.
+This dissertation will refer to many concepts about the Internet, both old and
+new. It will be important to understand why certain aspects of the Internet were
+designed the way they were, so that we have the proper context for when they no
+longer fit with how we use the Internet today. In the very beginning of the
+Internet in the 1960s, ARPANET was a small research network of four stationary
+hosts that communicated over wired links. ARPANET introduced the concept of
+packet switching, by delivering large amounts of data as small, individual
+packets.
 
 In the Internet's canonical model of the 1970s, transport is end-to-end and
 implemented only in hosts. Traditionally, routers and other network components
@@ -103,9 +104,11 @@ traditional PEPs. Similarly, the endpoint sends quACKs to the proxy using the
 Packrat (\Cref{sec:packrat}) protocol to receive in-network retransmissions,
 also achieving a variety of performance benefits. Finally, I will take a step
 and analyze why connection-splitting is still relevant today even with recent
-developments such as BBR and QUIC (\Cref{sec:splitting}) and conclude
+developments such as the ``model-based'' BBR congestion control algorithm and
+the QUIC transport protocol (\Cref{sec:splitting}) and conclude
 (\Cref{sec:conclusion}).
-
+The work presented in this dissertation builds upon and extends several
+peer-reviewed papers published by the author~\cite{yuan2022sidecar,yuan2024sidekick,yuan2025internet}.
 
 % \section{QuACKs: Referring to encrypted packets without sequence numbers}
 % \label{sec:introduction:quacks}

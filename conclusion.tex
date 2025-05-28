@@ -1,8 +1,42 @@
 \chapter{Conclusion}
 \label{sec:conclusion}
 
-\section{Summary}
-\label{sec:conclusion:summary}
+This dissertation explored a new approach to resolving the tension between
+performance and ossification for secure transport protocols. This tension
+emerged over the last few decades starting with the growth of wireless networks
+and lossy, high-delay paths. TCP performance-enhancing proxies were deployed to
+ameliorate the poor performance of ``loss-based'' congestion control algorithms
+such as CUBIC in these settings, but PEPs have since become controversial for
+preventing existing transport protocols from evolving on the wire. This led to
+the deployment of ``secure'' transport protocols such as QUIC that encrypt
+their transport headers and forgo all proxy assistance.
+
+In the \textbf{Sidekick} approach to in-network assistance, proxies and
+endpoints send information on an \textit{adjacent} connection to the base
+connection \textit{about} the encrypted packets that they have received. This
+information is called the \textbf{quACK}, applying set reconciliation
+techniques to be able to efficiently refer to random identifiers even at
+packet-scale settings (\Cref{sec:quack}). When proxies and endpoints send
+quACKs using the Sidekick protocol (\Cref{sec:sidekick}) or Packrat protocol
+(\Cref{sec:packrat}), we find that secure transport protocols are able to
+achieve performance benefits similar to those achieved by TCP using traditional
+PEPs. These benefits include earlier retransmissions, path-aware congestion
+responses, reduced energy usage at the endpoint, and reduced network
+congestion---all without modifying the wire format nor the packets of the
+underlying connection.
+
+At times, it seems the world has already moved on from PEPs, designing new
+congestion control algorithms and transport protocols to supplant those of the
+1990s connection-splitting era. But this dissertation has shown that even the
+latest ``model-based'' BBR algorithm remains vulnerable to lossy networks---and
+that in some network conditions, at least in emulation, proxies still
+significantly improve the long-lived throughput of modern QUIC
+(\Cref{sec:splitting}). In-network assistance from proxies continues to offer
+valuable performance benefits, but will we have learned our lesson about
+ossification? The Sidekick approach is one such proposal for reconciling the
+two. I hope this work encourages efforts to better establish the scope of this
+problem in real-world deployments, and to design more practical, deployable
+methods that reimagine how endpoints and the network can securely collaborate.
 
 \section{Future work}
 \label{sec:conclusion:future}
