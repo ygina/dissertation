@@ -1,4 +1,4 @@
-\chapter{Packrat Protocol}
+\chapter{Packrat Proxies}
 \label{sec:packrat}
 
 This chapter describes and evaluates new techniques for
@@ -111,7 +111,7 @@ appropriate for a deployment where network functions are the ones interpreting
 acknowledgments over encrypted sequence numbers from many connections in
 parallel and triggering retransmissions as a result.
 
-We integrate the Packrat protocol with several applications built on encrypted
+We integrate the Packrat proxy with several applications built on encrypted
 transport protocols, and show that it can enable a variety of performance
 enhancements in settings with a lossy path segment near the data receiver,
 compared to end-to-end loss recovery schemes:
@@ -363,7 +363,7 @@ and the behavior of each party in both the Packrat and base
 connections. We assume each message is transmitted in an unreliable UDP
 datagram.
 
-\subsection{Packrat protocol messages}
+\subsection{Sidekick protocol messages with a Packrat proxy}
 \label{sec:packrat:design:messages}
 
 \input{packrat/figures_tex/payloads.tex}
