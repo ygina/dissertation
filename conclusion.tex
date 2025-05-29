@@ -75,76 +75,82 @@ other split schemes.
 \section{Discussion on real-world studies and deployment}
 \label{sec:conclusion:real-world}
 
-After the publication of our NSDI '24 paper~\cite{yuan2024sidekick}, we talked
-about this work with various members of industry and the Internet standards
-community at the IETF to see if there was any practical interest. In the end, I
-do not imagine the Sidekick protocol becoming widely deployed. Though
-widespread adoption of Sidekick was never really the goal in conducting this
-research, here I summarize some of my takeaways on some of the obstacles that
-prevent a proposal about the Internet from coming to life.
+After the publication of our NSDI '24 paper~\cite{yuan2024sidekick}, we
+presented this work to various stakeholders in industry (Google, satellite and
+cellular network operators) and the Internet standards community at the IETF to
+gauge whether there was any practical interest. Here, I summarize some of my
+main takeaways and my view on the obstacles that must be overcome for such a
+proposal to come to life.
+% In the end, I do not imagine the Sidekick protocol becoming widely deployed.
+% Though widespread adoption of Sidekick was never really the goal in conducting
+% this research, here I summarize some of my takeaways on some of the obstacles
+% that prevent a proposal about the Internet from coming to life.
 
-First, we noticed that some parties we thought would be interested were
-skeptical that this problem (performance is harmed for secure transport
-protocols) even existed. We based this work on the idea that proxies and
-link-layer approaches are deployed for a reason. Perhaps it is true that loss
-doesn't exist in cellular networks because of the retransmit rate, but from the
-Packrat exploration are there perhaps other tradeoffs in eliminating loss? BBR
-supposedly resolves the issues of loss-based congestion control, and we showed
-this might be true with BBRv1 but not BBRv3. Can start with real-world studies
-where PEPs are currently deployed (Class I).
+\subsubsection{Do these stakeholders believe a problem exists and needs to be
+ solved?}
 
-We believe part of the reason for this is that we suspect PEPs are most
-beneficial in less dominant network types. We heard the most enthusiasm about
-this problem space from satellite network operators, for whom
-connection-splitters and the proprietary protocol are critical, and they had to
-ban QUIC.   QUIC did not see an empirical degradation in performance when it
-was first released, but perhaps they weren't looking into the classes of
-networks that would be impacted more (satellites, wireless ad-hoc, rural and
-developing regions, other places where reliable connectivity is not a solved
-problem). Need collaboration with someone with more visibility into the network
-to more definitively understand where in-network assistance is still crucial.
-Research community should also look into networks where PEPs could potentially
-benefit from being deployed (Classes II and III).
+When we first approached industry with this problem about in-network assistance
+for secure transport protocols, we faced some skepticism about its premise.
+For example, studies from Google showed that QUIC empirically matched or
+exceeded TCP's performance in wide deployment, and others believed that BBR's
+minimization of loss as a congestion signal meant that connection-splitting
+was no longer relevant. This inspired us to perform the measurement study in
+\Cref{sec:splitting}, which showed that BBR's behavior has evolved to benefit
+more from splitting over time and that perhaps the empirical studies of QUIC
+are missing certain less-studied classes of network settings.
 
-Even if these parties believe this problem exists, are there personal incentives
-for them to participate in the solution? We can start by understanding the
-incentives of those who would deploy such a solution and see if they are
-aligned. Protocols ultimately want their users to experience good performance
-when using their applications. Network operators also want their users to
-experience good performance so they will use the network.
+Network operators provided mixed feedback despite widely deploying PEPs
+themselves. Cellular operators described link-layer retransmissions as
+rendering loss virtually nonexistent. On the other hand, satellite network
+operators were extremely enthusiastic. It is a valid concern that Sidekick
+only benefits network settings with random loss, though \Cref{sec:packrat}
+evaluates some of the tradeoffs with link-layer approaches. Real-world studies
+in collaboration with network operators are required to truly understand the
+scope of the problem in practice. It would be valuable to look at both networks
+where PEPs are currently deployed (Class I in \Cref{sec:splitting}), as well as
+satellite, wireless ad-hoc, and other networks where reliable connectivity is
+still an unsolved problem (Classes II and III).
 
-However, there are also risks. Unlike transparent proxies, endpoints and network
-operators need to collaborate to achieve performance benefits so one might not
-be incentivized to deploy something until the other does, even though they
-don't need to be deployed at once. The risks need to be as minimal as possible,
-and the need for in-line packet processing or the complexities of the coding
-theory in the quACK only increase the barrier to adoption. The status quo is
-thus much simpler to live with.
+There must also be personal incentives for transport protocol developers and
+network operators to deploy a solution, even if they believe the problem
+exists. Network operators want their users to experience good performance as a
+signal of the network quality they pay for. Protocol developers may only care
+about good performance that covers a majority of use cases, even if the tail
+end suffers.
 
-Another risk is that the empirical performance benefits of Sidekick in the real
-world are not well understood. The performance improvements in the real-world
-experiments were not as good and more variable than those experience in
-emulation, and part of this may be due to the dynamic environment in the real
-world and the need for the quACK to also adapt. There is work that needs to be
-done such as standardizing the protocol such that it can be spoken between
-endpoints and proxies not controlled by the same entity. We found some common
-ground with some working groups at the IETF, but the most related proposals
-which included in-band signaling typically already had very specific use cases
-that the parties pushing the proposal were incentivized to solve without
-unnecessarily widening the scope (security for MASUQE and video bitrate for the
-SCONE protocol). The Sidekick protocol is simply not ready for production
-deployment, and so there need to be more evaluation of its performance in
-real-world settings.
+\subsubsection{If so, do they believe Sidekick protocols are the right
+ solution?}
 
-The most practical way to do this would be from an organization that controls
-both the endpoint and the proxy. One such environment would be to run a proxy
-on an in-line device behind a wireless router in a building we control, and to
-control at least one client in the building such as by modifying a browser's
-transport protocol or some application like a videoconference call. Another
-environment could be any major software company that develops applications and
-at the same time runs their own CDNs for when requests don't hit the cache, or
-media streaming applications that host selective forwarding units and want an
-alternative form of in-network proxy.
+There are risks to deploying new solutions, especially when two independent
+parties need to collaborate. Unlike transparent PEPs, Sidekick protocols
+require both endpoints and proxies to deploy their half of the solution before
+they can observe performance benefits. When deployed unilaterally, the proxy
+pays a cost for in-line packet processing, while the endpoint has invested in
+integrating the complex coding theory of the quACK into their application. The
+status quo is simply easier to maintain.
+
+Another risk is that the performance of Sidekick protocols in the real world is
+not well understood. Although \Cref{sec:sidekick:real-world} showed some
+empirical promise, the improvements were still less pronounced and more
+variable than those in emulation. We hypothesized that these results could be
+explained by the greater variability in real networks, and that a dynamically
+configured quACK would improve performance. Such improvements can be made
+after an initial deployment.
+
+A final obstacle in practice is that there needs to be a protocol standard so
+that the endpoint and proxy can communicate with each other when they are
+controlled by different entities. We found some common ground with the MASQUE
+and SCONEPRO communities at the IETF for signaling in-network information over
+an adjacent connection, but ultimately these proposals already had specific
+scopes in mind, and the Sidekick proposal had the limitations described here.
+
+One workaround to standardization would be to evaluate Sidekick protocols from
+an organization that controls both entities. One such environment would be a
+home, office, or public Wi-Fi environment where we could run a proxy on an
+in-line device behind the wireless router in a building with clients that we
+control. Another environment would be with a business that controls both an
+application and some CDN/SFU infrastructure with in-network nodes that can act
+as proxies.
 
 \section{Future research directions}
 \label{sec:conclusion:future}
