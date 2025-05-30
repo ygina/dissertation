@@ -38,40 +38,6 @@ two. I hope this work encourages efforts to better establish the scope of this
 problem in real-world deployments, and to design more practical, deployable
 methods that reimagine how endpoints and the network can securely collaborate.
 
-\section{Immediate impact on congestion control research}
-\label{sec:conclusion:congestion}
-
-Independent of connection-splitting, the measurement study in
-\Cref{sec:splitting} has several implications for congestion control research
-even in end-to-end settings. First, we urge researchers to refer
-to congestion control schemes by algorithm/implementation/version, not just
-``BBR'' or even ``QUIC BBRv1''. The networking community once used ``TCP''
-synonymously with its congestion control until many more algorithms evolved.
-Times have changed again, and we showed BBR to exhibit significantly different
-behavior over major version changes and in the many implementations of QUIC.
-
-Second, we urge the community to create performance test suites for a congestion
-control implementation to be able to claim that it conforms to a particular
-standard. That is, an implementation should empirically achieve the intended
-behavior of the algorithm. The behavior can be described as a relative trend
-such as reacting progessively to random loss up to 10\%, or an absolute
-behavior such as achieving the maximum bandwidth in a lossless, single-flow
-setting. These test suites can include our heatmaps, for example. The goal of
-establishing an empirical standard is to help implementations achieve more
-similar behavior in the same settings for a fairer Internet, or even to hold
-intentionally different implementations accountable and explain the differences.
-
-Finally, the \textit{split throughput heuristic} can be incorporated as a
-research tool for studying congestion control in split settings. It is
-challenging for QUIC to emulate the behavior of split QUIC connections without
-having an explicit connection splitter to benchmark against. The heuristic
-helps us understand potential performance benefits based on end-to-end changes
-even in theoretical split settings. It gives us a systematic approach to
-understanding split behavior when the path is split into multiple segments each
-using a different end-to-end scheme. More work is also required to understand
-the fairness of split congestion control when co-existing with end-to-end or
-other split schemes.
-
 \section{Discussion on real-world studies and deployment}
 \label{sec:conclusion:real-world}
 
@@ -155,61 +121,116 @@ as proxies.
 \section{Future research directions}
 \label{sec:conclusion:future}
 
-A lot of focus on performance-enhancing proxies is how they can enhance the
-performance of the end-to-end applications, but what about the benefits these
-proxies have on the network itself? For example, in-network retransmissions
-reduce network congestion and can even be used at a multicast server to reduce
-the network load. Speaking of, it would be great to have a more stackable
-multicast quACK design to make multicast practical once and for all. But
-anyway, research can focus on making the Internet as a collective better for
-everyone.
+Building on the ideas developed in this dissertation, I now explore several
+open-ended directions for future research.
 
-Optimizing set reconciliation for packet-scale settings with small per-packet
-encoding and decoding overheads and small communication sizes. Algorithmically,
-is there some way to reduce the probability of hash collisions in the IBLT
-knowing the distribution of identifiers? Or maybe, a better hash function. Or,
-if we can definitely have a rateless IBLT, can we modify the Sidekick protocol
-to include some interaction so we know exactly how many symbols to send over
-even if the proxy is quACKing? How fast could specialized hardware encode and
-decode in-line in the network and there applications that require near
-instantaneous set reconciliation at even smaller granularity settings?
+\subsubsection{Performance engineering the quACK.}
 
-Utilize the quACK in packet-scale settings in the Internet other than emulating
-connection-splitting PEPs. We explore some such as the battery-saving proxy or
-the multicast in-network retransmissions, but are there more types of PEPs we
-can emulate? Use quACKs for network packet analysis for statistics or
-something, or other coding theory techniques for network sketches such as for
-fair queueing and L4S. Something I briefly worked on during this PhD was
-in-line packet/log processing for auditing in-network devices for network
-censorship. Anything where network packets are involved.
+In \Cref{sec:quack}, we detailed the performance engineering required to make
+set reconciliation practical at packet scales, including nanosecond per-packet
+overheads and communication sizes under 100 bytes. One limitation of the
+current IBLT construction is that decoding with high probability requires
+sending significantly more symbols than the number of missing elements,
+undermining the rateless property. Future work could explore new mapping
+functions or data structures that reduce the chance of collision when decoding
+small set sizes, or that consider a known distribution of packet identifiers,
+or even an interactive Sidekick protocol that uses more than one RTT for set
+reconciliation. Implementing quACK operations in specialized hardware is
+another open-ended idea for performance optimization and enabling in-line
+quACK processing in high-speed networks.
 
-Idea of sending information over an adjacent congestion. What else could be sent
-over an adjacent connection? Queue/buffer sizes, fair flow rates, ECN signals.
-Generally the idea that information from inside the network can still empower
-end-to-end decisions that benefit performance. Or other variations of the quACK
-in the Sidekick protocol such as sending a quACK of which packets have been
-sent so the other party has some idea of which packets to request that are
-missing. How about the ideal world where an omnipotent being knows every
-connection and every path segment. What is a fair allocation of resources and
-how do we achieve it by sharing in-network information with the endpoints?
+\subsubsection{Utilizing the quACK in other packet-scale settings.}
+
+Could quACKs prove more broadly useful in other networking scenarios? In \Cref
+{sec:sidekick} and \Cref{sec:packrat}, we applied quACKs to Sidekick protocols
+so that path-aware endpoints could emulate the behavior of PEPs. However,
+quACKs could also be used for network packet analysis, aggregating statistics
+in real-time with minimal space and computation. It may also be interesting to
+explore the relation of quACKs to data sketches and streaming algorithms, other
+research areas at the intersection of networking and coding theory. One
+research problem is how to enforce differentiated services (i.e., DiffServ)
+based solely on the observed flow behavior, rather than trusting packet
+markings. Bloom-filter-like data structures such as the one in the quACK are
+especially well-suited to settings like this that demand efficient per-packet
+operations with approximate statistics.
+
+\subsubsection{Sending in-network signals over an adjacent connection.}
+
+The general idea of sending in-network signals over an adjacent connection
+increases endpoint visibility into the network without altering the underlying
+connection. This generates various opportunities to improve performance from
+the perspective of the endpoint. A variation on the quACK over the packets that
+have been \textit{received} could be a quACK over the packets that have been
+\textit{sent}. This would allow the decoder to explicitly refer to missing
+packets by their identifiers, an example of another type of path-aware endpoint
+behavior enabled by quACKs.
+
+Now imagine an omnipotent scheduler aware of the properties of every path
+segment and the application behavior desired by every endpoint in the network.
+The signals need not just be quACKs, but could also be the queue policy and
+state, the current fair flow rate, ECN, etc. What is a \textit{fair} allocation
+of resources with this knowledge and how can we achieve this allocation
+(or something close) by signaling information about the network to the
+endpoints?
+
+\subsubsection{Multicast and using proxies to benefit the network.}
+
+How can proxies benefit not just applications but the network itself? In most of
+this work, we have described the advantages of Sidekick protocols in terms of
+application metrics such as throughput and latency. But in-network
+retransmissions and reducing the amount of time a connection needs to stay
+alive can also reduce network congestion, an understated advantage of PEPs.
+
+In an initial exploration of IP multicast in \Cref{sec:packrat}, we showed that
+a modified Packrat proxy can deliver in-network retransmissions to multicast
+clients with minimal per-client memory overhead. Multicast inherently reduces
+network congestion by reducing redundant data delivery over the network. For
+many practical reasons, including reliability, IP multicast is not used over
+the Internet today. It would be interesting to explore whether a network with
+some composition of Packrat proxies could enable a more practical yet reliable
+form of multicast.
+
+\section{Immediate impact on congestion control research}
+\label{sec:conclusion:congestion}
+
+Independent of connection-splitting, the measurement study in
+\Cref{sec:splitting} has several implications for congestion control research
+even in end-to-end settings. First, we urge researchers to refer
+to congestion control schemes by algorithm/implementation/version, not just
+``BBR'' or even ``QUIC BBRv1''. The networking community once used ``TCP''
+synonymously with its congestion control until many more algorithms evolved.
+Times have changed again, and we showed BBR to exhibit significantly different
+behavior over major version changes and in the many implementations of QUIC.
+
+Second, we urge the community to create performance test suites for a congestion
+control implementation to be able to claim that it conforms to a particular
+standard. That is, an implementation should empirically achieve the intended
+behavior of the algorithm. The behavior can be described as a relative trend
+such as reacting progessively to random loss up to 10\%, or an absolute
+behavior such as achieving the maximum bandwidth in a lossless, single-flow
+setting. These test suites can include our heatmaps, for example. The goal of
+establishing an empirical standard is to help implementations achieve more
+similar behavior in the same settings for a fairer Internet, or even to hold
+intentionally different implementations accountable and explain the differences.
+
+Finally, the \textit{split throughput heuristic} can be incorporated as a
+research tool for studying congestion control in split settings. It is
+challenging for QUIC to emulate the behavior of split QUIC connections without
+having an explicit connection splitter to benchmark against. The heuristic
+helps us understand potential performance benefits based on end-to-end changes
+even in theoretical split settings. It gives us a systematic approach to
+understanding split behavior when the path is split into multiple segments each
+using a different end-to-end scheme. More work is also required to understand
+the fairness of split congestion control when co-existing with end-to-end or
+other split schemes.
 
 \section{Final remarks}
 \label{sec:conclusion:remarks}
 
-The Sidekick approach to in-network assistance can yield performance benefits
-similar to those of traditional PEPs, except it works for secure transport
-protocols and leaves the protocol unmodified on the wire and free to evolve.
-I hope this work can inspire the real adoption of protocol-agnostic approaches
-where endpoints and proxies securely collaborate to achieve performance
-improvements without protocol ossification, and research in this regard.
-
-This dissertation presented a research problem and solution at the intersection
-of networking (transport protocols), theory (set reconciliation, path-aware
-congestion control), and systems (building everything!). Though we ultimately
-built and evaluated the solution as a practical system, we first had to model
-the network as the well-defined, theoretical quACK problem. The problem
-originated in the Internet, which is nothing more than a decentralized network
-of individuals incentivized to speak the same language to be able to
-communicate while looking out for their own needs. Such a chaotic system is the
-basis of human and device communication, and continues to be an integral and
-evolving area for research.
+Sidekick protocols are a novel approach to in-network assistance for secure
+transport protocols that yield performance benefits similar to those of
+traditional PEPs, but leave the underlying protocol free to evolve.
+The performance benefits of connection-splitting remain relevant today
+especially in lossy network environments. In summary, this work contributes
+new tools and directions to reimagine how endpoints and proxies can securely
+collaborate to achieve a better and more performant network.
