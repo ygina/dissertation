@@ -3,9 +3,9 @@
 Post-TCP transport protocols such as QUIC now include end-to-end encryption at
 the transport layer. This enhances security by making their packets opaque to
 connection-splitting proxies and immune to ossification, but can harm
-performance. In this dissertation, I will present the Sidekick approach to
-in-network assistance for secure transport protocols where proxies and
-endpoints send information on an adjacent connection about which encrypted
+performance. In this dissertation, I will present the Sidekick protocol
+approach to in-network assistance for secure transport protocols, where proxies
+and endpoints send information on an adjacent connection about which encrypted
 packets they have received. Sidekick protocols apply set reconciliation
 techniques in a novel setting to efficiently refer to encrypted packets in
 a \textbf{quACK}, without using plaintext sequence numbers. In some use cases
@@ -14,8 +14,8 @@ possible in-network retransmissions of encrypted packets. This approach allows
 secure transport protocols to achieve performance benefits similar to those of
 traditional PEPs, but leaves the protocol unchanged on the wire and free to
 evolve. Finally, I will present the split throughput heuristic for reasoning
-about connection-splitting in the context of two recent developments:
-the BBR congestion control algorithm and the QUIC transport protocol.
-I use this heuristic in an emulation measurement study and discuss how
+about connection-splitting in the context of two recent developments: the BBR
+congestion control algorithm and the QUIC transport protocol. I use this
+heuristic in an emulation measurement study and discuss how
 connection-splitting, despite the ossification it can induce, still offers
 valuable performance benefits today.
