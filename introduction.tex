@@ -1,42 +1,97 @@
 \chapter{Introduction}
 \label{sec:introduction}
 
-This dissertation will refer to many concepts about the Internet, both old and
-new. It will be important to understand why certain aspects of the Internet were
-designed the way they were, so that we have the proper context for when they no
-longer fit with how we use the Internet today. In the very beginning of the
-Internet in the 1960s, ARPANET was a small research network of four stationary
-hosts that communicated over wired links. ARPANET introduced the concept of
-packet switching, by delivering large amounts of data as small, individual
-packets.
+The topic of this dissertation is an old idea in the
+Internet---performance-enhancing proxies, or PEPs. But before I say more about
+PEPs and all their triumphs and heartbreaks over the last few decades, I think
+it's important to go through a brief history of the Internet. It will be
+valuable to understand why certain aspects of the Internet were designed the
+way they were so that we have the proper context for some of the challenges
+they bring us today. Let's go back to the very beginning.
 
-In the Internet's canonical model of the 1970s, transport is end-to-end and
-implemented only in hosts. Traditionally, routers and other network components
-forwarded IP datagrams without regard to their payloads or flow
-membership~\cite{saltzer1984endtoend, clark1988darpa}; only hosts thought about
-connections, reliable delivery, or flow-by-flow congestion control, typically
-using TCP. The first congestion control algorithms from the 1980s treated
-packet loss as congestion, backing off the sending rate in fear of congestion
-collapse.
+\subsubsection{Brief history of the Internet.}
 
-The beginnings of the mainstream, commercial Internet were marked by the
-World-Wide Web in the 1990s. From there, Wi-Fi expanded mobility for devices in
-the home and workspace, and cellular networks along with the popularity of
-Apple and Android phones expanded mobility everywhere else. Satellite networks,
-which long provided Internet access to more remote and rural regions, are being
-made more accessible today with low-Earth orbit satellites such as Starlink.
-The combination of wireless networking and the expansion of international and
-extraterrestrial links means our networks are more lossy and high-delay
-compared to the beginnings of ARPANET.
+In the 1960s, ARPANET was just a small research project funded by the U.S.
+Department of Defense. The network consisted of four stationary hosts,
+including our own Stanford Research Institute. ARPANET introduced the concept
+of packet switching where data is broken down into smaller packets and
+transmitted indepedently over wired links. Once the packets reach their
+destination, they are reassembled into a message understandable by the
+endpoint. Two computers communicated with each other for the first time in
+1969. The first data transmitted over the network were the letters ``lo'' for
+``login'', though the system crashed before the researchers could finish.
 
-The applications we use the Internet for also demand more from the network than
-ever before. The first Internet applications included e-mail and web browsing,
-and now we have expanded into high-bandwidth services such as streaming and
-content sharing, as well as interactive low-latency services such as video
-conferencing. The Internet today still uses TCP for transport, IP to route
-packets, and ``loss-based'' congestion control algorithms. Have these concepts
-survived the test of time for the networks and applications of the Internet
-today?
+TCP/IP was introduced in the 1970s to provide a cleaner separation of
+responsibilities between endpoints and in-network nodes as more and more
+research institutions joined ARPANET. In this canonical model of the Internet,
+routers and other network components forward IP datagrams without regard to
+their payloads, while TCP transport is end-to-end and implemented only in
+hosts. The principles of packet switching and TCP/IP are still present in how
+we use the network today.
+
+In the 1980s, the early Internet was growing rapidly and the sheer amount of
+traffic started to overwhelm the links. Network congestion caused packet loss,
+which subsequently caused retransmissions and even more congestion, which led
+to congestion collapse and a severe degradation in performance. In response,
+the first feedback control mechanisms for ``congestion control'' such as the
+Van Jacobson algorithms for TCP/IP were invented. Implemented at hosts, these
+``loss-based'' congestion control algorithms interpret packet loss as
+congestion to significantly decrease the congestion window.
+
+The 1990s marked the beginning of the mainstream Internet, with the first
+transatlantic links and the invention of the World Wide Web. The Internet was
+no longer just a research proposal, but a commercial project. Wi-Fi, which was
+standardized in 1999, enabled people to move freely inside their homes and
+workspaces, while the iPhone and Android phones of the late 2000s along with
+the growth of cellular networks increased our mobility elsewhere. Satellite
+networks have long provided Internet access to remote and rural regions, and
+are even more accessible today with low-Earth orbit satellites such as Starlink
+in 2019. Wireless networks and global connectivity really expanded the reach of
+the Internet, but it also means the network is more lossy and high-delay than
+ever before.
+
+Applications have also demanded more from the Internet over time, evolving from
+basic services such as e-mail and web browsing to a continuous pursuit for
+higher throughput and lower latency. High-bandwidth applications such as
+streaming and content sharing (e.g., Netflix, YouTube, Instagram) often
+conflict with the needs of of interactive, low-latency applications such as
+video conferencing and live streaming (e.g., Zoom, Twitch). For example, a
+service like Netflix might prefer large buffers in the network to optimize for
+throughput, while these same buffers introduce significant packet delays for
+users of Zoom. When transport is end-to-end, a lossy, high-delay network
+complicates how effectively hosts can coordinate and optimize performance for
+the specific needs of their applications.
+
+\subsubsection{How do our applications deal with lossy, high-delay networks?}
+
+How have the principles of TCP/IP and ``loss-based'' congestion control
+algorithms survived the test of time? The network still uses IP to route
+packets, and TCP and the loss-based CUBIC congestion control algorithm are
+still the networking defaults in the Linux kernel used by billions of devices
+today.
+
+In-network nodes use IP to route and forward
+packets, while TCP and the loss-based CUBIC congestion control algorithm still
+make up a significant portion of network traffic. Yet they don't quite exist
+in their original forms and.
+
+% PEPs are network middleboxes deployed to improve
+% the performance of TCP connections, especially over lossy and high-delay links.
+% Although these TCP connections were originally end-to-end, as transport
+% protocols were intended to be, PEPs interpose themselves in the network path
+% and split the connection into multiple segments, each tuned to the particular
+% properties of that segment. The 1990s were
+
+% Although these TCP connections were originally end-to-end, as transport
+% protocols were intended to be, PEPs interpose themselves in the path and split
+% the connection into segments, each tuned to a different portion of the network.
+% This break in end-to-end semantics allows PEPs to significantly improve
+% performance in difficult environments, but comes at the cost of transparency,
+% compatibility with encryption, and protocol evolution.
+
+The Internet today still uses TCP for transport, IP to route packets, and
+``loss-based'' congestion control algorithms. Have these concepts survived the
+test of time for the networks and applications of the Internet today?
 
 Let's look at it in the context of QUIC, a relatively new transport protocol
 invented at Google in 2012 and standardized in 2021. If you have used Chrome,
