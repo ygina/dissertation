@@ -9,7 +9,7 @@ valuable to understand why certain aspects of the Internet were designed the
 way they were so that we have the proper context for some of the challenges
 they bring us today. Let's go back to the very beginning.
 
-\subsubsection{Brief history of the Internet.}
+\section{Brief history of the Internet}
 
 In the 1960s, ARPANET was just a small research project funded by the U.S.
 Department of Defense. The network consisted of four stationary hosts,
@@ -62,25 +62,22 @@ users of Zoom. When transport is end-to-end, a lossy, high-delay network
 complicates how effectively hosts can coordinate and optimize performance for
 the specific needs of their applications.
 
-\subsubsection{How do our applications deal with lossy, high-delay networks?}
+\subsubsection{Triumph: TCP performance-enhancing proxies.}
 
-How have the principles of TCP/IP and ``loss-based'' congestion control
-algorithms survived the test of time? The network still uses IP to route
-packets, and TCP and the loss-based CUBIC congestion control algorithm are
-still the networking defaults in the Linux kernel used by billions of devices
-today.
+% How have the principles of TCP/IP and ``loss-based'' congestion control
+% algorithms survived the test of time? The network still uses IP to route
+% packets, and TCP and the loss-based CUBIC congestion control algorithm are
+% still the networking defaults in the Linux kernel used by billions of devices
+% today.
 
-In-network nodes use IP to route and forward
-packets, while TCP and the loss-based CUBIC congestion control algorithm still
-make up a significant portion of network traffic. Yet they don't quite exist
-in their original forms and.
+% The Internet today still uses TCP for transport, IP to route packets, and
+% ``loss-based'' congestion control algorithms. Have these concepts survived the
+% test of time for the networks and applications of the Internet today?
 
-% PEPs are network middleboxes deployed to improve
-% the performance of TCP connections, especially over lossy and high-delay links.
-% Although these TCP connections were originally end-to-end, as transport
-% protocols were intended to be, PEPs interpose themselves in the network path
-% and split the connection into multiple segments, each tuned to the particular
-% properties of that segment. The 1990s were
+% In-network nodes use IP to route and forward
+% packets, while TCP and the loss-based CUBIC congestion control algorithm still
+% make up a significant portion of network traffic. Yet they don't quite exist
+% in their original forms and.
 
 % Although these TCP connections were originally end-to-end, as transport
 % protocols were intended to be, PEPs interpose themselves in the path and split
@@ -89,44 +86,61 @@ in their original forms and.
 % performance in difficult environments, but comes at the cost of transparency,
 % compatibility with encryption, and protocol evolution.
 
-The Internet today still uses TCP for transport, IP to route packets, and
-``loss-based'' congestion control algorithms. Have these concepts survived the
-test of time for the networks and applications of the Internet today?
 
-Let's look at it in the context of QUIC, a relatively new transport protocol
-invented at Google in 2012 and standardized in 2021. If you have used Chrome,
-watched YouTube, or interacted with some other Google service, you have
-probably used QUIC. QUIC in some ways can be thought of as an alternative to
-TCP, offering ordering and reliability in the transport layer.
+% Let's look at it in the context of QUIC, a relatively new transport protocol
+% invented at Google in 2012 and standardized in 2021. If you have used Chrome,
+% watched YouTube, or interacted with some other Google service, you have
+% probably used QUIC. QUIC in some ways can be thought of as an alternative to
+% TCP, offering ordering and reliability in the transport layer.
 
-Now imagine you're on a moving train. Your laptop is connected to the router on
-the train via a lossy, low-latency Wi-Fi link, and the router is connected to
-the rest of the Internet via a more reliable, high-latency cellular path. You
-upload a large file using QUIC and find it to be incredibly slow. Packets being
-dropped on the wireless link require a full round-trip time to invoke a
-retransmission, and the ``loss-based'' congestion control algorithm on your
-laptop interprets the end-to-end signals as a lossy, high-latency path,
-reducing the sending rate dramatically.
+How do our resource-intensive applications deal with lossy, high-delay networks?
+Let's examine the following scenario: Imagine you are riding the local commuter
+rail. Your laptop is connected to the Wi-Fi on the train via a lossy,
+low-latency wireless link to the router. The train's router then connects you
+to the rest of the Internet via a more reliable, high-latency cellular path,
+pinging nearby base stations the train rides past. You upload a large file,
+perhaps a paper submission to a conference. It's right before the deadline
+and you find the network to be incredibly slow.
 
-However, thanks to the deployment of performance-enhancing proxies (PEPs) in the
-1990s, your file upload using TCP is actually very fast. These proxies exist in
-the middle of the network, at satellite ground stations, cellular base
-stations, or even the router on a moving train. The most common type of PEP is
-the connection-splitting TCP PEP. This PEP splits an end-to-end connection into
-two separate TCP connections. This allows the PEP to invoke retransmissions
-from closer to the data sender, as well as tailor the congestion control
-according to the properties of each path segment. TCP PEPs are still prevalent
-in the network today. It is estimated that 20-40\% of Internet paths containing
-a connection-splitting TCP PEP, even more in satellite and wireless networks.
+The router divides the network path into two very distinct path segments, but
+from the perspective of the hosts' transport protocols on either end, there is
+just \textit{one} lossy, high-delay network path. Because you need to upload
+the entire file, when the wireless link drops a packet, you want to retransmit
+the packet as soon as you find out about the loss. However, your laptop can
+only detect the loss once it has received a signal from the web server on the
+other end of the high-delay path, even though the loss occurred nearby.
+Additionally, the ``loss-based'' congestion control on your laptop interprets
+the signal as congestion, and decides to conservatively reduce the large
+congestion window on the high-delay path by a significant amount. This slows
+your connection down even more.
+
+The solution to this problem in the 1990s when wireless networks first started
+gaining popularity was performance-enhancing proxies. Now we can formally
+define PEPs: PEPs are network middleboxes deployed to improve the
+performance---most simply, throughput and latency---of the connections for
+which they are on the path. These middleboxes were deployed widely at base
+stations, satellite gateways, and even Wi-Fi routers. As of 2019, it was
+estimated that 20--40\% of Internet paths still contained a PEP. Most
+middleboxes provide in-network assistance to TCP, the dominant transport
+protocol, and commonly as connection-splitting TCP PEPs.
+
+Your file upload is much faster with a connection-splitting TCP PEP on the
+train's router. These PEPs silently interpose themselves in the network path
+without the knowledge of the endpoints. Since TCP headers are unencrypted, the
+PEP can intercept the packets of the initial handshake and transparently split
+an end-to-end connection into multiple, independent TCP connections on either
+side of the proxy. Once the connection is split, the proxy tunes congestion
+control and other parameters for each, potentially very different, path
+segment. Returning to the scenario on the train, your laptop needs only to wait
+for a signal from the nearby router to detect loss, as opposed to an end-to-end
+signal. The resulting congestion response is also mild since the nearby
+congestion window is already small. The result is earlier retransmissions and
+a significantly faster file upload.
+
+\subsubsection{Heartbreak: Protocol ossification and secure transport protocols.}
 
 These proxies cannot help QUIC because QUIC is what we call a ``secure''
-transport protocol. Since TCP headers are unencrypted, an in-network proxy can
-actively manipulate the transport layer, intercepting the initialization
-packets and splitting the connection without knowledge of the endpoints. In
-comparison, QUIC and many other post-TCP transport protocols now completely
-encrypt their transport headers on the wire, preventing the PEP from helping
-and harming the performance of the connection.
-
+transport protocol.
 If proxies help performance by manipulating the transport layer, then why do
 protocols choose to encrypt the transport layer? First, when TCP/IP was first
 invented, ARPANET was just a small network of trusted research institutions,
@@ -139,6 +153,8 @@ or should not have, and alter or block traffic based on these fields, fixing
 their functionality in place. Protocol ossification has prevented TCP from
 deploying many proposed extensions and changes to the protocol over the last
 few decades.
+
+\section{Overview}
 
 This thesis is about resolving the tension between performance and ossification
 in secure transport protocols. \textit{I will present the
