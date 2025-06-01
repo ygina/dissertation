@@ -196,30 +196,36 @@ exposure of non-essential information to network middleboxes using encryption.
 
 \section{Overview}
 
-This thesis is about resolving the tension between performance and ossification
-in secure transport protocols. \textit{I will present the
-Sidekick approach to in-network assistance and show that it can yield many of
-the same performance benefits of traditional PEPs, without protocol
-ossification.} In this approach, proxies and endpoints send information on an
-adjacent connection about which packets they have received. The information is
-called a quACK, and it applies set reconciliation techniques in a novel setting
-to efficiently refer to encrypted packets without plaintext sequence numbers.
-Transport protocols are unmodified on the wire, leaving them free to evolve.
+This dissertation is about resolving the tension between performance and
+ossification in PEPs for secure transport protocols. While existing work has
+previously proposed co-designing PEPs with transport protocols, I propose a new
+approach to in-network assistance that leaves the original transport protocol
+unmodified on the wire and free to evolve. In this approach, called \textbf
+{Sidekick protocols}, proxies and endpoints send information \textit{about} the
+packets of the underlying connection on an \textit{adjacent} connection and
+achieve performance benefits similar to those of traditional TCP PEPs. The
+information is called a \textbf{quACK}, which applies set reconciliation
+techniques to a novel setting to efficiently refer to encrypted packets without
+plaintext sequence numbers. Using a \textbf{Packrat proxy}, the adjacent
+connection can also generate in-network retransmissions for secure transport
+protocols.
 
-In the rest of this dissertation, I will start by presenting quACKs
-(\Cref{sec:quack}), a tool for efficiently referring to a set of randomly
-encrypted packets that a proxy or endpoint has received. Next, I will describe
-how proxies use the Sidekick (\Cref{sec:sidekick}) protocol to send quACKs over
-an adjacent connection so the endpoint can modify its behavior to emulate
-traditional PEPs. Similarly, the endpoint sends quACKs to the proxy using the
-Packrat (\Cref{sec:packrat}) protocol to receive in-network retransmissions,
-also achieving a variety of performance benefits. Finally, I will take a step
-and analyze why connection-splitting is still relevant today even with recent
-developments such as the ``model-based'' BBR congestion control algorithm and
-the QUIC transport protocol (\Cref{sec:splitting}) and conclude
-(\Cref{sec:conclusion}).
 The work presented in this dissertation builds upon and extends several
-peer-reviewed papers published by the author~\cite{yuan2022sidecar,yuan2024sidekick,yuan2025internet}.
+peer-reviewed papers from the author~\cite{yuan2022sidecar,yuan2024sidekick,yuan2025internet}.
+I will start \Cref{sec:quack} by presenting quACKs, a tool for efficiently
+referring to a set of randomly encrypted packets.
+\Cref{sec:sidekick} will describe how proxies use the Sidekick protocol to send
+quACKs over an adjacent connection, and how endpoints modify their behavior in
+response to quACKs to emulate the performance benefits of traditional
+PEPs.
+\Cref{sec:packrat} will similarly describe how endpoints send quACKs to Packrat
+proxies to receive in-network retransmissions, also achieving improved
+performance for a variety of secure transport protocols.
+Finally, \Cref{sec:splitting} will take a step and analyze why recent networking
+developments such as the ``model-based'' BBR congestion control algorithm and
+the QUIC transport protocol may cast doubts on the relevance of
+connection-splitting today, then offer a counterpoint.
+\Cref{sec:conclusion} will describe future research directions and conclude.
 
 % \section{QuACKs: Referring to encrypted packets without sequence numbers}
 % \label{sec:introduction:quacks}
