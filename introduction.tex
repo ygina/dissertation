@@ -122,37 +122,77 @@ which they are on the path. These middleboxes were deployed widely at base
 stations, satellite gateways, and even Wi-Fi routers. As of 2019, it was
 estimated that 20--40\% of Internet paths still contained a PEP. Most
 middleboxes provide in-network assistance to TCP, the dominant transport
-protocol, and commonly as connection-splitting TCP PEPs.
+protocol, and commonly as connection-splitting TCP PEPs. Other middleboxes
+might perform header compression, ACK filtering and decimation, or other
+caching and in-network retransmission functions to save bandwidth and improve
+performance.
 
-Your file upload is much faster with a connection-splitting TCP PEP on the
+Your file upload could be much faster with a connection-splitting TCP PEP on the
 train's router. These PEPs silently interpose themselves in the network path
-without the knowledge of the endpoints. Since TCP headers are unencrypted, the
-PEP can intercept the packets of the initial handshake and transparently split
+without the knowledge of the endpoints, splitting
 an end-to-end connection into multiple, independent TCP connections on either
 side of the proxy. Once the connection is split, the proxy tunes congestion
 control and other parameters for each, potentially very different, path
-segment. Returning to the scenario on the train, your laptop needs only to wait
-for a signal from the nearby router to detect loss, as opposed to an end-to-end
-signal. The resulting congestion response is also mild since the nearby
-congestion window is already small. The result is earlier retransmissions and
-a significantly faster file upload.
+segment. Returning to the scenario on the train, the TCP transport protocol on
+your laptop needs only to wait for a signal from the nearby router to detect
+loss, as opposed to an end-to-end signal. The resulting congestion response is
+also mild since the nearby congestion window is already small. The result is
+earlier retransmissions and a significantly faster file upload.
 
 \subsubsection{Heartbreak: Protocol ossification and secure transport protocols.}
 
-These proxies cannot help QUIC because QUIC is what we call a ``secure''
-transport protocol.
-If proxies help performance by manipulating the transport layer, then why do
-protocols choose to encrypt the transport layer? First, when TCP/IP was first
-invented, ARPANET was just a small network of trusted research institutions,
-where privacy and security were not design priorities. Transport protocols
-these days prefer to hide unessential information from proxies using
-encryption. Second, proxies have caused protocol ossification and prevented
-protocols like TCP from evolving over time. To provide in-network assistance,
-proxies have to make assumptions about what fields the transport layer should
-or should not have, and alter or block traffic based on these fields, fixing
-their functionality in place. Protocol ossification has prevented TCP from
-deploying many proposed extensions and changes to the protocol over the last
-few decades.
+However, even though there was a connection-splitting TCP PEP on the train, your
+laptop was not using TCP but a different reliable transport protocol called
+QUIC. QUIC cannot benefit from PEPs made for TCP, and its performance is the
+same as an entirely end-to-end connection---slow. The irony in this situation
+is that QUIC is a pretty new transport protocol announced in 2012, 38 years
+newer than TCP and long after lossy, high-delay networks became the norm. It
+was invented at Google, one of the world's largest software companies, and is
+even in wide deployment with 8.4\% of websites supporting QUIC including major
+traffic sources such as Cloudflare. Yet its performance is so much worse, and
+for reasons that were very intentional. How can this be explained?
+
+Middleboxes cannot help QUIC because QUIC is what we call a ``secure'' transport
+protocol. Even though transport was originally designed to be end-to-end, the
+TCP transport headers in the payload of an IP datagram are unencrypted. This
+reveals information such as the packet sequence number and acknowledgment
+number to curious middleboxes. PEPs intercept the packets of a TCP handshake
+and use this information to transparently split the connection on
+initialization. In comparison, QUIC is completely encrypted on the wire. PEPs
+are only able to forward these QUIC packets as opaque IP datagrams. Many recent
+transport protocols in addition to QUIC now intentionally encrypt their
+headers, rendering them unable to receive help from TCP PEPs and harming
+performance.
+
+If exposing transport headers to proxies can help performance, why are protocol
+designers so deliberate about encrypting them? The answer lies in the sacrifice
+that TCP made in hindsight to benefit from in-network assistance. To provide
+the kind of help that they do, proxies make assumptions about the wire format
+of the protocol and what each field is used for. They modify and block traffic
+based on these fields. When protocol designers later repurpose these fields to
+evolve the protocol or introduce new features, these assumptions break and the
+``help'' can actually harm. With PEPs being so widely deployed, backwards
+compatibility is challenging to maintain and protocols have no choice but to
+fix their functionality in place. This phenomenom is called protocol
+ossification, because the wire format of the transport protocol has become
+rigid and resistant to change over time.
+
+Protocol ossification has derailed the deployment of many otherwise promising
+extensions to TCP. Despite making it as far as the IETF, proposals like
+extended TCP options, Multipath TCP, ECN++, and tcpcrypt now lie in a graveyard
+of unrealized ideas. Even innocuously simple fields like the TCP sequence
+number are not immune to ossification. For example, QUIC uses two sequence
+number spaces, referring separately to packets and the bytes in the underlying
+stream. This is not possible with TCP. In one infamous debate, exposing just a
+single bit in QUIC for passive RTT measurement triggered widespread concern in
+the IETF about middlebox interference. Due to stories like this, I expect
+transport protocols to be secure by default in the future.
+
+An additional reason for encrypting the transport layer is privacy and security.
+In the early days of the Internet, ARPANET was just a small network of trusted
+research institutions. Privacy and security were not core design principles in
+the invention of TCP/IP. Transport protocols these days prefer to limit the
+exposure of non-essential information to network middleboxes using encryption.
 
 \section{Overview}
 
