@@ -1,7 +1,8 @@
 \chapter{QuACKs}
 \label{sec:quack}
 
-In a Sidekick connection, a proxy needs to be able to refer to and efficiently
+When speaking the Sidekick protocol, a proxy needs to be
+able to refer to and efficiently
 acknowledge a set of packets even when they are randomly encrypted. Since
 packets in a TCP connection are labeled with cleartext sequence numbers, it is
 straightforward to refer to a set of TCP packets using cumulative and selective
@@ -9,7 +10,8 @@ ACKs. But this problem is technically challenging for packets of secure
 transport protocols without access to cleartext sequence numbers or the
 ossification of other fields.
 
-We mathematically define the quACK problem in the context of network packets
+In this chapter,
+we mathematically define the quACK problem in the context of network packets
 sent over a lossy path segment, and discuss how to select \emph{identifiers} to
 refer to encrypted packets. We analyze strawman solutions to the quACK problem
 that use either too much space or computation. Then, we present two efficient
@@ -28,9 +30,8 @@ encrypted packets, tolerating up to 10 missing packets before the last
 ``selective ACK.'' On a recent x86-64 CPU, it takes 26~ns to encode a single
 packet in the power sum quACK, and 15.5~$\mu$s to decode which received packets
 the quACK represents. The IBLT quACK takes 42~ns to encode a single packet and
-1.3~$\mu$s to decode a quACK, using at least 58~bytes. These overheads compared
-well with several alternatives
-(\Cref{tab:quack:overview:practical}).
+1.3~$\mu$s to decode a quACK, using at least 58~bytes. These overheads compare
+well with several alternatives.
 
 \section{The QuACK Problem}
 \label{sec:quack:problem}
@@ -65,7 +66,7 @@ to remain pseudorandom, it is computationally more efficient because it
 does not require reading the entire payload.
 
 \subsubsection{Collisions.}
-The main considerations when selecting the number of bytes, $b$, in an
+The main consideration when selecting the number of bytes, $b$, in an
 identifier is the tolerance for collisions compared with the extra data
 needed to refer to these packets on the link. The larger $b$ is, the lower
 the collision probability but the greater the link overhead.
@@ -102,11 +103,11 @@ problem:
 
 \subsubsection{Strawman 1: Echo every identifier.}
 Strawman 1a, similar to \cite{li-tsvwg-loops-problem-opportunities-06,kramer2020lwpep},
-echoes the identifier of every received packet in a new UDP packet to the data
+echoes the identifier of every received packet in a new UDP packet to the
 sender.  Decoding is trivial given that the identifiers are unmodified.
 This strawman adds significant link overhead in terms of additional packets.
 Additionally, since the strawman is not cumulative, losing a quACK means the
-end host could falsely consider a packet to be lost, creating a congestion
+sender can falsely consider a packet to be lost, creating a congestion
 event or spurious retransmission.
 
 Strawman 1b echoes a sliding window of identifiers over UDP such that there is
@@ -117,10 +118,10 @@ Another variant batches identifiers to reduce the number of packets, but this
 solution is even less resilient to loss.
 
 We also consider a Strawman 1c that echoes every identifier over TCP with
-\texttt{TCP\_NODELAY} to send every identifier in its own packet.
+\texttt{TCP\_NODELAY} to send every identifier in its own TCP packet.
 This ensures there are no false positives when detecting lost packets,
 but adds even more link overhead in terms of TCP headers and additional ACKs
-from the data sender (every other packet by default in the Linux kernel).
+from the sender (every other packet by default in the Linux kernel).
 
 \subsubsection{Strawman 2: Cumulative hash of all identifiers.}
 Strawman 2 sends a SHA-256 hash of a sorted concatenation of all the received
@@ -167,8 +168,8 @@ cost in decoding, but found the problem to be intractable for larger parameters.
 The power sum solution has mainly been restricted to more theoretical
 literature.
 
-The second class of solutions encodes the elements in an Invertible Bloom Lookup
-Table (IBLT), and is more computationally scalable than the first class. The
+The second class of solutions encodes the elements in an invertible Bloom lookup
+table (IBLT), and is more computationally scalable than the first class. The
 IBLT is a data structure based on the Bloom
 filter~\cite{goodrich2011invertible}, and probabilistically decodes the set
 difference with a multiplicative factor on the comunication cost. This
@@ -261,7 +262,8 @@ the mapping algorithm.
 \section{Implementation}
 \label{sec:quack:implementation}
 
-The implementation of the quACK must be practical for packet-scale settings. The
+The implementation of the quACK must be practical for packet-scale settings
+in terms of communication an computation costs. The
 communication must fit in a single network packet, ideally even less to be
 considered a control packet for congestion control purposes. For example, a TCP
 ACK is only 20 bytes on the wire, excluding Ethernet and IP headers.
@@ -272,9 +274,9 @@ We define a common API for quACK implementations, shown in
 \Cref{lst:quack:api}. Our optimized implementations of the power sum and
 IBLT quACK constructions adhere to this interface and are available as a
 software library on GitHub~\cite{quack-github}.
-The computation costs are practical for decoding set differences at
-millisecond-RTT timescales and encoding packets when they arrive every few
-nanoseconds (\Cref{tab:quack:overview:practical}).
+Both constructions can practically decode set differences at
+millisecond-RTT timescales and encode packets with nanosecond interarrival
+times (\Cref{tab:quack:overview:practical}).
 
 \subsection{Wire format}
 
@@ -329,8 +331,9 @@ decoding elements as described in \Cref{sec:quack:constructions}
 \texttt{encode()} and \texttt{remove()} functions add and remove a single
 element, respectively, either by updating all power sums or by updating the XOR
 and counts in the mapped IBLT cells. The \texttt{sub()} function calculates the
-set difference between two quACKs, and the \texttt{decode()} function returns
-the decoded elements in that set difference. The values returned by the
+quACK that represents the set difference between two quACKs by subtracting
+corresponding symbols, and the \texttt{decode()} function returns the decoded
+elements in that set difference. The values returned by the
 \texttt{count()} and \texttt{last\_element()} functions are incrementally
 updated as elements are added and removed.
 
