@@ -1371,70 +1371,6 @@ month=feb,
 howpublished={\url{https://www.bittorrent.com/btt/btt-docs/BitTorrent\_(BTT)\_White\_Paper\_v0.8.7\_Feb\_2019.pdf}}
 }
 
-@misc{border2020quicsat-presentation,
-author={Border, John},
-year={2020},
-title={{Google {QUIC} over Satellite Links}},
-howpublished =  {Presentation, IETF PANRG interim},
-month=jun,
-url={https://datatracker.ietf.org/meeting/interim-2020-panrg-01/materials/slides-interim-2020-panrg-01-sessa-google-quic-over-satellite-testing-update}
-}
-
-@misc{cardwell2016bbr-ietf97,
-author={Cardwell, Neal and Cheng, Yuchung},
-year={2016},
-title={{BBR Congestion Control}},
-howpublished = {Presentation, IETF 97 Seoul, Internet Congestion Control Research Group (ICCRG). \url{https://www.ietf.org/proceedings/97/slides/slides-97-iccrg-bbr-congestion-control-01.pdf}},
-month=nov,
-url={https://www.ietf.org/proceedings/97/slides/slides-97-iccrg-bbr-congestion-control-01.pdf}
-}
-
-@misc{cardwell2018bbr-ietf101,
-author={Cardwell, Neal},
-year={2018},
-title={{{BBR Congestion Control Work at Google}}},
-note = {Presentation, IETF 101 London, Internet Congestion Control Research Group (ICCRG). \url{https://datatracker.ietf.org/meeting/101/materials/slides-101-iccrg-an-update-on-bbr-work-at-google-00}},
-month=mar,
-url={https://datatracker.ietf.org/meeting/101/materials/slides-101-iccrg-an-update-on-bbr-work-at-google-00}
-}
-
-@misc{cardwell2024bbr-ietf-draft,
-author={Cardwell, Neal and Swett, Ian and Beshay, Joseph},
-year={2024},
-title={{BBR Congestion Control}},
-howpublished = {IETF Draft. \url{https://datatracker.ietf.org/doc/draft-cardwell-ccwg-bbr/}},
-month=sep,
-url={https://datatracker.ietf.org/doc/draft-cardwell-ccwg-bbr/}
-}
-
-@misc{cardwell2024bbrv3-ietf119,
-author={Cardwell, Neal},
-year={2024},
-title={{{BBRv3}: Algorithm Overview and {Google's} Public {Internet} Deployment}},
-howpublished = {Presentation, IETF 119 Brisbane, Congestion Control Working Group (CCWG). \url{https://datatracker.ietf.org/meeting/119/materials/slides-119-ccwg-bbrv3-overview-and-google-deployment-00}},
-month=mar,
-url={https://datatracker.ietf.org/meeting/119/materials/slides-119-ccwg-bbrv3-overview-and-google-deployment-00}
-}
-
-@misc{cardwell2024bbrv3-ietf119-qna,
-author={IETF - Internet Engineering Task Force},
-title={{IETF 119: Congestion Control Working Group 2024-03-21 03:00}},
-year={2024},
-month=mar,
-howpublished={\url{https://www.youtube.com/watch?v=ZVqQiA7h-W8}},
-publisher={YouTube},
-note={Q\&A: 1:37:30}
-}
-
-@misc{cardwell2024bbrv3-ietf120,
-author={Cardwell, Neal},
-year={2024},
-title={{{BBRv3}: {Internet} Draft Update}},
-howpublished = {Presentation, IETF 120 Vancouver, Congestion Control Working Group (CCWG)},
-month=jul,
-url={https://datatracker.ietf.org/meeting/120/materials/slides-120-ccwg-bbrv3-ccwg-internet-draft-update-00}
-}
-
 @misc{dpdk,
 key={DPDK},
 year={2023},
@@ -1871,12 +1807,23 @@ url={https://www.rfc-editor.org/info/rfc9369},
 
 % Internet Drafts
 
+@techreport{cardwell2024bbr-ietf-draft,
+number =    {draft-cardwell-ccwg-bbr-00},
+type =      {Internet Draft},
+institution =   {Internet Engineering Task Force (IETF)},
+publisher = {Internet Engineering Task Force (IETF)},
+url =       {https://datatracker.ietf.org/doc/draft-cardwell-ccwg-bbr/},
+author =    {Neal Cardwell and Ian Swett and Joseph Beshay},
+title =     {{BBR Congestion Control}},
+year =      2024,
+month =     sep,
+}
+
 @techreport{brw-scone-analysis-00,
 number =    {draft-brw-scone-analysis-00},
 type =      {Internet Draft},
 institution =   {Internet Engineering Task Force (IETF)},
 publisher = {Internet Engineering Task Force (IETF)},
-note =      {Work in Progress},
 url =       {https://datatracker.ietf.org/doc/draft-brw-scone-analysis/00/},
 author =    {Mohamed Boucadair and Dan Wing and Tirumaleswar Reddy.K and Sridharan Rajagopalan and Luis M. Contreras},
 title =     {{SCONE Solution Analysis}},
@@ -1892,7 +1839,6 @@ number =    {draft-flinck-mobile-throughput-guidance-04},
 type =      {Internet Draft},
 institution =   {Internet Engineering Task Force (IETF)},
 publisher = {Internet Engineering Task Force (IETF)},
-note =      {Work in Progress},
 url =       {https://datatracker.ietf.org/doc/draft-flinck-mobile-throughput-guidance/04/},
 author =    {Ankur Jain and Andreas Terzis and Hannu Flinck and Nurit Sprecher and Swaminathan Arunachalam and Kevin Smith and Vijay Devarapalli and Roni Bar Yanai},
 title =     {{Mobile Throughput Guidance Inband Signaling Protocol}},
@@ -1908,7 +1854,6 @@ number =    {draft-ietf-quic-ack-frequency-07},
 type =      {Internet Draft},
 institution =   {Internet Engineering Task Force (IETF)},
 publisher = {Internet Engineering Task Force (IETF)},
-note =      {Work in Progress},
 url =       {https://datatracker.ietf.org/doc/draft-ietf-quic-ack-frequency/07/},
 author =    {Jana Iyengar and Ian Swett and Mirja Kühlewind},
 title =     {{QUIC Acknowledgement Frequency}},
@@ -1923,7 +1868,6 @@ number =    {draft-ietf-tsvwg-udp-options-28},
 type =      {Internet Draft},
 institution =   {Internet Engineering Task Force (IETF)},
 publisher = {Internet Engineering Task Force (IETF)},
-note =      {Work in Progress},
 url =       {https://datatracker.ietf.org/doc/draft-ietf-tsvwg-udp-options/28/},
 author =    {Dr. Joseph D. Touch},
 title =     {{Transport Options for UDP}},
@@ -1938,7 +1882,6 @@ number =    {draft-kwbdgrr-tsvwg-net-collab-rqmts-04},
 type =      {Internet Draft},
 institution =   {Internet Engineering Task Force (IETF)},
 publisher = {Internet Engineering Task Force (IETF)},
-note =      {Work in Progress},
 url =       {https://datatracker.ietf.org/doc/draft-kwbdgrr-tsvwg-net-collab-rqmts/04/},
 author =    {John Kaippallimalil and Dan Wing and Sri Gundavelli and Sridharan Rajagopalan and Spencer Dawkins and Mohamed Boucadair},
 title =     {{Requirements for Host-to-Network Collaboration Signaling}},
@@ -1954,7 +1897,6 @@ number =    {draft-li-tsvwg-loops-problem-opportunities-06},
 type =      {Internet Draft},
 institution =   {Internet Engineering Task Force (IETF)},
 publisher = {Internet Engineering Task Force (IETF)},
-note =      {Work in Progress},
 url =       {https://datatracker.ietf.org/doc/draft-li-tsvwg-loops-problem-opportunities/06/},
 author =    {Yizhou Li and Xingwang Zhou and Mohamed Boucadair and Jianglong Wang and Fengwei Qin},
 title =     {{LOOPS (Localized Optimizations on Path Segments) Problem Statement and Opportunities for Network-Assisted Performance Enhancement}},
@@ -1969,7 +1911,6 @@ number =    {draft-schinazi-masque-proxy-05},
 type =      {Internet Draft},
 institution =   {Internet Engineering Task Force (IETF)},
 publisher = {Internet Engineering Task Force (IETF)},
-note =      {Work in Progress},
 url =       {https://datatracker.ietf.org/doc/draft-schinazi-masque-proxy/05/},
 author =    {David Schinazi},
 title =     {{The MASQUE Proxy}},
@@ -1978,4 +1919,61 @@ year =      2025,
 month =     feb,
 day =       18,
 abstract =  {MASQUE (Multiplexed Application Substrate over QUIC Encryption) is a set of protocols and extensions to HTTP that allow proxying all kinds of Internet traffic over HTTP. This document defines the concept of a "MASQUE Proxy", an Internet-accessible node that can relay client traffic in order to provide privacy guarantees.},
+}
+
+% IETF presentations
+
+@misc{border2020quicsat-presentation,
+author={Border, John},
+year={2020},
+title={{Google QUIC over Satellite Links}},
+howpublished =  {Presentation, IETF PANRG interim. \url{https://datatracker.ietf.org/meeting/interim-2020-panrg-01/materials/slides-interim-2020-panrg-01-sessa-google-quic-over-satellite-testing-update}},
+month=jun,
+url={https://datatracker.ietf.org/meeting/interim-2020-panrg-01/materials/slides-interim-2020-panrg-01-sessa-google-quic-over-satellite-testing-update}
+}
+
+@misc{cardwell2016bbr-ietf97,
+author={Cardwell, Neal and Cheng, Yuchung},
+year={2016},
+title={{BBR Congestion Control}},
+howpublished = {Presentation, IETF 97 Seoul, Internet Congestion Control Research Group (ICCRG). \url{https://www.ietf.org/proceedings/97/slides/slides-97-iccrg-bbr-congestion-control-01.pdf}},
+month=nov,
+url={https://www.ietf.org/proceedings/97/slides/slides-97-iccrg-bbr-congestion-control-01.pdf}
+}
+
+@misc{cardwell2018bbr-ietf101,
+author={Cardwell, Neal},
+year={2018},
+title={{{BBR Congestion Control Work at Google}}},
+note = {Presentation, IETF 101 London, Internet Congestion Control Research Group (ICCRG). \url{https://datatracker.ietf.org/meeting/101/materials/slides-101-iccrg-an-update-on-bbr-work-at-google-00}},
+month=mar,
+url={https://datatracker.ietf.org/meeting/101/materials/slides-101-iccrg-an-update-on-bbr-work-at-google-00}
+}
+
+@misc{cardwell2024bbrv3-ietf119,
+author={Cardwell, Neal},
+year={2024},
+title={{BBRv3: Algorithm Overview and Google's Public Internet Deployment}},
+howpublished = {Presentation, IETF 119 Brisbane, Congestion Control Working Group (CCWG). \url{https://datatracker.ietf.org/meeting/119/materials/slides-119-ccwg-bbrv3-overview-and-google-deployment-00}},
+month=mar,
+url={https://datatracker.ietf.org/meeting/119/materials/slides-119-ccwg-bbrv3-overview-and-google-deployment-00}
+}
+
+@misc{cardwell2024bbrv3-ietf120,
+author={Cardwell, Neal},
+year={2024},
+title={{BBRv3: Internet Draft Update}},
+howpublished = {Presentation, IETF 120 Vancouver, Congestion Control Working Group (CCWG). \url{https://datatracker.ietf.org/meeting/120/materials/slides-120-ccwg-bbrv3-ccwg-internet-draft-update-00}},
+month=jul,
+url={https://datatracker.ietf.org/meeting/120/materials/slides-120-ccwg-bbrv3-ccwg-internet-draft-update-00}
+}
+
+@misc{cardwell2024bbrv3-ietf119-qna,
+author="Internet Engineering Task Force (IETF)",
+title={{IETF 119: Congestion Control Working Group 2024-03-21 03:00}},
+year={2024},
+month=mar,
+howpublished={\url{https://www.youtube.com/watch?v=ZVqQiA7h-W8}},
+publisher={YouTube},
+note={Q\&A: 1:37:30}
 }
