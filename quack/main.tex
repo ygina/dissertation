@@ -1,17 +1,21 @@
 \chapter{QuACKs}
 \label{sec:quack}
 
-When speaking the Sidekick protocol, a proxy needs to be
-able to refer to and efficiently
-acknowledge a set of packets even when they are randomly encrypted. Since
-packets in a TCP connection are labeled with cleartext sequence numbers, it is
-straightforward to refer to a set of TCP packets using cumulative and selective
-ACKs. But this problem is technically challenging for packets of secure
-transport protocols without access to cleartext sequence numbers or the
-ossification of other fields.
+When acting as a PEP for a secure transport protocol, a proxy needs to be
+able to refer to and efficiently acknowledge a set of packets \textit{even when
+they are randomly encrypted}. Recall that it is straightforward for a proxy to
+refer to TCP packets---Since packets in a TCP connection are labeled with
+cleartext sequence numbers, a proxy can easily refer to ranges of packets using
+cumulative and selective ACKs. But this problem is technically challenging for
+packets of secure transport protocols where the headers are randomly encrypted.
+The proxy can't exactly say a certain range of packets has been received, or
+even if any packets are missing. The protocol could perhaps reveal a sequence
+number to the proxy on the wire, but then that field risks ossification in the
+future. This technical problem is the crux to enabling the transport behavior
+of the Sidekick protocol.
 
-In this chapter,
-we mathematically define the quACK problem in the context of network packets
+In this chapter, we mathematically define the \textbf{quACK problem} in the
+context of network packets
 sent over a lossy path segment, and discuss how to select \emph{identifiers} to
 refer to encrypted packets. We analyze strawman solutions to the quACK problem
 that use either too much space or computation. Then, we present two efficient
@@ -66,10 +70,13 @@ to remain pseudorandom, it is computationally more efficient because it
 does not require reading the entire payload.
 
 \subsubsection{Collisions.}
-The main consideration when selecting the number of bytes, $b$, in an
-identifier is the tolerance for collisions compared with the extra data
-needed to refer to these packets on the link. The larger $b$ is, the lower
-the collision probability but the greater the link overhead.
+
+The main consideration when selecting the number of bytes, $b$, in an identifier
+is the tolerance for collisions compared with the extra data needed to refer to
+these packets on the link. Higher bit widths also correspond to higher
+computation costs (\Cref{sec:quack:psum-microbenchmarks:bit-widths}).
+The larger $b$ is, the lower the collision probability but the greater the link
+overhead.
 
 Define the collision probability to be the probability that a randomly-chosen
 $b$-byte identifier in a list of $n$ packets maps to more than one packet in
@@ -150,10 +157,7 @@ of solutions to this set reconciliation problem with different tradeoffs
 in communication and computation cost.
 We provide background in the literature on the set reconciliation problem,
 then describe the efficient power sum and invertible Bloom lookup table (IBLT)
-constructions of the quACK based on these two classes of solutions
-(\Cref{tab:quack:constructions}).
-
-\input{quack/tables/constructions.tex}
+constructions of the quACK based on these two classes of solutions.
 
 \subsection{Background: Set reconciliation}
 \label{sec:quack:constructions:background}
@@ -259,16 +263,31 @@ negative with subset reconciliation.) Decoding is successful if all counts
 and XORs are 0 at the end, and can fail probabilistically due to collisions in
 the mapping algorithm.
 
+\subsection{Summary}
+
+\input{quack/tables/constructions.tex}
+
+\input{quack/tables/theoretical.tex}
+
+\Cref{tab:quack:constructions,tab:quack:theoretical} summarize the
+different strawman approaches and set-reconciliation-based constructions of
+the quACK, and the algorithmic complexities of their costs. \gina{Fill in this
+summary.} Next we will explore efficient implementations of the
+set-reconciliation designs and their computation and communication costs
+compared to the strawmen in practice.
+
 \section{Implementation}
 \label{sec:quack:implementation}
 
 The implementation of the quACK must be practical for packet-scale settings
-in terms of communication an computation costs. The
+in terms of communication and computation costs. The
 communication must fit in a single network packet, ideally even less to be
 considered a control packet for congestion control purposes. For example, a TCP
 ACK is only 20 bytes on the wire, excluding Ethernet and IP headers.
 The implementation should also provide a convenient interface to
 interchangeably use different constructions of the quACK.
+
+\input{quack/tables/practical.tex}
 
 We define a common API for quACK implementations, shown in
 \Cref{lst:quack:api}. Our optimized implementations of the power sum and
@@ -276,7 +295,7 @@ IBLT quACK constructions adhere to this interface and are available as a
 software library on GitHub~\cite{quack-github}.
 Both constructions can practically decode set differences at
 millisecond-RTT timescales and encode packets with nanosecond interarrival
-times (\Cref{tab:quack:overview:practical}).
+times, summarized in \Cref{tab:quack:practical}.
 
 \subsection{Wire format}
 
@@ -338,12 +357,12 @@ elements in that set difference. The values returned by the
 updated as elements are added and removed.
 
 We explored many optimizations to improve the performance of each quACK.
-In the power sum quACK, this includes optimized modular arithmetic operations
+In the power sum quACK, this included optimizing modular arithmetic operations
 for various bit widths to explore the tradeoff between identifier collisions
 and computation cost, as well as various methods for solving a system of
 symmetric polynomial equations. In the IBLT quACK, the pseudorandom mapping
-algorithm needs to be fast so that the computational complexity outweighs
-constant factor overheads even when $t$ is small.
+algorithm needed to be fast so that the computational complexity outweighed
+the constant factor overheads even when $t$ was small.
 In \Cref{sec:quack:psum-microbenchmarks,sec:quack:iblt-microbenchmarks},
 we run microbenchmarks to demonstrate the practicality of our implementation
 for in-line packet processing at packet-scale settings, and also evaluate the
@@ -354,15 +373,19 @@ impact of our design decisions on the computation cost.
 
 \input{quack/figures_tex/psum.tex}
 
-In this section, we benchmark the power sum quACK construction and evaluate the
-computation cost for different parameters in packet-scale settings.
-We explore different bit widths for the identifier and settle on
-using 32-bit packet identifiers.
-Our microbenchmarks used an m4.xlarge AWS instance with a 4-CPU Intel Xeon E5
-processor @ 2.30 GHz and 16 GB memory.
+First, we evaluate the computation overheads of the space-optimal and
+deterministic power sum quACK. We explore different bit widths for the
+identifier and settle on using 32-bit packet identifiers as the best tradeoff
+between collision probability, communication size, and computation cost. We
+analyze optimizations such as the decoding method for the power sum quACK and
+show that our implementation can achieve practical packet encoding and quACK
+decoding times in packet-scale settings. Our microbenchmarks used an m4.xlarge
+AWS instance with a 4-CPU Intel Xeon E5 processor @ 2.30 GHz and 16 GB memory.
 
 \subsection{Identifier bit widths}
 \label{sec:quack:psum-microbenchmarks:bit-widths}
+
+\input{quack/tables/optimized-quack.tex}
 
 The more bits we use in an identifier, the less likely that there will be a
 collision, but different bit widths have different implications for the
@@ -377,7 +400,9 @@ at different bit widths, demonstrating that computation cost is generally higher
 for higher bit widths, though not significantly. For 16-bit identifiers only, we
 precomputed power tables that fit in the L3 cache. For 64-bit identifiers, we
 implemented Montgomery modular multiplication~\cite{montgomery1985modular}
-to avoid an expensive hardware division for 128-bit integers. In the remainder
+to avoid an expensive hardware division for 128-bit integers.
+\Cref{tab:quack:optimized-quack} shows the results of our ablation experiments
+for optimizations at different bit widths. In the remainder
 of this dissertation, we select $b=4$, or 32-bit identifiers, as the preferred
 tradeoff between collision probability, the size of the quACK, and computation
 cost.
@@ -474,11 +499,9 @@ tolerance for errors with more scalable encoding overheads.
 \section{Summary}
 \label{sec:quack:summary}
 
-\input{quack/tables/overview.tex}
-
 The power sum and IBLT constructions of the quACK can efficiently refer to and
 acknowledge a set of randomly encrypted packets
-(\Cref{tab:quack:overview:practical}). These constructions are efficient to
+(\Cref{tab:quack:practical}). These constructions are efficient to
 decode, add reasonable link overhead, and are cumulative representations of the
 packets seen by the receiver. Compared to Strawman 2, the quACKs can be decoded
 with simple computational primitives such as XORs and modular arithmetic. Their
@@ -490,14 +513,9 @@ received packet as dropped, in the case a quACK is lost in transmission.
 
 Compared to each other, the IBLT quACK has more scalable computational costs
 than the power sum quACK but greater constant factor overheads
-(\Cref{tab:quack:overview:theoretical}). We find the IBLT quACK to be more
+(\Cref{tab:quack:theoretical}). We find the IBLT quACK to be more
 useful when a large number of symbols is required, such as in settings with
 high, bursty loss. However, the power sum quACK is still more efficient when
 loss is small or infrequent. In addition, since the power sum quACK is
 deterministically correct, it may be simpler to reason about when the threshold
 is predictable. Thus both constructions have different tradeoffs to consider.
-
-\section{Appendix: Optimizing the power sum quACK at various bit widths}
-\label{sec:quack:appendix}
-
-\input{quack/tables/optimized-quack.tex}

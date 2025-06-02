@@ -468,7 +468,7 @@ protocol at the proxy must be extremely small. The Packrat proxy already encodes
 every packet in the base connection and, unlike the Sidekick proxy, also decodes
 every acknowledgment. Using the power sum quACK, decoding a quACK can be
 $600\!\times$ more expensive than encoding a packet
-(\Cref{tab:quack:overview:practical}). In this chapter, we leverage the IBLT
+(\Cref{tab:quack:practical}). In this chapter, we leverage the IBLT
 quACK because it is faster to decode (\Cref{sec:quack:constructions:iblt}).
 
 Another way to reduce the impact of decoding at the proxy is simply to send
