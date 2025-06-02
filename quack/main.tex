@@ -398,7 +398,7 @@ sum polynomial equations. This boils down to applying Newton's identities (a
 linear algorithm) and finding the roots of a polynomial equation in a modular
 field~\cite{eppstein2011straggler}.
 Factoring a polynomial is asymptotically fast in theory, but the implementation
-is branch-heavy and complicated~\cite{batut2000user}.
+is branch-heavy and complicated~\cite{parigp2018}.
 We find that in practice, it is faster to plug in and determine which of the
 $n$ candidate roots evaluate to zero when there are $n < 40,000$ roots.
 We use this method to decode the power sum quACK instead of factorization.
