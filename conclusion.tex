@@ -58,9 +58,10 @@ proposal to come to life.
 When we first approached industry with this problem about in-network assistance
 for secure transport protocols, we faced some skepticism about its premise.
 For example, studies from Google showed that QUIC empirically matched or
-exceeded TCP's performance in wide deployment, and others believed that BBR's
-minimization of loss as a congestion signal meant that connection-splitting
-was no longer relevant. This inspired us to perform the measurement study in
+exceeded TCP's performance in wide deployment~\cite{langley2017quic}, and others
+believed that BBR's minimization of loss as a congestion signal meant that
+connection-splitting was no longer relevant~\cite{frode}. This inspired us to
+perform the measurement study in
 \Cref{sec:splitting}, which showed that BBR's behavior has evolved to benefit
 more from splitting over time and that perhaps the empirical studies of QUIC
 are missing certain less-studied classes of network settings.
@@ -148,7 +149,7 @@ quACKs could also be used for network packet analysis, aggregating statistics
 in real-time with minimal space and computation. It may also be interesting to
 explore the relation of quACKs to data sketches and streaming algorithms, other
 research areas at the intersection of networking and coding theory. One
-research problem is how to enforce differentiated services (i.e., DiffServ)
+research problem is how to enforce differentiated services~\cite{rfc3260}
 based solely on the observed flow behavior, rather than trusting packet
 markings. Bloom-filter-like data structures such as the one in the quACK are
 especially well-suited to settings like this that demand efficient per-packet
@@ -186,9 +187,9 @@ a modified Packrat proxy can deliver in-network retransmissions to multicast
 clients with minimal per-client memory overhead. Multicast inherently reduces
 network congestion by reducing redundant data delivery over the network. For
 many practical reasons, including reliability, IP multicast is not used over
-the Internet today. It would be interesting to explore whether a network with
-some composition of Packrat proxies could enable a more practical yet reliable
-form of multicast.
+the Internet today~\cite{diot2000deployment}. It would be interesting to explore
+whether a network with some composition of Packrat proxies could enable a more
+practical yet reliable form of multicast.
 
 \section{Immediate impact on congestion control research}
 \label{sec:conclusion:congestion}
