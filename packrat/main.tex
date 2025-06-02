@@ -63,7 +63,7 @@ link-layer retransmissions, and receiving NICs that sometimes hold
 back received packets to wait for retransmissions of earlier packets
 so that hosts receive packets in the original order to avoid
 triggering a transport-layer end-to-end retransmission~\cite{rfc3366,
-  rfc8985, 802.1ac, 5Greorder}. Because of the practical success of
+  rfc8985, ieee802.1ac, 5Greorder}. Because of the practical success of
 the first two approaches, Snoop's ``network-originated
 retransmissions'' didn't seem to be needed in practice.
 
@@ -604,7 +604,7 @@ and re-encrypts packets in two separate QUIC connections from one endpoint to
 another. We emphasize that these connection-splitters do not actually exist. To
 be deployed, the proxy would need to be credentialed with access to underlying
 sequence numbers, the antithesis of the transport purists who encrypted these
-headers in the first place~\cite{duke2023rfc}. Since TCP splitters \textit
+headers in the first place~\cite{rfc9369}. Since TCP splitters \textit
 {are} commonly deployed~\cite{honda2011still,rfc3135}, our goal is to
 understand how much QUIC is ``losing out'' by not splitting its connection, and
 how closely Packrat can help QUIC achieve the same performance benefits without
