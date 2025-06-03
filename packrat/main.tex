@@ -134,8 +134,8 @@ ossification.
 
 \subsubsection{Summary of results.}
 To summarize, we show that it is possible to provide per-connection in-network
-retransmissions to encrypted transport protocols using the Packrat protocol along
-an adjacent connection, without involving the data sender nor modifying the
+retransmissions to secure transport protocols along an adjacent connection
+using Packrat proxies, without involving the data sender nor modifying the
 wire format of the underlying connection. We start with a brief history of loss
 recovery in the network (\Cref{sec:packrat:background}), then describe our
 contributions:
@@ -144,13 +144,13 @@ contributions:
     \item A mechanism at the \textit{endpoint} to correct
      end-to-end reordering signals when there are in-network retransmissions
      (\Cref{sec:packrat:problem}).
-    \item The Packrat protocol and optimizations to improve proxy
-     scalability based on the co-location of the endpoint and quACK sender
-     (\Cref{sec:packrat:design}).
+    \item The use of Packrat proxies with an adjacent Sidekick connection, and
+     optimizations to improve compute scalability based on the co-location of
+     the endpoint and quACK sender(\Cref{sec:packrat:design}).
     \item An implementation of the Packrat proxy and integrations with three
      applications that use encrypted transport (\Cref{sec:packrat:implementation}).
     \item An emulation study of the performance enhancements, as well as the CPU,
-     memory, and link overheads of using the Packrat protocol
+     memory, and link overheads of using a Packrat proxy.
      (\Cref{sec:packrat:methodology,sec:packrat:emulation}).
 \end{itemize}
 
@@ -161,7 +161,7 @@ contributions:
 
 We provide a brief history of loss recovery mechanisms in the network to
 motivate the need for lightweight, non-ossifying, in-network retransmissions
-for encrypted transport protocols.
+for secure transport protocols.
 
 \subsubsection{End-to-end loss recovery.}
 
@@ -338,7 +338,8 @@ acknowledgments.
 \section{Design}
 \label{sec:packrat:design}
 
-The Packrat protocol is spoken between a client and an on-path proxy, where the
+The Sidekick protocol in \Cref{sec:sidekick} is spoken between a client and an
+on-path proxy, but in setting with a Packrat proxy, the
 client is a data \textit{receiver}. We imagine the proxy to exist near the data
 receiver on the other side of a lossy path segment. This could be as close as
 directly behind a Wi-Fi access point, at a cellular base station, or on the
@@ -356,8 +357,8 @@ But in-network retransmissions were not just that simple.
 We previously described the \textit{reordering problem} with in-network
 retransmissions, and a mechanism at the \textit{client} to address the issue
 (\Cref{sec:packrat:problem}).
-In the rest of this section, we describe the messages exchanged between the
-client and proxy in the Packrat protocol to establish the adjacent connection
+In the rest of this section, we describe the Sidekick protocol messages
+exchanged between the client and Packrat proxy to establish the adjacent connection
 and generate in-network retransmissions (\Cref{fig:packrat:payloads}),
 and the behavior of each party in both the Packrat and base
 connections. We assume each message is transmitted in an unreliable UDP
@@ -384,8 +385,8 @@ The client configuration in \texttt{Init} includes several parameters (\Cref
 {fig:packrat:payloads:client}). This includes: the type of encoding used for the quACK,
 the number of symbols to use in the encoding, and the byte offset in the randomly
 encrypted payload at which to parse the 4-byte identifier. In addition, the size
-of the requested cache is a unique parameter for the Packrat protocol compared
-to the Sidekick protocol. The client may dynamically adjust these configurations
+of the requested cache is a unique parameter for the Packrat proxy compared
+to a Sidekick proxy. The client may dynamically adjust these configurations
 with new \texttt{Init} packets as it learns more about the network path.
 
 The proxy accepts or rejects these configurations with an \texttt{InitACK},
@@ -444,7 +445,7 @@ a packet corruption caused the encoded identifiers
 to become out of sync, etc. The \texttt{Reset} indicates the start of a new
 epoch in which the client and proxy encode identifiers into their quACKs.
 
-Base connections that use the Packrat protocol must always be able to fall back to
+Base connections that use a Packrat proxy must always be able to fall back to
 end-to-end mechanisms when the Packrat is unable to send in-network
 retransmissions. This is unlike typical connection-splitters and VPNs that fate
 share with their endpoints, or explicitly configured proxies. Similar to
@@ -517,7 +518,7 @@ these are likely to be received or the client would have NACKed.
 \section{Implementation}
 \label{sec:packrat:implementation}
 
-We now describe our implementation of the Packrat protocol, which includes
+We now describe our implementation of the Sidekick protocol with Packrat proxies, which includes
 a \texttt{packrat} library used for three client integrations
 and a Packrat proxy. We also describe the implementations of the
 applications and baselines we use to evaluate Packrat.
@@ -525,7 +526,7 @@ applications and baselines we use to evaluate Packrat.
 \subsection{End-to-end applications}
 \label{sec:packrat:implementation:applications}
 
-We evaluate the Packrat protocol in three applications with different performance
+We evaluate the Packrat proxy in three applications with different performance
 metrics to explore the versatility of in-network retransmissions:
 a high-throughput HTTP/3 file download, a low-latency media stream with forward
 error correction, and a reliable multicast stream whose server has limited
@@ -615,7 +616,7 @@ ossification.
 
 \input{packrat/listings/quacker-interface.tex}
 
-Clients participate in the Packrat protocol by knowingly opting in to proxy
+Clients participate in the Sidekick protocol by knowingly opting in to proxy
 assistance and sending quACKs. Clients share much of the same functionality,
 such as initializing the Packrat connection, maintaining a cumulative quACK of
 received packets, and determining when to quACK based on a set frequency. We
@@ -670,7 +671,7 @@ our reliable tunnel baseline, and a ``true'' split HTTP/3 connection.
 
 \subsubsection{Network configuration.}
 
-We run emulation experiments in \texttt{mininet} to evaluate the Packrat protocol
+We run emulation experiments in \texttt{mininet} to evaluate the Packrat proxy
 in a controlled environment. We generally use a linear, two-segment network
 topology.
 The host nodes
@@ -740,15 +741,15 @@ runs Ubuntu 22.04.2 LTS with the Linux 6.80-1024-aws kernel.
 \section{Emulation results}
 \label{sec:packrat:emulation}
 
-We evaluate our Packrat protocol implementation in an emulation study and answer
+We evaluate our Packrat proxy implementation in an emulation study and answer
 the following questions:
 \begin{enumerate}[noitemsep]
-    \item What are the performance advantages of the Packrat protocol over the
+    \item What are the performance advantages of the Packrat proxy over the
      end-to-end, connection-splitting, and tunnel baselines in network settings
      with a lossy path segment near the data \textit{receiver}?
     \item How do the rateless and sparse optimizations in
-     \Cref{sec:packrat:design:client} impact the link overheads of the Packrat
-     protocol?
+     \Cref{sec:packrat:design:client} impact the link overheads of using the Packrat
+     proxy?
     \item How much memory does the cache use at the proxy?
     \item How much traffic can a CPU-constrained proxy handle?
 \end{enumerate}
@@ -758,7 +759,7 @@ the following questions:
 
 \input{packrat/figures_tex/perf.tex}
 
-We find that in-network retransmissions via the Packrat protocol enable a
+We find that in-network retransmissions via the Packrat proxy enable a
 variety of performance enhancements---higher throughput, lower latency, and
 lower link overheads than end-to-end retransmissions---for a variety of
 encrypted transport protocols when the data receiver is near a lossy path
@@ -843,7 +844,7 @@ helped with content distribution, these are not options for encrypted transport
 protocols without embedding trust in the network.
 
 The Packrat proxy can handle in-network retransmissions for a large number of
-multicast clients. Each client using the Packrat protocol sends on average $16.8$
+multicast clients. Each client using the Packrat proxy sends on average $16.8$
 end-to-end retransmissions/second, a $59\!\times$ reduction from $1005.6$
 retransmissions/second/client without Packrat (\Cref{fig:packrat:perf:multicast}).
 This reduction scales with the
@@ -1032,7 +1033,7 @@ retransmissions.
 \section{Summary}
 \label{sec:packrat:summary}
 
-In this chapter, we described and evaluated the Packrat protocol for sending
+In this chapter, we described and evaluated the Packrat proxy for sending
 network-originated retransmissions when the end-to-end transport is encrypted.
 We use set-reconciliation techniques based on the Rateless IBLT to let the
 receiver efficiently acknowledge encrypted packets, yielding performance
