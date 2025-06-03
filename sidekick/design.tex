@@ -22,7 +22,7 @@ base connection.
 
 Our design has senders signal quACK support by sending a
 distinguished packet containing a 128-byte \emph{sidekick-request} marker.
-Such inline signaling could confuse receivers, but Sidekicks target protocols
+Such inline signaling could confuse receivers, but this approach target protocols
 such as QUIC that discard cryptographically unauthenticated data anyway.  It
 would be cleaner to signal support through out-of-band UDP options~\cite
 {ietf-tsvwg-udp-options-28}, which we may hope to do once standardized.
@@ -98,7 +98,7 @@ quACK. The \texttt{Reset} message acts as a synchronization point in the base
 connection in which both the client and proxy disregard old packets and start
 a new cumulative quACK. This is helpful if the quACK becomes invalid, e.g.,
 if the number of missing packets exceeds the maximum bound. It is always safe
-to reset the quACK, or even to ignore the Sidekick entirely and fall back to the
+to reset the quACK, or even to ignore the Sidekick PEP entirely and fall back to the
 base protocol's end-to-end mechanisms.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

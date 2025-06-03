@@ -1,8 +1,8 @@
 \section{Limitations}
 \label{sec:sidekick:limitations}
 
-The Sidekick approach, and our experiments, are subject to some limitations,
-which we describe briefly here.
+The Sidekick protocol approach, and our experiments, are subject to some
+limitations, which we describe briefly here.
 
 \subsubsection{Multipath scenarios.}
 We have only considered Sidekick proxies along a single path, and not thought
@@ -12,9 +12,9 @@ or even multipath QUIC~\cite{de2017multipath}.
 To begin thinking about this question, we would have a more complex model of the
 network: multiple PEPs along a single path, multiple paths each with varying
 numbers of PEPs, and so on. The proxy can include additional information in the
-Sidekick-reply packet to indicate which path the PEP assistance is on, and the
+sidekick-reply packet to indicate which path the PEP assistance is on, and the
 sender can infer from the RTT how far along a path each PEP is relative to
-others. New Sidekick algorithms that come from this model could diagnose
+others. New path-aware algorithms that come from this model could diagnose
 troublesome paths, or better allocate network traffic in a multipath
 connection. Existing algorithms could be applied to individual paths as if they
 were single-path connections.
@@ -56,7 +56,7 @@ Sidekick protocols.
 To migrate existing client applications, one needs to modify the code to
 discover a PEP and use information in a quACK to inform the base protocol.
 To migrate middleboxes, they would need to be modified to listen for
-Sidekick-request markers, then accumulate and send quACKs for participating
+sidekick-request markers, then accumulate and send quACKs for participating
 connections.
 
 \subsubsection{Deeper analysis of path-aware congestion control.}

@@ -76,7 +76,8 @@ We first proposed a similar functional separation in \cite{yuan2022sidecar},
 and presented a concrete realization of the idea and its nuanced
 interactions with real transport protocols in \cite{yuan2024sidekick}.
 
-One key technical challenge with this approach is how the Sidekick can
+One key technical challenge with this approach is how the proxy in a Sidekick
+protocol can
 efficiently refer to ranges of packets in an encrypted base connection. These
 packets appear random to the middlebox, and referring to a range of, e.g., 100
 encrypted packets in the presence of loss and reordering is not as simple as
@@ -130,10 +131,10 @@ implementation of QUIC~\cite{quiche} and the \texttt{libcurl}~\cite{libcurl}
 implementation of HTTP/3. We evaluated the three scenarios in
 real-world and emulation experiments.
 In real-world experiments using an unmodified local Wi-Fi network to access our
-nearest AWS datacenter, the Sidekick was able to trigger early retransmissions
+nearest AWS datacenter, the Sidekick PEP was able to trigger early retransmissions
 to fill in gaps in the audio of a latency-sensitive audio stream, reducing the
 receiver's de-jitter delay from 2.3~seconds to 204~ms---about a 91\% reduction
-(\Cref{fig:sidekick:real-world}). The Sidekick was also able to improve the
+(\Cref{fig:sidekick:real-world}). The Sidekick PEP was also able to improve the
 speed of an HTTP/3 (QUIC) upload by about 50\%.
 
 In emulation experiments of the ``battery-powered receiver'' scenario,
@@ -154,7 +155,8 @@ expense of congestion-control fairness relative to a split CUBIC connection.
 
 \smallskip
 
-The rest of this chapter discusses three motivating scenarios for the Sidekick
+The rest of this chapter discusses three motivating scenarios for Sidekick
+protocols
 (\Cref{sec:sidekick:motivating}), describes the concrete Sidekick protocol we
 built around power sum quACKs (\Cref{sec:sidekick:design}) and
 its implementation in two base protocols (\Cref{sec:sidekick:implementation}),

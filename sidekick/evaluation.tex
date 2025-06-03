@@ -181,7 +181,7 @@ Part of the difference can be attributed to the network setting. When there is
 no loss on the near path segment, as can occasionally happen in a real Wi-Fi
 link, we do not expect to see a difference with a Sidekick. When there is more
 loss on the far path segment, which is variable and depends on the time, we
-expect the benefit of the Sidekick to be less since this equally affects the
+expect the benefit of the Sidekick protocol to be less since this equally affects the
 performance of the base protocol.
 
 The other part of the difference could be made up by future work that better
@@ -226,7 +226,7 @@ the Sidekick protocol.
 
 The Sidekick can reduce tail latencies in a low-latency media stream,
 representing fewer drops and better quality of experience. The early
-retransmissions induced by the Sidekick reduced the 99th percentile latency of
+retransmissions induced by the Sidekick PEP reduced the 99th percentile latency of
 the de-jitter buffer delay from 48.6 ms to 2.2 ms---a 95\% reduction
 (\Cref{fig:sidekick:main-results:media}). As long as the quACK interval is less
 than the end-to-end RTT, the connection benefits from the Sidekick.
@@ -237,7 +237,7 @@ packets from its de-jitter buffer. The end-to-end mechanism takes one
 additional received packet to notify of the loss and one end-to-end RTT to
 retransmit and play the packet (20+52=72ms), resulting in three delayed
 packets (the three ``steps" in \Cref{fig:sidekick:main-results:media}) in most
-cases. The Sidekick takes up to two additional packets and one near path
+cases. The Sidekick PEP takes up to two additional packets and one near path
 segment RTT ($20+2=22$ms or $20\times2+2=42$ms), delaying either one or two
 packets in comparison. Dropped ACKs and quACKs account for the $<2\%$ of
 packets with even greater de-jitter latencies.
