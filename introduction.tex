@@ -231,22 +231,23 @@ approach to in-network assistance for secure transport protocols achieves
 performance benefits similar to those of traditional TCP PEPs without protocol
 ossification}}.
 
-The work presented in this dissertation builds upon and extends several
-peer-reviewed papers from the author~\cite{yuan2022sidecar,yuan2024sidekick,yuan2025internet}.
-I will start \Cref{sec:quack} by presenting quACKs, a tool for efficiently
+The work presented in this dissertation builds upon and extends peer-reviewed
+publications from the author~\cite{yuan2022sidecar,yuan2024sidekick,yuan2025internet}.
+I will start \Cref{sec:quack} with quACKs, a tool for efficiently
 referring to a set of randomly encrypted packets.
 \Cref{sec:sidekick} will describe how proxies use the Sidekick protocol to send
 quACKs over an adjacent connection, and how endpoints modify their behavior in
-response to quACKs to emulate the performance benefits of traditional
-PEPs.
-\Cref{sec:packrat} will similarly describe how endpoints send quACKs to Packrat
+response to quACKs to emulate the performance benefits of traditional PEPs.
+\Cref{sec:packrat} will describe how endpoints send quACKs to Packrat
 proxies to receive in-network retransmissions, also achieving improved
 performance for a variety of secure transport protocols.
-Finally, \Cref{sec:splitting} will take a step and analyze why recent networking
+Finally, \Cref{sec:splitting} will take a step back and analyze why recent
 developments such as the ``model-based'' BBR congestion control algorithm and
-the QUIC transport protocol may cast doubts on the relevance of
-connection-splitting today, then offer a counterpoint.
+the QUIC transport protocol may have cast doubts on the relevance of
+connection-splitting, then offer a counterpoint.
 \Cref{sec:conclusion} will describe future research directions and conclude.
+
+\input{slides/figures_tex/overview.tex}
 
 % \section{QuACKs: Referring to encrypted packets without sequence numbers}
 % \label{sec:introduction:quacks}
