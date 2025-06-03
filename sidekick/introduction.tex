@@ -26,7 +26,7 @@ byte stream, and enable forward error correction, explicit congestion
 notification, or other segment-specific enhancements. Because TCP isn't
 encrypted or authenticated, PEPs can achieve this transparently, without the
 knowledge or cooperation of end hosts. Roughly 20--40\% of Internet paths cross
-at least one TCP PEP~\cite{imc2011handley, edeline2019bottomup}.
+at least one TCP PEP~\cite{honda2011still, edeline2019bottomup}.
 
 While many flows benefit from PEPs, their use carries a cost: protocol
 ossification~\cite{papastergiou2017deossifying, edeline2019bottomup}. When a
@@ -35,7 +35,7 @@ the transport protocol, it can thwart the protocol's evolution, dropping
 traffic that uses an upgraded version or new options. TCP PEPs have hindered or
 complicated the deployment of many TCP improvements, such as ECN++, tcpcrypt,
 TCP extended options, and multipath TCP~\cite
-{mandalari2018ecnplusplus,imc2011handley,raiciu2012multipathtcp}.
+{mandalari2018ecnplusplus,honda2011still,raiciu2012multipathtcp}.
 
 In response to this ossification, and to an increased emphasis on privacy and
 security, post-TCP transport protocols have been designed to be impervious to
@@ -51,7 +51,7 @@ This encryption means that middleboxes can't interpose themselves on a
 connection or understand the sequence numbers of packets in transit. This
 prevents PEPs from providing assistance, reducing---in some situations---the
 performance of secure transport protocols~\cite
-{border2020quicsat-presentation,kuhn2021quic-over-sat,martin2022bbr-quic-sat,border2020evaluating,kosek2022quicpep}.
+{border2020quicsat-presentation,kuhn2021quic-over-sat,martin2022suitability,border2020evaluating,kosek2022quicpep}.
 It's possible to co-design protocols and PEPs to preserve security and privacy
 while permitting assistance from credentialed middleboxes~\cite
 {ford2008logjam,sherry2015blindbox, dogar2012tapa,iyengar2009flow}, but

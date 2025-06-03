@@ -128,7 +128,7 @@ performance---most simply, throughput and latency---of the connections for
 which they are on the path. These middleboxes were deployed widely at base
 stations, satellite gateways, and even Wi-Fi routers. As of 2019, it was
 estimated that 20--40\% of Internet paths still contained a
-PEP~\cite{imc2011handley, edeline2019bottomup}. Most
+PEP~\cite{honda2011still, edeline2019bottomup}. Most
 middleboxes provide in-network assistance to TCP, the dominant transport
 protocol, and commonly as connection-splitting TCP PEPs~\cite
 {kapoor2005achieving,caini2006pepsal,davern2011httpep,farkas2012splittcp,hayes2019mmwave}.
@@ -185,7 +185,7 @@ of the protocol and what each field is used for. They modify and block traffic
 based on these fields. When protocol designers later repurpose these fields to
 evolve the protocol or introduce new features, these assumptions break and the
 ``help'' can actually
-harm~\cite{border2020quicsat-presentation,kuhn2021quic-over-sat,martin2022bbr-quic-sat,border2020evaluating,kosek2022quicpep}.
+harm~\cite{border2020quicsat-presentation,kuhn2021quic-over-sat,martin2022suitability,border2020evaluating,kosek2022quicpep}.
 With PEPs being so widely deployed, backwards
 compatibility is challenging to maintain and protocols have no choice but to
 fix their functionality in place. This phenomenom is called protocol
@@ -195,7 +195,7 @@ rigid and resistant to change over time~\cite{papastergiou2017deossifying, edeli
 Protocol ossification has derailed the deployment of many otherwise promising
 extensions to TCP. Despite making it as far as the IETF, ideas like
 extended TCP options, Multipath TCP, ECN++, and tcpcrypt now lie in a graveyard
-of unrealized proposals~\cite{mandalari2018ecnplusplus,imc2011handley,raiciu2012multipathtcp,rfc8548}.
+of unrealized proposals~\cite{mandalari2018ecnplusplus,honda2011still,raiciu2012multipathtcp,rfc8548}.
 Even innocuously simple fields like the TCP sequence
 number are not immune to ossification. For example, QUIC uses two sequence
 number spaces, referring separately to packets and the bytes in the underlying
