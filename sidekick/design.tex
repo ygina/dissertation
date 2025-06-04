@@ -144,7 +144,7 @@ algorithm for TCP~\cite{rfc8985}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\subsubsection{Path-aware CUBIC congestion control.}
+\subsubsection{Path-aware congestion control.}
 
 Congestion-controlled base protocols must have a congestion response to lost
 packets that they retransmit due to quACKs, similar to if the loss were
@@ -152,6 +152,17 @@ discovered by the end-to-end ACK.
 This ensures friendliness with end-to-end congestion control algorithms that do
 consider the loss, such as CUBIC~\cite{ha2008cubic} in the presence of a
 connection-splitting TCP PEP.
+We consider the realizations of these algorithms in a split setting to be
+distinct from their end-to-end realizations, referring to the congestion
+response as ``split CUBIC'', for example. We believe a path-aware congestion
+response that balances performance and fairness would emulate the behavior of
+the split congestion control algorithm. Since the proxy does not have a buffer
+and can only opaquely forward packets, we must emulate this congestion response
+by only changing the behavior at the endpoint.
+
+\section{Path-aware CUBIC congestion control algorithm}
+\label{sec:sidekick:pacubic}
+
 Here, we propose PACUBIC, an algorithm that emulates this ``split CUBIC''
 behavior. PACUBIC uses knowledge of where loss occurs to improve connection
 throughput compared to end-to-end CUBIC, while remaining fair to competing flows.
@@ -185,7 +196,7 @@ Let $r$ be the estimated ratio of the RTT of the near path segment
 We use $r$ as a proxy for the ratio of the number of in-flight bytes. If the
 last congestion event came from a quACK, we use the same real-time dependent
 cubic function but with the following constants\footnote{See \Cref
-{sec:sidekick:appendix} for more intuition behind $\beta'$ and $C'$.}
+{sec:sidekick:pacubic:analysis} for more intuition behind $\beta'$ and $C'$.}
 \[
 \beta = 1 - r(1-\beta^*)\text{ and }C = \frac{C^*}{r^3}.
 \]
@@ -199,3 +210,108 @@ simply a heuristic for an inherently different split connection. The main
 takeaway is that knowing where loss occurs can inform congestion control. We
 generally hope that quACKs can lead to the development of smarter, path-aware
 algorithms.
+
+\subsection{Analysis of PACUBIC}
+\label{sec:sidekick:pacubic:analysis}
+
+\input{sidekick/figures_tex/pacubic.tex}
+
+Here, we dive deeper into the intuition behind the PACUBIC constants
+(\Cref{sec:sidekick:design:sender}), including how they were derived and why
+the PACUBIC algorithm achieves similar congestion behavior to the CUBIC
+algorithm in a split connection---we call this behavior ``split CUBIC''.
+
+Consider the same network topology as \Cref{fig:sidekick:overview} in which a
+data sender uploads a large file to a data receiver, with help from a Sidekick
+proxy in the middle of the connection. The near path segment connects the sender
+to the proxy, and the far path segment connects the proxy to the receiver.
+The near segment is low-delay with varying random loss, and the far segment is
+high-delay with no random loss. The far segment is the bottleneck link in terms
+of bandwidth.
+The actual link parameters are the same as in Scenario \#2 of
+\Cref{tab:sidekick:experimental-scenarios}.
+
+We first discuss how split CUBIC would behave in this setting to conceptually
+motivate PACUBIC. Consider the congestion windows of each half of the split
+connection, one taken at the data sender and one at the proxy
+(\Cref{fig:sidekick:pacubic:split-loss0p,fig:sidekick:pacubic:split-loss1p}). The far path
+segment experiences only congestive loss, leading the window at the proxy to
+fluctuate around the segment's BDP regardless of the loss on the near path
+segment. The window at the data sender independently determines whether the
+packets that reach the proxy will be able to fully utilize the window set at
+the far path segment. The data sender is able to achieve this at low random
+loss rates, but becomes the bottleneck as loss rates increase
+(\Cref{fig:sidekick:fairness-line}).
+
+While split CUBIC has two windows, PACUBIC only has one
+window representing the in-flight bytes of the end-to-end connection.
+PACUBIC considers loss detected from both quACKs and end-to-end ACKs.
+Conceptually, we want an algorithm that would enable PACUBIC's single
+congestion window to match the sum of CUBIC's two congestion windows, or
+the total number of in-flight bytes.
+% That is the motivation behind adjusting the window proportionally to the
+% number of in-flight bytes on each path segment, depending on where the loss
+% occurred.
+
+With no random loss on the near path segment, PACUBIC
+(\Cref{fig:sidekick:pacubic:pacubic-loss0p}) behaves the same as normal CUBIC
+(\Cref{fig:sidekick:pacubic:cubic-loss0p}). The congestion window is entirely governed
+by end-to-end ACKs since the far path segment is the bottleneck link. Note that
+while the sender may be able to deduce that a loss occurred on the far path
+segment by combining info from the quACK with the end-to-end ACK, PACUBIC
+conservatively treats the loss as occurring anywhere on the path.
+
+With some random loss on the near path segment, PACUBIC grows and reduces cwnd
+based on where the last congestion event occurs
+(\Cref{fig:sidekick:pacubic:pacubic-loss1p}). Note that if the congestion window $cwnd$
+represents the bytes in-flight in the end-to-end connection, then $r \cdot cwnd$
+represents the proportion of bytes in-flight on the near path segment. At a
+high level, if the data sender discovers loss on the near path segment via the
+quACK, it holds the $(1-r)\cdot cwnd$ portion of the ``far window'' constant
+while applying the CUBIC algorithm to the remaining $r \cdot w_{max}$ of the
+``near window,'' representing the bottleneck link.
+
+Mathematically, instead of reducing $w_{max}$, the window size just before the
+last reduction, by $(1-\beta^*) \cdot w_{max}$, PACUBIC reduces it by only
+$[1 - (1-r(1-\beta^*))] \cdot w_{max} = r(1-\beta^*) \cdot w_{max}$.
+That is $r$ times the original reduction, a \emph{smaller} amount.
+We use the RTT ratio $r$ (near path segment to end-to-end)
+% indicating the RTT ratio of near path segment vs.~far path segment)
+as a proxy for the ratio of the number of in-flight bytes.
+
+Similarly, instead of using a cubic growth function with scaling factor $C^*$
+and inflection point $K = K^* = \sqrt[3]{w_{max}(1-\beta^*)/C^*}$,
+we use a larger scaling factor $C = C^*/r^3$
+and thus a shorter inflection point
+\[
+K = \sqrt[3]{\frac{w_{max}(1-\beta)}{C}}
+= \sqrt[3]{\frac{r\cdot w_{max}(1-\beta^*)}{C^* / r^3}}
+= r^{4/3} \cdot K^*.
+\]
+The shorter inflection point leads the congestion window to \emph{grow more
+quickly} since the sender also reacts to feedback about loss more quickly over
+the low-delay link.
+% Since similarly proportional to $w_{max}$, so with $C'$, we both reduce the
+% inflection point $K$ and the growth rate $C$ of the function proportionally to
+% the number of bytes in-flight on the near path segment.
+
+At times, there can be loss detected both in quACKs and in end-to-end ACKs.
+The end-to-end ACKs have a greater effect since they reduce the congestion
+window by a larger proportion, until the remaining path segment with loss is the
+bottleneck link. In this scenario with loss, the bottleneck link at equilibrium
+is the near path segment.
+At this point, the quACK primarily determines the congestion window updates. If
+the far path segment were to become the bottleneck again, the data sender would
+detect a congestion event via the end-to-end ACK.
+
+PACUBIC has several limitations. Although it beats end-to-end CUBIC, it still
+performs worse than split CUBIC, especially at high loss rates
+(\Cref{fig:sidekick:fairness-line}). Also, it doesn't consider loss on the far
+path segment any differently than original CUBIC, unlike split CUBIC which
+treats the two split connections independently. PACUBIC emulates the congestion
+control behavior and fairness of split CUBIC fairly well as a heuristic, but
+would benefit from an analysis in a wider variety of network scenarios. It
+would also benefit from a side-by-side fairness comparison against other
+congestion control algorithms that perform well in the same scenarios. We'd
+like the primary takeaway of PACUBIC to be that knowing where loss occurs can
+cleverly inform congestion control.
