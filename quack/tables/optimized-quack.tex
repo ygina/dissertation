@@ -1,27 +1,28 @@
-\begin{table}[ht]
+\begin{table}[t]
   \centering
   % \renewcommand{\arraystretch}{0.000023}
   \begin{tabular}{lcccrrr}
     \toprule
-    \bf     & \bf        & \bf       & \bf        & \bf Per-Packet & \bf Decode & \bf Size\\
-    \bf Bits  & \bf NF     & \bf PC    & \bf MM     & \bf Encode Time & \bf Time     & \bf (bytes)\\
+    \bf     & \bf        & \bf       & \bf        & \bf Encode & \bf Decode & \bf QuACK\\
+    \bf Bits  & \bf NF     & \bf PC    & \bf MM~\cite{montgomery1985modular}     & \bf Time & \bf Time     & \bf Size\\
     \midrule
-    32     &        &       &        & $149$ ns & $3.18$ ms      & 82 \\
-    \bf \textcolor{black!50!blue}{32*} & \bf \textcolor{black!50!blue}{x} & & & \bf \textcolor{black!50!blue}{151 ns} & \bf \textcolor{black!50!blue}{102 ${\mu}$s} & \bf \textcolor{black!50!blue}{82} \\
-    32     & x      &       & x      & $163$ ns & $130$ ${\mu}$s & 82 \\
-    16     & x      &       &        & $137$ ns & $101$ ${\mu}$s & 42 \\
-    16*    & x      & x     &        & $57$ ns & $43$ ${\mu}$s & 42 \\
-    16     & x      & x     & x      & $84$ ns & $48$ ${\mu}$s & 42 \\
-    63     & x      &       &        & $1.14$ ${\mu}$s & $622$ ${\mu}$s & 162 \\
-    63*    & x      &       & x      & $159$ ns & $121$ ${\mu}$s & 162 \\
-  % 64*    & x      &       & x      & $177$ ns & $132$ ${\mu}$s & 162 \\
+    32     &        &       &        & $149$ ns & $3.18$ ms      & 82 bytes \\
+    \rowcolor{yellow}
+    32* & x & & & 151 ns & 102 ${\mu}$s & 82 bytes \\
+    32     & x      &       & x      & $163$ ns/pkt & $130$ ${\mu}$s & 82 bytes \\
+    16     & x      &       &        & $137$ ns/pkt & $101$ ${\mu}$s & 42 bytes \\
+    16*    & x      & x     &        & $57$ ns/pkt & $43$ ${\mu}$s & 42 bytes \\
+    16     & x      & x     & x      & $84$ ns/pkt & $48$ ${\mu}$s & 42 bytes \\
+    63     & x      &       &        & $1.14$ ${\mu}$s/pkt & $622$ ${\mu}$s & 162 bytes \\
+    63*    & x      &       & x      & $159$ ns/pkt & $121$ ${\mu}$s & 162 bytes \\
+  % 64*    & x      &       & x      & $177$ ns & $132$ ${\mu}$s & 162 bytes \\
     \bottomrule
     % removed factoring except for base 32 case since typically faster
     % removed power table for 64 bit because too large
     % removed both power table + montgomery for 16/32 bit to not combine opts
     % * represents optimal for that bit width
   \end{tabular}
-  \caption{Power sum QuACK with different bit widths and optimizations,
+  \caption{Ablation study of the power sum quACK with different bit widths and optimizations,
   using $n=1000$, $t=20$. The three optimizations are not factoring (NF),
   pre-computation (PC), and Montgomery multiplication (MM).
   *Recommended optimizations for that bit width.}

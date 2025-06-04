@@ -1,24 +1,26 @@
 \begin{table}[t]
 \centering
-\begin{tabular}{lccc}
+\begin{tabular}{lrrrr}
   \toprule
-  & \bf Encode Time & \bf Decode Time & \bf QuACK Size \\
+  & \bf Encode Time & \bf Decode Time & \bf QuACK Size & \bf Cumulative?\\
   \midrule
-  Strawman 1a & $O(1)$ & $O(1)$ & \textcolor{red}{$O(n)$} \\
-  Strawman 1b & $O(1)$ & $O(1)$ & \textcolor{red}{$O(n)$} \\
-  Strawman 1c & $O(1)$ & $O(1)$ & \textcolor{red}{$O(n)$} \\
-  Strawman 2 & $O(1)$ & \textcolor{red}{$O(\binom{n}{t})$} & $O(1)$ \\
-  \bf \textcolor{black!50!blue}{Power Sums} & \bf \textcolor{black!50!blue}{$O(t)$} & \bf \textcolor{black!50!blue}{$O(t^2)$} & \bf \textcolor{black!50!blue}{$O(t)$} \\
-  \bf \textcolor{black!50!blue}{IBLT} & \bf \textcolor{black!50!blue}{$O(\log t)$} & \bf \textcolor{black!50!blue}{$O(t\log t)$} & \bf \textcolor{black!50!blue}{$O(t)$} \\
+  Strawman 1a & $O(1)$ & $O(1)$ & \textcolor{red}{$O(n)$} & \textcolor{red}{No} \\
+  Strawman 1b & $O(1)$ & $O(1)$ & \textcolor{red}{$O(n)$} & \textcolor{red}{No} \\
+  Strawman 1c & $O(1)$ & $O(1)$ & \textcolor{red}{$O(n)$} & Yes \\
+  Strawman 2 & $O(1)$ & \textcolor{red}{$O(\binom{n}{t})$} & $O(1)$ & Yes \\
+  \rowcolor{yellow}
+  \bf Power Sums & $O(t)$ & $O(t^2)$ & $O(t)$ & Yes \\
+  \rowcolor{yellow}
+  \bf IBLT & $O(\log t)$ & $O(t\log t)$ & $O(t)$ & Yes \\
   \bottomrule
 \end{tabular}
 \caption{The algorithmic complexity of the costs of each quACK construction.
 The encoding time includes inserting an element into the data structure that
 represents the quACK(s). The decoding time
- includes finding the elements of either $S \setminus R$ or $R \subseteq S$,
+ includes finding the elements of either $R$ or $S \setminus R$,
  given the quACK(s) and $S$.
 $n = |S|$ is the total number of sent elements, $t \geq |S \setminus R|$ is an
-upper bound on the number of missing elements. \gina{True value of Strawman 2 $O(1)$ encoding?}\\
+upper bound on the number of missing elements.% \gina{True value of Strawman 2 $O(1)$ encoding?}
 }
 \label{tab:quack:theoretical}
 \end{table}

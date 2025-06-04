@@ -1,18 +1,21 @@
 \chapter[QuACKs]{QuACKs: Referring to encrypted packets without sequence numbers}
 \label{sec:quack}
 
+\input{slides/figures_tex/ack-example.tex}
+
 When acting as a PEP for a secure transport protocol, a proxy needs to be
 able to refer to and efficiently acknowledge a set of packets \textit{even when
 they are randomly encrypted}. Recall that it is straightforward for a proxy to
 refer to TCP packets---Since packets in a TCP connection are labeled with
 cleartext sequence numbers, a proxy can easily refer to ranges of packets using
 cumulative and selective ACKs. But this problem is technically challenging for
-packets of secure transport protocols where the headers are randomly encrypted.
+packets of secure transport protocols where the headers are randomly encrypted
+(\Cref{fig:slides:ack-example}).
 The proxy can't exactly say a certain range of packets has been received, or
 even if any packets are missing. The protocol could perhaps reveal a sequence
-number to the proxy on the wire, but then that field risks ossification in the
-future. This technical problem is the crux to enabling the transport behavior
-of the Sidekick protocol.
+number to the proxy on the wire, but then that field risks ossification.
+This technical problem is the crux to enabling the transport behavior
+of the Sidekick protocol (\Cref{sec:sidekick,sec:packrat}).
 
 In this chapter, we mathematically define the \textbf{quACK problem} in the
 context of network packets
@@ -35,7 +38,7 @@ encrypted packets, tolerating up to 10 missing packets before the last
 packet in the power sum quACK, and 15.5~$\mu$s to decode which received packets
 the quACK represents. The IBLT quACK takes 42~ns to encode a single packet and
 1.3~$\mu$s to decode a quACK, using at least 58~bytes. These overheads compare
-well with several alternatives.
+well with several strawman alternatives.
 
 \section{The QuACK Problem}
 \label{sec:quack:problem}
@@ -54,11 +57,13 @@ problem is: \textbf{what is in a quACK and how do we decode it?}
 
 How exactly do we refer to the elements in the quACK problem that have been sent
 or received? In a networking context, these elements are packets. Traditional
-TCP proxies have been able to interpose their own concise, cumulative
-acknowledgments using cleartext sequence numbers, but this is not possible with
-modern, secure transport protocols. Even if a connection did expose an
-unencrypted numerical field, we would not want to refer to that field at risk
-of ossifying that protocol.
+TCP proxies have been able to interpose their own concise, cumulative and
+selective acknowledgments using cleartext sequence numbers, but this is not
+possible with modern, secure transport protocols (\Cref{fig:slides:ack-example}).
+Even if a connection did expose an unencrypted numerical field, we would not
+want to refer to that field at risk of ossifying that protocol. As mentioned
+before, even a seemingly innocuous field such as the TCP sequence number can be
+ossified with redesigns of the sequence number space~\cite{rfc9000}.
 
 Instead, we need a function that deterministically maps
 a packet to a random $b$-byte \emph{identifier}. The most trivial solution
@@ -74,15 +79,17 @@ does not require reading the entire payload.
 The main consideration when selecting the number of bytes, $b$, in an identifier
 is the tolerance for collisions compared with the extra data needed to refer to
 these packets on the link. Higher bit widths also correspond to higher
-computation costs (\Cref{sec:quack:psum-microbenchmarks:bit-widths}).
+computation costs, which is explored in \Cref{sec:quack:psum-microbenchmarks:bit-widths}.
 The larger $b$ is, the lower the collision probability but the greater the link
-overhead.
+and computation overheads.
 
 Define the collision probability to be the probability that a randomly-chosen
 $b$-byte identifier in a list of $n$ packets maps to more than one packet in
-that list.
-If we assume that identifiers are uniformly distributed,
-this probability is equal to $1-(1 - 1/256^{b})^{n-1}$.
+that list. There are $2^8=256$ possible values of a byte, thus $256^b$ possible
+values of a $b$-byte identifier.
+If we assume that the identifiers are uniformly distributed, the collision
+probability is equal to the complement of the probability that all other $n-1$
+packets have a different identifier: $1-(1 - 1/256^{b})^{n-1}$.
 When $n=500$, using $4$ bytes results in an almost negligible
 chance of collision while using $2$ bytes results in a 0.8\% chance
 (\Cref{tab:quack:collision-prob}).
@@ -93,8 +100,8 @@ When handling collisions, a sender who is decoding a quACK has a list of $n$
 packets it is trying to classify as received or missing
 (\Cref{sec:quack:constructions}). This is the number of packets that were either
 not classified or newly transmitted since decoding a previous quACK.
-Note that collisions are also known to the
-sender beforehand. If there is a collision between a packet that is received
+Note that collisions are also known to the sender beforehand since it has the
+list of $n$ packets. If there is a collision between a packet that is received
 and a packet that is missing, the fate of that identifier is considered
 indeterminate. Either the protocol can still function with approximate
 statistics (e.g., congestion control) or it can fall back to an end-to-end
@@ -103,32 +110,35 @@ mechanism (e.g., retransmission).
 \subsection{Strawman solutions}
 \label{sec:quack:problem:strawmen}
 
-A problem that is simple with cumulative and selective acknowledgments of
-plaintext sequence numbers is deceivingly challenging for pseudorandom
-packet identifiers. Consider the following strawman solutions to the quACK
-problem:
+The quACK problem is simple with cumulative and selective acknowledgments of
+plaintext sequence numbers, but deceivingly challenging for pseudorandom
+packet identifiers. Consider the following strawman solutions and their
+disadvantages:
 
 \subsubsection{Strawman 1: Echo every identifier.}
 Strawman 1a, similar to \cite{li-tsvwg-loops-problem-opportunities-06,kramer2020lwpep},
 echoes the identifier of every received packet in a new UDP packet to the
 sender.  Decoding is trivial given that the identifiers are unmodified.
 This strawman adds significant link overhead in terms of additional packets.
-Additionally, since the strawman is not cumulative, losing a quACK means the
+Additionally, since the strawman is not a cumulative representation of all the
+packets received over the connection, losing a quACK means the
 sender can falsely consider a packet to be lost, creating a congestion
 event or spurious retransmission.
 
 Strawman 1b echoes a sliding window of identifiers over UDP such that there is
 overlap in the identifiers referred to by consecutive quACKs.
 This solution is slightly more resilient to loss, but uses more bytes and is
-still not guaranteed to be reliable.
+still not guaranteed to be reliable without a cumulative representation.
 Another variant batches identifiers to reduce the number of packets, but this
-solution is even less resilient to loss.
+solution is less resilient to loss.
 
 We also consider a Strawman 1c that echoes every identifier over TCP with
 \texttt{TCP\_NODELAY} to send every identifier in its own TCP packet.
-This ensures there are no false positives when detecting lost packets,
+The \texttt{TCP\_NODELAY} option ensures each quACK is sent immediately
+rather than batching the identifiers in the bytestream. The reliability of TCP
+ensures there are no false positives when detecting lost packets,
 but adds even more link overhead in terms of TCP headers and additional ACKs
-from the sender (every other packet by default in the Linux kernel).
+from the sender (default every other packet in the Linux kernel).
 
 \subsubsection{Strawman 2: Cumulative hash of all identifiers.}
 Strawman 2 sends a SHA-256 hash of a sorted concatenation of all the received
@@ -136,8 +146,10 @@ packets in a UDP packet, and the sender hashes every subset of the same size of
 sent packets until it finds the subset with the same hash (assuming collision
 resistance). The strawman includes a count of the packets received to determine
 the size of the subset to hash. As the number of missing packets exceeds even a
-moderate amount, the number of subsets to calculate a hash for explodes, making
-the strawman impractical to decode.\\
+moderate amount, the number of subsets to calculate a hash for explodes.
+Consider that a quACK composed of $490$ sent packets with $10$ missing packets
+has roughly $\binom{500}{10} = 200$ quintillion possible subsets to try.
+Thus this strawman is computationally impractical to decode.\\
 
 \noindent
 One might also suggest the receiver send negative acknowledgments of the packets
@@ -151,12 +163,13 @@ identifiers what packet is missing or should be expected next.
 The problem of providing a concise acknowledgment of encrypted packet
 identifiers closely resembles a more general problem called set reconciliation.
 In this problem, two parties, each with a set, communicate a small amount of
-information to learn the set difference---the elements missing in the other
+information to each other to learn the set difference---the elements in their
+set that is missing in the other's
 set~\cite{minsky2003set,eppstein2011straggler}. There are two well-known classes
 of solutions to this set reconciliation problem with different tradeoffs
 in communication and computation cost.
 We provide background in the literature on the set reconciliation problem,
-then describe the efficient power sum and invertible Bloom lookup table (IBLT)
+then describe our efficient power sum and invertible Bloom lookup table (IBLT)
 constructions of the quACK based on these two classes of solutions.
 
 \subsection{Background: Set reconciliation}
@@ -177,24 +190,27 @@ table (IBLT), and is more computationally scalable than the first class. The
 IBLT is a data structure based on the Bloom
 filter~\cite{goodrich2011invertible}, and probabilistically decodes the set
 difference with a multiplicative factor on the comunication cost. This
-multiplicative factor has been shown to be small on average: $1.23$\footnote{The
+multiplicative factor has been shown to be small on average:
+$1.23$--$1.35\times$~\cite{yang2024practical,baek2023simple}\footnote{The
 $1.23\times$ multiplicative factor on the communication cost is derived from
 $1/\alpha$, where $\alpha \approx 0.81$ in
-\cite{baek2023simple}.}--$1.35\times$~\cite{yang2024practical,baek2023simple}.
+\cite{baek2023simple}.}.
 In practice, set reconciliation with a Bloom-filter-like data structure has
 mainly been applied to larger distributed systems such as blockchain and social
 media synchronization~\cite{yang2024practical,summermatter2021byzantine}.
 
-The quACK setting differs from previous applications of set reconciliation in
-several ways. In this setting, the elements in the problem are network packets,
-or more specifically packet \textit{identifiers}. Only the receiver
+The quACK setting is novel compared to previous applications of set
+reconciliation in several ways. In this setting, the elements in the problem
+are network packets, or more specifically packet \textit{identifiers}. This
+means that in the algebraic solution, the elements in the set are not just
+arbitrary numerical values but have bounded bit widths. Only the receiver
 communicates information, and the sender performs subset and not set
 reconciliation on the missing packets. Unlike the blockchain setting, the two
 parties synchronize on millisecond-RTT timescales compared to seconds. The
 communication must be encoded in a single network packet, not a stream of
 packets. In addition, at these smaller timescales, fewer elements
-(typically tens) are reconciled at once, and optimizations for constant factor
-overheads matter more.
+(typically tens at most) are reconciled at once, and optimizations for constant
+factor overheads matter more.
 
 \subsection{Power sums: A space-optimal and deterministic solution}
 \label{sec:quack:constructions:power-sum}
@@ -203,24 +219,26 @@ We describe a construction of the quACK that models the problem as a system of
 power sum polynomial equations when we have an exact bound on the maximum
 number of missing elements, a threshold $t$. Unlike the previous strawmen, this
 construction is efficient to decode, and its size is proportional only to $t$.
+It is also a cumulative representation of all packets ever received.
 
 Consider the simplest case, when the receiver is only missing a single element.
-The receiver maps packet identifiers to a finite field,
-i.e. modulo the largest prime that fits in $b$ bytes,
- and communicates the sum $\sum_{x \in R} x$ of the received
-elements to
+Note that since we have bounded bit widths in practice, we must map packet
+identifiers to a finite field, i.e., modulo the largest prime that fits in $b$
+bytes, and do all arithmetic operations in that field.
+The receiver communicates the sum $\sum_{x \in R} x$ of the received elements to
 the sender. The sender computes the sum $\sum_{x \in S} x$ of the sent elements
 and subtracts the sum from the receiver, calculating:
 \[
     \sum_{x \in S} x - \sum_{x \in R} x = \sum_{x \in S\setminus R} x,
 \]
 which is the sum of elements in the set difference. In the case of a single
-missing element, the sum is exactly the value of the missing element.
+missing element where $|S \setminus R| = 1$, the sum is exactly the value of
+the missing element.
 
 In fact, we can generalize this scheme to any number of missing elements $m$.
 Instead of transmitting only a single sum, the receiver communicates
 the first $m$ \emph{power sums} to the sender, where the $i$-th power sum of a
-multiset $R$ is defined as $\sum_{x \in R} x^i$.
+multiset $R$ is defined as $\sum_{x \in R} x^i = x_1^i + x_2^i + x_3^i + \cdots$.
 The sender then computes the first $m$ power sums of $S$ and calculates the
 respective differences $d_i$ for $i \in [1,m]$, producing the following
 system of $m$ equations:
@@ -229,7 +247,9 @@ system of $m$ equations:
 \]
 
 Instead of transmitting an unbounded number of power sums, the receiver only
-maintains and sends the first $t$ power sums. Efficiently solving these $t$
+maintains and sends the first $t$ power sums. The sender also incrementally
+maintains the same number of power sums, required for decoding.
+Efficiently solving these $t$
 power sum polynomial equations in $t$ variables in a finite field is a
 well-understood algebra problem~\cite{eppstein2011straggler}. The solutions are
 exactly $x \in S \setminus R$.
@@ -237,22 +257,28 @@ exactly $x \in S \setminus R$.
 \subsection{Invertible Bloom lookup table: A computationally scalable approach}
 \label{sec:quack:constructions:iblt}
 
-Now we apply the IBLT to describe a probabilistic construction of the quACK in
-a Bloom-filter-like data structure. The IBLT construction has better computation
-complexity than the power sum construction, but incurs higher constant factor
-overheads and is probabilistic.
-Recall that the IBLT data structure consists of some number of cells, where each
-cell contains an XOR and a count of elements in the cell. In the IBLT, $t$ is
-only an approximate bound on the number of missing elements, so we set the
-number of cells to some multiplicative factor more than $t$.
+Now we apply the invertible Bloom lookup table to describe a probabilistic
+construction of the quACK in a Bloom-filter-like data structure. The IBLT
+construction has better computation complexity than the power sum construction,
+but incurs higher constant factor overheads and is probabilistic. The IBLT data
+structure consists of a configurable number of cells, where each cell contains
+an XOR and a count of elements in the cell (\Cref{fig:slides:iblt}). In the IBLT, $t$ is only an
+approximate bound on the number of missing elements, so we set the number of
+cells to some multiplicative factor more than $t$ to increase the probability
+that we successfully decode.
+
+\input{slides/figures_tex/iblt.tex}
 
 When the sender or receiver adds an element to the IBLT, we leverage the
 pseudorandom mapping algorithm of the Rateless IBLT to determine which cells
 to update~\cite{yang2024practical}. This algorithm maps each element to
 $O(\log(t))$ cells, with a greater density in the cells with smaller indexes.
 This resembles rateless error-correcting codes with an infinite stream of coded
-symbols in that a prefix of an IBLT with an infinite number of cells can be
-used to deterministically decode the elements in the IBLT.
+symbols in that some prefix of a Rateless IBLT with an infinite number of cells
+can be used to deterministically decode the elements in the data structure.
+Note that a typical IBLT uses a deterministic hash function to map each element
+to a small, constant number of cells, which is not conducive to an infinite
+stream.
 
 The IBLT also allows the removal of elements and subtraction of two IBLTs with
 the same number of cells. To find the set difference between the elements in
@@ -271,36 +297,45 @@ the mapping algorithm.
 
 \Cref{tab:quack:constructions,tab:quack:theoretical} summarize the
 different strawman approaches and set-reconciliation-based constructions of
-the quACK, and the algorithmic complexities of their costs. \gina{Fill in this
-summary.} Next we will explore efficient implementations of the
-set-reconciliation designs and their computation and communication costs
-compared to the strawmen in practice.
+the quACK, and the algorithmic complexities of their costs.
+Strawman 1 sends an excessive number of packets over the wire while Strawman 2
+is impractical to decode when the number of possible subsets of missing packets
+explodes. Their communication and computation costs scale, respectively, with
+$n$, the total number of packets sent over the entire connection.
+In comparison, the costs of the power sum and IBLT constructions scale only
+with $t$, a bounded number of missing packets between quACKs. The IBLT
+construction is more computationally scalable, but the power sum construction is
+both deterministic and space-optimal in practice.
+Next we will explore efficient implementations of the
+set-reconciliation designs and their practical costs.
 
 \section{Implementation}
 \label{sec:quack:implementation}
 
-The implementation of the quACK must be practical for packet-scale settings
-in terms of communication and computation costs. The
-communication must fit in a single network packet, ideally even less to be
-considered a control packet for congestion control purposes. For example, a TCP
-ACK is only 20 bytes on the wire, excluding Ethernet and IP headers.
-The implementation should also provide a convenient interface to
-interchangeably use different constructions of the quACK.
+\input{quack/listings/api.tex}
 
-\input{quack/tables/practical.tex}
-
-We define a common API for quACK implementations, shown in
+The implementation of the quACK should provide a convenient interface to
+interchangeably use different constructions of the quACK. The two set
+reconciliation constructions have different tradeoffs that are appropriate for
+different settings. We define a common API for quACK implementations, shown in
 \Cref{lst:quack:api}. Our optimized implementations of the power sum and
 IBLT quACK constructions adhere to this interface and are available as a
 software library on GitHub~\cite{quack-github}.
-Both constructions can practically decode set differences at
-millisecond-RTT timescales and encode packets with nanosecond interarrival
-times, summarized in \Cref{tab:quack:practical}.
+
+The performance of the implementation must be practical for packet-scale
+settings. The communication must fit in a single network packet, ideally even
+less to be considered a control packet for congestion control purposes. For
+example, a TCP ACK is only 20 bytes on the wire, excluding Ethernet and IP
+headers. The implementation must also be able to practically decode set
+differences at millisecond-RTT timescales and encode packets with nanosecond
+interarrival times. We describe several optimizations in our implementation to
+meet these performance constraints.
 
 \subsection{Wire format}
+\label{sec:quack:implementation:wire-format}
 
-The wire format of the quACK reflects its communication cost in a Sidekick
-connection. Although the actual mechanism in which quACKs are transmitted over
+The wire format of the quACK reflects its communication cost.
+Although the actual mechanism in which quACKs are transmitted over
 the wire is not tied to the design, we assume quACKs to be written in the
 payload of a UDP datagram, possibly with a small header. Assuming we use 32-bit
 integers as packet identifiers, the actual quACK consists of three fields:
@@ -324,25 +359,27 @@ The wire format of the symbol depends on the construction of the quACK. In the
 power sum construction, the symbol is just a power sum of the elements, and
 uses 4 bytes. In the IBLT construction, the symbol consists of both an XOR of
 the elements and a count. With 4-byte identifiers, the count uses just one byte
-for a total of 5 bytes. The total communication cost of the quACK (excluding
+for a total of 5 bytes. For the same upper bound on the number of missing
+elements, one might use more symbols in the IBLT construction to increase the
+probability of decoding. The total communication cost of the quACK (excluding
 headers) is either $8+4\cdot t$ or $8+5\cdot t$ bytes, depending on the
 construction.
 
 \subsubsection{Why is a single byte sufficient for the count in an IBLT cell?}
 
-Note that a quACK needs to fit in a single UDP datagram, which limits us to
+Since a quACK needs to fit in a single UDP datagram, this limits us to
 $\approx\!1400$ bytes excluding headers. If each XOR is $4$ bytes, then there
 can be at most $350$ packets in the set difference. Note that $8$-byte
 identifiers are unnecessary because collisions are unlikely in these small set
 difference sizes. The count in each symbol needs to be as large as the set
 difference size. It can also be an unsigned integer because we do subset
-(and not set) reconciliation, and we can subtract with overflow. An 8-bit
+(and not set) reconciliation, so the differences should always be positive
+and we can subtract with overflow. An 8-bit
 integer goes up to $255$, which is sufficiently close. Thus the largest IBLT
 quACK contains $255$ symbols or $4 + 4 + 255 \cdot 5 = 1283$ bytes on the wire.
 
 \subsection{QuACK API}
-
-\input{quack/listings/api.tex}
+\label{sec:quack:implementation:api}
 
 The API for the quACK consists of the basic operations for encoding and
 decoding elements as described in \Cref{sec:quack:constructions}
@@ -356,31 +393,62 @@ elements in that set difference. The values returned by the
 \texttt{count()} and \texttt{last\_element()} functions are incrementally
 updated as elements are added and removed.
 
-We explored many optimizations to improve the performance of each quACK.
-In the power sum quACK, this included optimizing modular arithmetic operations
-for various bit widths to explore the tradeoff between identifier collisions
-and computation cost, as well as various methods for solving a system of
-symmetric polynomial equations. In the IBLT quACK, the pseudorandom mapping
-algorithm needed to be fast so that the computational complexity outweighed
-the constant factor overheads even when $t$ was small.
-In \Cref{sec:quack:psum-microbenchmarks,sec:quack:iblt-microbenchmarks},
-we run microbenchmarks to demonstrate the practicality of our implementation
-for in-line packet processing at packet-scale settings, and also evaluate the
-impact of our design decisions on the computation cost.
+\subsection{Performance optimizations}
+\label{sec:quack:implementation:optimizations}
+
+We explore many optimizations to improve the performance of each quACK.
+In \Cref{sec:quack:psum-microbenchmarks,sec:quack:iblt-microbenchmarks}, we run
+microbenchmarks to demonstrate the practicality of our power sum and IBLT quACK
+implementations, respectively, for in-line packet processing at packet-scale
+settings. We also evaluate the impact of our design decisions on the computation
+cost.
+
+Starting with the power sum quACK, we optimize the implementations of modular
+arithmetic operations for different bit widths. This includes basic techniques
+like repeated squaring. For 16-bit identifiers only, we precompute power tables
+that fit in the L3 cache, replacing repeated multiplication with a simple cache
+access. For 64-bit identifiers, we implement Montgomery modular
+multiplication~\cite{montgomery1985modular} to avoid an expensive hardware
+division for 128-bit integers. Note that the effect of these performance
+optimizations depend on the CPU processor.
+
+% In the power sum quACK, this included optimizing modular arithmetic operations
+% for various bit widths to explore the tradeoff between identifier collisions
+% and computation cost, as well as various methods for solving a system of
+% symmetric polynomial equations.
+
+We also implement an alternate decoding method for the power sum quACK that
+does not require polynomial factorization.
+Decoding the power sum quACK requires finding the solution to a system of power
+sum polynomial equations. This boils down to applying Newton's identities (a
+linear algorithm) and finding the roots of a polynomial equation in a modular
+field~\cite{eppstein2011straggler}.
+Factoring a polynomial is asymptotically fast in theory, but the implementation
+is branch-heavy and complicated~\cite{parigp2018}.
+We find that in practice, it is faster to plug in and determine which of the
+$n$ candidate roots evaluate to zero when there are $n < 40,000$ roots.
+We sometimes refer to this method as ``not factoring''.
+
+For the IBLT quACK, we first port the optimized Rateless IBLT~\cite{riblt-github}
+to Rust. We simplify the implementation to fit the constraints of the quACK
+context, such as by reducing the bit widths of the symbols and counts,
+adjusting the mapping algorithm accordingly, and removing an unnecessary
+checksum check for doing subset reconciliation. The pseudorandom mapping
+algorithm uses a square root operation, and is the source of constant factor
+overheads when $t$ is small even though the IBLT construction has better
+computational complexity.
 
 \section{Power sum microbenchmarks}
 \label{sec:quack:psum-microbenchmarks}
 
-\input{quack/figures_tex/psum.tex}
-
 First, we evaluate the computation overheads of the space-optimal and
 deterministic power sum quACK. We explore different bit widths for the
-identifier and settle on using 32-bit packet identifiers as the best tradeoff
-between collision probability, communication size, and computation cost. We
-analyze optimizations such as the decoding method for the power sum quACK and
-show that our implementation can achieve practical packet encoding and quACK
-decoding times in packet-scale settings. Our microbenchmarks used an m4.xlarge
-AWS instance with a 4-CPU Intel Xeon E5 processor @ 2.30 GHz and 16 GB memory.
+identifier and settle on using 32-bit packet identifiers as the best overall
+tradeoff. We analyze how the encoding and decoding times of the power sum
+quACK scale in practice and show that our implementation can achieve practical
+packet encoding and quACK decoding times in packet-scale settings.
+Our microbenchmarks use an m4.xlarge AWS instance with a 4-CPU Intel Xeon E5
+processor @ 2.30 GHz and 16 GB memory.
 
 \subsection{Identifier bit widths}
 \label{sec:quack:psum-microbenchmarks:bit-widths}
@@ -395,127 +463,136 @@ word size (the number of bits that can be processed in one instruction) of most
 modern CPUs. For example, to multiply two 32-bit integers, we cast them to
 64-bit integers, multiply, then take the modulus.
 
-\Cref{fig:quack:psum} shows the best encoding and decoding times we achieved
-at different bit widths, demonstrating that computation cost is generally higher
-for higher bit widths, though not significantly. For 16-bit identifiers only, we
-precomputed power tables that fit in the L3 cache. For 64-bit identifiers, we
-implemented Montgomery modular multiplication~\cite{montgomery1985modular}
-to avoid an expensive hardware division for 128-bit integers.
-\Cref{tab:quack:optimized-quack} shows the results of our ablation experiments
-for optimizations at different bit widths. In the remainder
-of this dissertation, we select $b=4$, or 32-bit identifiers, as the preferred
-tradeoff between collision probability, the size of the quACK, and computation
-cost.
+\Cref{tab:quack:optimized-quack} shows our ablation experiments for the
+performance optimizations described in \Cref{sec:quack:implementation:optimizations},
+as well as our recommended optimizations for each bit width. In the
+remainder of this dissertation, we use 32-bit (4-byte) identifiers for having
+the best tradeoff between collision probability, link overheads, and computation
+cost. The collision probability is too high for 16-bit identifiers and the link
+overheads too high for 64-bit identifiers, with computation being comparable
+in all.
 
 \subsection{Encoding time}
 \label{sec:quack:psum-microbenchmarks:encoding}
 
-Encoding a single packet requires updating the $t$ power sums in the power sum
-quACK.
-The per-packet encoding time is thus directly proportional to the threshold
-number of missing packets $t$ (\Cref{fig:quack:psum:construction-time}) at
+\input{quack/figures_tex/psum-encode.tex}
+
+The encoding time scales linearly with the threshold of the power sum quACK
+(\Cref{fig:quack:psum-encode}). Encoding a single packet requires
+updating the $t$ power sums in the power sum quACK. Each power sum can be
+updated in a constant number of operations, a single modular addition and
+multiplication, based on the previous power sum. The per-packet encoding time
+is thus directly proportional to the threshold number of missing packets $t$ at
 $\approx 3$ ns/power sum.
-Each power sum can be updated in a constant number of operations based on the
-previous power sum, which is a single modular addition and multiplication.
 
 \subsection{Decoding time}
 \label{sec:quack:psum-microbenchmarks:decoding}
 
-Decoding the power sum quACK requires finding the solution to a system of power
-sum polynomial equations. This boils down to applying Newton's identities (a
-linear algorithm) and finding the roots of a polynomial equation in a modular
-field~\cite{eppstein2011straggler}.
-Factoring a polynomial is asymptotically fast in theory, but the implementation
-is branch-heavy and complicated~\cite{parigp2018}.
-We find that in practice, it is faster to plug in and determine which of the
-$n$ candidate roots evaluate to zero when there are $n < 40,000$ roots.
-We use this method to decode the power sum quACK instead of factorization.
+\input{quack/figures_tex/psum-decode.tex}
 
-The decoding time of this method is directly proportional to the number of
-candidate packets $n$ (\Cref{fig:quack:psum:n-vs-decoding})
-and the number of missing packets $m$ (\Cref{fig:quack:psum:m-vs-decoding}).
+The decoding time of the method of plugging in candidate roots scales linearly with the number of
+candidate packets $n$ (\Cref{fig:quack:psum-decode:n})
+and the number of missing packets $m$ (\Cref{fig:quack:psum-decode:m}).
+Note that this is faster in practice than factoring the polynomial.
 Decoding takes $\approx 11$ ns/candidate/missing, and both $n$ and $m$ are
 typically a few hundred at most.
-Thus it is typically for encoding to take a few nanoseconds per packet and
+Thus it is typical for encoding to take a few nanoseconds per packet and
 decoding to take a few microseconds per quACK.
 
 \section{IBLT microbenchmarks}
 \label{sec:quack:iblt-microbenchmarks}
 
-Both constructions of the quACK implement the same interface and can be used
-interchangeably, so when should we prefer one to the other? In this section, we
-compare the encoding and decoding times of each construction in practice,
-including how they scale with the communication cost and the number of missing
-packets. We also explore how to configure the IBLT quACK based on its
-probabilistic correctness. We run the microbenchmarks on a single core of an
-AWS m4.xlarge instance.
+The IBLT quACK has better computational complexity than the power sum
+construction, but how well does this hold in practice? We compare the encoding
+and decoding times of the two, and find that while the IBLT construction is
+more computationally scalable, it has non-negligible constant factor overheads
+at small set sizes due to the mapping algorithm. We also explore how to
+configure the IBLT quACK based on its probabilistic correctness. We run the
+microbenchmarks on a single core of an AWS m4.xlarge instance.
 
 \subsection{Encoding and decoding time scalability}
 \label{sec:quack:iblt-microbenchmarks:scalability}
 
 \input{quack/figures_tex/iblt-computation.tex}
 
-Encoding and decoding operations in the IBLT quACK update a logarithmic number
-of symbols per-packet, compared to all of the symbols in the power sum quACK.
-This results in better computational complexity in theory, but in practice we
-find that the encoding and decoding times also depend on the constant factor
-overheads of the pseudorandom mapping algorithm.
+% Encoding and decoding operations in the IBLT quACK update a logarithmic number
+% of symbols per-packet, compared to all of the symbols in the power sum
+% quACK~\cite{tab:quack:theoretical}. This results in better computational
+% complexity, but our analysis finds that the encoding and decoding times also
+% depend on the constant factor overheads of the pseudorandom mapping algorithm
+% in the IBLT quACK~\cite{fig:quack:iblt-computation}.
 
-The encoding time in the IBLT quACK is faster when there are at least
-$\approx\!30$ symbols (\Cref{fig:quack:iblt-computation:encode}).
-Each update in the IBLT uses an expensive square root instruction in the
+The encoding time in the IBLT quACK scales logarithmically with the number of
+symbols (\Cref{fig:quack:iblt-computation:encode}). It is faster than the
+power sum quACK when there are at least $\approx\!30$ symbols. This is because
+each update in the IBLT uses an expensive square root instruction in the
 pseudorandom mapping algorithm, adding constant factor overheads that impact
 smaller numbers of symbols.
 
-The decoding time is faster for any number of symbols
-(\Cref{fig:quack:iblt-computation:decode}).
-Note that the power sum quACK actually uses a decoding method that is linear
-in \textit{all} packets received, not just the \textit{missing} packets, due to
-the complexity of symmetric polynomial factorization.
+The decoding time in the IBLT quACK scales roughly linearly with the number
+of missing packets, and is faster than the power sum quACK for any number of
+symbols (\Cref{fig:quack:iblt-computation:decode}).
+Recall that the power sum quACK actually uses a decoding method that is linear
+in the total number of packets sent since the last quACK, not just the number
+of missing packets $m$. The IBLT quACK needs to peel each of the $m$ missing
+packets from $O(\log m)$ cells in the IBLT.
 
 \subsection{Probabilistic correctness}
 \label{sec:quack:iblt-microbenchmarks:correctness}
 
 \input{quack/figures_tex/iblt-correctness.tex}
 
-It is unknown how many symbols are required in the IBLT quACK to decode the same
-number of $m$ missing packets using power sums in the previous benchmarks.
-There is a constant multiplicative factor on average
+In the previous microbenchmarks, it is unknown how many symbols are required in
+the IBLT quACK to decode the same number of $m$ missing packets using power
+sums. There is a constant multiplicative factor on average
 ($1.23$--$1.35\times$~\cite{yang2024practical,baek2023simple}), but this is
-not necessarily representative when $m$ is often small.
+not necessarily representative when $m$ is small, as it often is.
 \Cref{fig:quack:iblt-correctness} shows the CDF of the minimum number of symbols
-to decode various $m$ as this constant multiplier increases. $m=1$ trivially
+required to decode various $m$ as this constant multiplier increases. $m=1$ trivially
 requires one symbol, while the multiplier decreases for higher $m$ to achieve
-the same success rates.
+the same success rates. This suggests we made need a larger multiplier for small
+set difference sizes on average.
 
-The sender does not know how many symbols it needs to encode to later decode a
-certain $m$. Using the power sum quACK, this is exactly $m$ symbols. In the
-IBLT quACK, $4 \cdot m$ symbols have at least a $\!98.8\%$ success rate for all
-$m$ evaluated in \Cref{fig:quack:iblt-correctness}. When $m$ is large, the IBLT
-quACK utilizes more of the link than the power sum quACK, but maintaining more
-symbols at the sender and receiver means the sender has a greater worst-case
-tolerance for errors with more scalable encoding overheads.
+The sender does not know how many symbols it needs to encode in order to later
+decode a certain number of missing packets. Using the power sum quACK, the
+threshold can be set to exactly $m$ symbols. In the IBLT quACK, $4 \cdot m$
+symbols have at least a $98.8\%$ success rate for all $m$ evaluated in \Cref
+{fig:quack:iblt-correctness}. When $m$ is large, the IBLT quACK utilizes more
+of the link than the power sum quACK, but if the sender and receiver each
+maintain more symbols, the sender has a greater worst-case tolerance for
+errors with more scalable encoding overheads. With rateless quACKs (\Cref
+{sec:packrat:receiver:rateless}), the receiver can encode much larger numbers
+of symbols while the sender decodes fewer symbols in the common case.
+
+\input{quack/tables/practical.tex}
 
 \section{Summary}
 \label{sec:quack:summary}
 
-The power sum and IBLT constructions of the quACK can efficiently refer to and
-acknowledge a set of randomly encrypted packets
-(\Cref{tab:quack:practical}). These constructions are efficient to
-decode, add reasonable link overhead, and are cumulative representations of the
-packets seen by the receiver. Compared to Strawman 2, the quACKs can be decoded
-with simple computational primitives such as XORs and modular arithmetic. Their
-link overheads are proportional only to the number of missing packets between
-consecutive quACKs, up to a configurable threshold. In comparison, the link
-overhead of Strawman 1 is necessarily proportional to the number of received
-packets. Our quACK constructions are also resilient to mis-identifying a
-received packet as dropped, in the case a quACK is lost in transmission.
+Our set-reconciliation-based constructions of the quACK can efficiently refer to
+and acknowledge a set of randomly encrypted packets. These constructions can
+practically decode set differences at millisecond-RTT timescales and encode
+packets with nanosecond interarrival times, summarized in \Cref
+{tab:quack:practical}. They are also cumulative representations of the packets
+seen by the receiver. The power sum construction is a space-optimal and
+deterministic solution, while the probabilistic IBLT construction is more
+computationally scalable in practice for larger set sizes. Next, we will explore
+the use of the power sum quACK in the Sidekick protocol in (\Cref{sec:sidekick})
+and settings where the computational scalability of the IBLT quACK is a
+desirable property (\Cref{sec:packrat}).
+% Compared to Strawman 2, the quACKs can be decoded with simple computational
+% primitives such as XORs and modular arithmetic. Their link overheads are
+% proportional only to the number of missing packets between consecutive quACKs,
+% up to a configurable threshold. In comparison, the link overhead of Strawman 1
+% is necessarily proportional to the number of received packets. Our quACK
+% constructions are also resilient to mis-identifying a received packet as
+% dropped, in the case a quACK is lost in transmission.
 
-Compared to each other, the IBLT quACK has more scalable computational costs
-than the power sum quACK but greater constant factor overheads
-(\Cref{tab:quack:theoretical}). We find the IBLT quACK to be more
-useful when a large number of symbols is required, such as in settings with
-high, bursty loss. However, the power sum quACK is still more efficient when
-loss is small or infrequent. In addition, since the power sum quACK is
-deterministically correct, it may be simpler to reason about when the threshold
-is predictable. Thus both constructions have different tradeoffs to consider.
+% Compared to each other, the IBLT quACK has more scalable computational costs
+% than the power sum quACK but greater constant factor overheads
+% (\Cref{tab:quack:theoretical}). We find the IBLT quACK to be more
+% useful when a large number of symbols is required, such as in settings with
+% high, bursty loss. However, the power sum quACK is still more efficient when
+% loss is small or infrequent. In addition, since the power sum quACK is
+% deterministically correct, it may be simpler to reason about when the threshold
+% is predictable. Thus both constructions have different tradeoffs to consider.
