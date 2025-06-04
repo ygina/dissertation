@@ -1,14 +1,15 @@
-\chapter[Connection-Splitting Study]{The future of connection-splitting with BBR and QUIC}
+\chapter[Future of Connection-Splitting]{The future of connection-splitting with BBR and QUIC}
 \label{sec:splitting}
 
-In the 1990s, many networks deployed performance-enhancing proxies
-(PEPs) that transparently split TCP connections to aid performance,
-especially over lossy, long-delay paths. Two recent
-developments have cast doubts on their relevance: the
-BBR congestion-control algorithm, which de-emphasizes loss as a
-congestion signal, and the QUIC transport protocol, which prevents
-transparent connection-splitting yet empirically matches or exceeds
-TCP's performance in wide deployment, using the same congestion control.
+Much of this dissertation is based off the premise that traditional
+connection-splitting PEPs still help endpoints achieve performance benefits
+that we'd like to emulate for secure transport protocols. While this may have
+been true when PEPs were first deployed in the 1990s, two recent developments
+first announced in the late 2010s have cast doubts on their relevance: the BBR
+congestion-control algorithm, which de-emphasizes loss as a congestion signal,
+and the QUIC transport protocol, which prevents transparent
+connection-splitting yet empirically matches or exceeds TCP's performance in
+wide deployment, using the same congestion control.
 
 In light of this, are PEPs obsolete? This chapter presents a range of
 emulation measurements indicating: ``probably not.'' While BBR's
@@ -20,6 +21,9 @@ dramatically and further differ from those of Linux TCP---frustrating
 head-to-head comparisons.
 Notwithstanding their controversial nature, our results suggest
 that PEPs remain relevant to Internet performance for the foreseeable future.
+We hope these findings motivate the development for solutions such as the ones
+in \Cref{sec:quack,sec:sidekick,sec:packrat} that balance the performance
+benefits of traditional PEPs with the freedom to evolve transport over time.
 
 \section{Introduction}
 \label{sec:splitting:intro}

@@ -1,16 +1,21 @@
 \chapter[Packrat Proxies]{Packrat Proxies: Secure in-network retransmissions for data receivers}
 \label{sec:packrat}
 
-This chapter describes and evaluates new techniques for
-network-originated retransmissions for end-to-end transport
-connections, yielding performance benefits for encrypted transport
-protocols in lossy settings.  We use the IBLT quACK from \Cref{sec:quack}
-to let the receiver efficiently acknowledge
-encrypted packets to a network function, without modifying the sender
-or the underlying wire format. With these tools, endpoints can receive
-network-originated retransmissions appropriate for them, without an
-additional layer of encapsulation, tunnel, or link-layer
-retransmissions.
+The next chapter describes and evaluates the use of \textit{Packrat proxies} for
+network-originated retransmissions for end-to-end transport connections in
+lossy settings. Packrat proxies speak the Sidekick protocol over an adjacent
+connection, but rather than sending quACKs to a data sender, they decode quACKs
+from a data receiver and identify encrypted packets that need retransmission.
+Any per-packet overhead incurred at the proxy must be extremely small, and we
+leverage the IBLT construction of the quACK from \Cref{sec:quack} for its
+efficient decoding operation. With these tools, endpoints can receive
+network-originated retransmissions appropriate for their desired application
+metrics---higher throughput, lower latency, and lower link overheads than
+end-to-end retransmissions---without an additional layer of encapsulation,
+tunnel, or link-layer retransmissions. Paired with the Sidekick proxies
+of \Cref{sec:sidekick}, Packrat proxies provide protocol-agnostic in-network
+assistance in both directions, effectively serving as a secure replacement for
+a variety of traditional PEPs.
 
 \section{Introduction}
 \label{sec:packrat:intro}
