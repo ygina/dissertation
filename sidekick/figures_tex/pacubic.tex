@@ -37,8 +37,8 @@ near path segment. The cwnd is measured at the data sender,
 except for split CUBIC whose split connection also has a cwnd at the proxy.
 PACUBIC reacts to every congestion event while keeping the cwnd high.
 CUBIC performs poorly when there is loss on the near path segment.
-CUBIC and PACUBIC are implemented in QUIC, while split CUBIC is implemented
-in TCP using a PEP.
+CUBIC and PACUBIC are implemented in QUIC, while split CUBIC is from
+TCP with a PEP.
 }
 \label{fig:sidekick:pacubic}
 \end{figure}

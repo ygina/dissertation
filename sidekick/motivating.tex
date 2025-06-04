@@ -4,9 +4,9 @@
 \input{sidekick/figures_tex/overview.tex}
 
 We focus on three scenarios where end hosts benefit from in-network assistance.
-In each one, a proxy server provides feedback in the form of a quACK to an end
+In each one, a proxy provides feedback in the form of a quACK to an end
 host: the data sender (\Cref{fig:sidekick:overview}). Recall that a quACK is a
-``cumulative ACK + selective ACK'' over encrypted sequence numbers. The data
+``cumulative ACK + selective ACK'' over encrypted packet identifiers. The data
 sender uses this feedback to influence its behavior on the base connection,
 without altering the wire format.
 
@@ -29,12 +29,12 @@ high de-jitter buffer delays from waiting for retransmitted packets to be
 played in order (\Cref{fig:sidekick:real-world:media} in the real world,
 \Cref{fig:sidekick:main-results:media} in emulation).
 
-In the Sidekick protocol approach, a PEP on the Wi-Fi access point sends quACKs to
-the audio application on the user's laptop, assisting the base connection's
-data sender. The sender uses quACKs to retransmit packets sooner than they
-would have using negative acknowledgments (NACKs) from the receiver. The end
-result is similar to the effect of prior PEPs, such as
-Snoop~\cite{balakrishnan1995snoop} and Milliproxy~\cite{polese2017milliproxy},
+In the Sidekick approach, a PEP on the Wi-Fi access point sends quACKs to
+the media client on the passenger's laptop, assisting the base connection.
+The passenger's media client uses quACKs to retransmit packets sooner than they
+would have using negative acknowledgments (NACKs) from the friend. The
+end result is similar to the effect of PEPs such as
+Snoop~\cite{balakrishnan1995snoop} and Milliproxy~\cite{polese2017milliproxy}
 that leverage TCP's cleartext sequence numbers to trigger early retransmission
 on lossy wireless paths.
 
@@ -55,26 +55,27 @@ the congestion-control behavior. This leads to reduced upload speeds
 (\Cref{fig:sidekick:real-world:pep-emulation} in the real world,
 \Cref{fig:sidekick:main-results:pep-emulation} in emulation).
 
-With help from the same Sidekick PEP, the QUIC sender combines information from
+With help from the same Sidekick PEP, the QUIC client combines information from
 quACKs and end-to-end ACKs to emulate the congestion-control behavior of a
-split TCP connection (\Cref{sec:sidekick:design:sender}). The
+split TCP connection (\Cref{sec:sidekick:pacubic}). The
 application considers whether packets are lost on the near or far path
 segments, and adjusts the congestion window accordingly while respecting the
 opacity of the end-to-end base connection. The application also retransmits the
 packet as soon as the loss has been detected.
 
-The only guarantee the proxy makes to the sender via the quACK is that it has
+The only guarantee the proxy makes to the client via the quACK is that it has
 received some packets. To respect the end-to-end reliability contract with the
-receiver, the sender does not delete packets that may need to be transmitted
-until it receives an ACK, even if the packet has been quACKed.
+server, the client does not delete packets that may need to be transmitted
+until it receives an end-to-end ACK from the server, even if the packet has
+been quACKed by the proxy.
 
 \subsection{Battery-saving ACK reduction}
 \label{sec:sidekick:motivating:ack-reduction}
 
 Now consider a battery-powered device downloading a large file from the
-Internet. To reduce how often the receiver's
+Internet. To reduce how often the device's
 radio needs to wake up, saving energy, the base connection can reduce the
-frequency of end-to-end ACKs the device sends.
+frequency of end-to-end ACKs the device sends to the data sender.
 ACK reduction has also been shown to improve performance by reducing collisions
 and contention over half-duplex links~\cite{custura2023reducing,li2020tack}.
 The ACK frequency can be configured with a TCP kernel setting or proposed
@@ -83,20 +84,21 @@ QUIC extension~\cite{ietf-quic-ack-frequency-07}.
 However, ACK reduction can also degrade
 throughput~\cite{custura2023reducing,custura2020impact}
 (\Cref{fig:sidekick:main-results:ack-reduction} in emulation).
-The sender receives more delayed feedback about loss, and has to carefully
+The data sender receives more delayed feedback about loss, and has to carefully
 pace packets to avoid bursts in the large delay between ACKs.
-One proposal has the PEP acknowledge packets on behalf of the
+One proposal has the PEP acknowledge packets on behalf of the data
 receiver~\cite{kliazovich2012arqproxy}, leveraging cleartext TCP sequence
-numbers, but it does not apply to secure transport protocols.
+numbers. This proposal does not apply to secure transport protocols without
+these sequence numbers.
 
-In this case, a Sidekick PEP at the Wi-Fi access point (or a cellular base station)
-quACKs to the sender on behalf of the receiver. The receiver still occasionally
-wakes up its radio to send ACKs, but the sender uses the more frequent quACKs
-to advance its flow-control and congestion-control windows.
+In this scenario, a Sidekick proxy at a Wi-Fi access point or cellular base station
+quACKs to the data sender on behalf of the battery-powered device. The device still occasionally
+wakes up its radio to send ACKs, but the data sender uses the more frequent quACKs
+from the proxy to advance its flow-control and congestion-control windows.
 
-The sender respects the end-to-end reliability contract by only deleting packets
-in response to ACKs, but disregards the receiver's flow control by using quACKs
-to advance the flow-control window. If the sender only used ACKs to advance the
+The data sender respects the end-to-end reliability contract by only deleting packets
+in response to end-to-end ACKs, but disregards the data receiver's flow control by using quACKs
+to advance the flow-control window. If the data sender only used end-to-end ACKs to advance the
 window, it would waste time waiting between ACKs to send packets with too small
 a window, and need to pace sent packets on receiving a large ACK with too large
 a window.

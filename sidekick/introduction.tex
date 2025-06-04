@@ -2,17 +2,14 @@
 \label{sec:sidekick:intro}
 
 In the Internet's canonical model, transport is end-to-end and implemented only
-in hosts. Traditionally, routers and other network components forwarded IP
-datagrams without regard to their payloads or flow membership~\cite
-{saltzer1984endtoend, clark1988darpa}; only hosts thought about connections,
-reliable delivery, or flow-by-flow congestion control.
-
-In practice, however, the best behavior for a transport protocol depends on the
-particulars of the network path. An appropriate retransmission or
-congestion-control scheme for a heavily-multiplexed wired network wouldn't be
-ideal for paths that include a high-delay satellite link, Wi-Fi with bulk ACKs
-and frequent reordering, or a cellular WWAN~\cite
-{kuhn2021quic-over-sat,goyal2017abc}.
+in hosts; only hosts think about connections, reliable delivery, or
+flow-by-flow congestion control (\Cref{sec:introduction}).
+In practice, however, the best behavior for a
+transport protocol depends on the particulars of the network path. An
+appropriate retransmission or congestion-control scheme for a
+heavily-multiplexed wired network wouldn't be ideal for paths that include a
+high-delay satellite link, Wi-Fi with bulk ACKs and frequent reordering, or a
+cellular WWAN~\cite{kuhn2021quic-over-sat,goyal2017abc}.
 
 By the 1990s, many networks had broken from the canonical model by deploying
 in-network TCP accelerators, also known as ``performance-enhancing proxies''
@@ -22,92 +19,100 @@ multiple concatenated connections~\cite
 buffer and retransmit packets over a lossy link~\cite
 {balakrishnan1995snoop,polese2017milliproxy}, virtualize congestion
 control~\cite{cronkite2016vcc,he2016acdc,mihaly2012mobilePEP}, resegment the
-byte stream, and enable forward error correction, explicit congestion
-notification, or other segment-specific enhancements. Because TCP isn't
-encrypted or authenticated, PEPs can achieve this transparently, without the
+byte stream, and enable forward error correction, ECN,
+or other segment-specific enhancements. Because TCP isn't
+encrypted or authenticated, PEPs can achieve this without the
 knowledge or cooperation of end hosts. Roughly 20--40\% of Internet paths cross
 at least one TCP PEP~\cite{honda2011still, edeline2019bottomup}.
 
 While many flows benefit from PEPs, their use carries a cost: protocol
-ossification~\cite{papastergiou2017deossifying, edeline2019bottomup}. When a
-middlebox inserts itself in a connection and enforces its preconceptions about
-the transport protocol, it can thwart the protocol's evolution, dropping
-traffic that uses an upgraded version or new options. TCP PEPs have hindered or
-complicated the deployment of many TCP improvements, such as ECN++, tcpcrypt,
-TCP extended options, and multipath TCP~\cite
-{mandalari2018ecnplusplus,honda2011still,raiciu2012multipathtcp}.
-
-In response to this ossification, and to an increased emphasis on privacy and
-security, post-TCP transport protocols have been designed to be impervious to
-meddling middleboxes, by encrypting and authenticating the transport header. We
-refer to these newer transport protocols as ``secure'' transport protocols. The
+ossification~\cite{papastergiou2017deossifying, edeline2019bottomup}.
+% When a
+% middlebox inserts itself in a connection and enforces its preconceptions about
+% the transport protocol, it can thwart the protocol's evolution, dropping
+% traffic that uses an upgraded version or new options. TCP PEPs have hindered or
+% complicated the deployment of many TCP improvements, such as ECN++, tcpcrypt,
+% TCP extended options, and Multipath TCP~\cite
+% {mandalari2018ecnplusplus,honda2011still,raiciu2012multipathtcp}.
+In response,
+% to this ossification, and to an increased emphasis on privacy and security,
+post-TCP transport protocols have been designed to be impervious to
+meddling middleboxes by encrypting and authenticating the transport header. We
+refer to these newer transport protocols as ``opaque'' transport protocols. The
 most prevalent is QUIC~\cite{rfc9000}, found in billions of installed Web
 browsers and millions of servers~\cite{zirngibl2021quicdeployment}; other secure
 transport protocols are used in WebRTC/SRTP~\cite{rfc8834webrtc},
 Zoom~\cite{zoom}, BitTorrent~\cite{bittorrent}, and
 Mosh/SSP~\cite{winstein2012mosh}.
 
-This encryption means that middleboxes can't interpose themselves on a
+This opacity means that middleboxes can't interpose themselves on a
 connection or understand the sequence numbers of packets in transit. This
-prevents PEPs from providing assistance, reducing---in some situations---the
-performance of secure transport protocols~\cite
+prevents PEPs from providing assistance, in some situations reducing the
+performance of opaque transport protocols~\cite
 {border2020quicsat-presentation,kuhn2021quic-over-sat,martin2022suitability,border2020evaluating,kosek2022quicpep}.
-It's possible to co-design protocols and PEPs to preserve security and privacy
-while permitting assistance from credentialed middleboxes~\cite
-{ford2008logjam,sherry2015blindbox, dogar2012tapa,iyengar2009flow}, but
-challenging to do so without tightly coupling these components, risking
-ossification and fragility.
+It's possible to co-design protocols and PEPs to permit assistance from
+credentialed middleboxes~\cite{ford2008logjam,sherry2015blindbox, dogar2012tapa,iyengar2009flow},
+but challenging to do so without tightly coupling these components and risks
+ossification and fragility. The resulting tension between the performance
+enhancements of PEPs and protocol ossification makes it challenging to provide
+in-network assistance to secure transport protocols.
 
-In this chapter, we propose a method for in-network assistance of secure transport
-protocols that tries to resolve this tension. Our approach leaves the transport
-protocol unchanged on the wire: an encrypted end-to-end connection between hosts,
-opaque to middleboxes and free to evolve. No PEPs are credentialed to decrypt
-the transport protocol's headers.
+In this chapter, we propose a
+second protocol called the \emph{\bf Sidekick protocol} to be spoken on an
+adjacent connection between an end host and a PEP. The contents of the adjacent
+connection are \emph{about} the packets of the underlying ``base'' connection.
+Sidekick proxies assist end hosts by reporting what they've observed about the
+packets of the encrypted base connection, leaving the transport protocol
+unchanged on the wire: an encrypted end-to-end connection between hosts, opaque
+to middleboxes and free to evolve. End hosts use this information to influence
+decisions about how and when to send packets on the base connection,
+approximating some of the performance benefits of traditional PEPs.
+No PEPs are credentialed to decrypt the transport protocol's headers.
 
-Instead, we propose a second protocol to be spoken on an adjacent connection
-between an end host and a PEP. We call this the \emph{\bf Sidekick protocol},
-and its contents are \emph{about} the packets of the underlying, or ``base,''
-connection. Sidekick PEPs assist end hosts by reporting what they've observed
-about the packets of the encrypted base connection, without coupling their
-assistance to the details of the base protocol. End hosts use this information
-to influence decisions about how and when to send or resend packets on the base
-connection, approximating some of the performance benefits of traditional PEPs.
-We first proposed a similar functional separation in \cite{yuan2022sidecar},
-and presented a concrete realization of the idea and its nuanced
-interactions with real transport protocols in \cite{yuan2024sidekick}.
+% Instead, we propose a second protocol to be spoken on an adjacent connection
+% between an end host and a PEP. We call this the \emph{\bf Sidekick protocol},
+% and its contents are \emph{about} the packets of the underlying, or ``base,''
+% connection.
+% Sidekick PEPs assist end hosts by reporting what they've observed
+% about the packets of the encrypted base connection, without coupling their
+% assistance to the details of the base protocol. End hosts use this information
+% to influence decisions about how and when to send or resend packets on the base
+% connection, approximating some of the performance benefits of traditional PEPs.
+% We first proposed a similar functional separation in \cite{yuan2022sidecar},
+% and presented a concrete realization of the idea and its nuanced
+% interactions with real transport protocols in \cite{yuan2024sidekick}.
 
-One key technical challenge with this approach is how the proxy in a Sidekick
-protocol can
-efficiently refer to ranges of packets in an encrypted base connection. These
-packets appear random to the middlebox, and referring to a range of, e.g., 100
+One key technical challenge in this approach is how Sidekick proxies can
+efficiently refer to a set of packets in an encrypted base connection when
+these packets appear random to the middlebox. Referring to a range of, say, 100
 encrypted packets in the presence of loss and reordering is not as simple as
-saying ``up to 100'' when there are cleartext sequence numbers. In \Cref
-{sec:quack}, we presented and evaluated a mathematical tool called a \emph
-{\bf quACK} that concisely represents a selective acknowledgment of randomly
-encrypted packets. In this chapter, we leverage the power sum quACK by
-modeling the problem as a system of power sum
-polynomial equations when there is a practical bound on the maximum number of
-``holes'' among the packets being ACKed.
+saying ``up to 100'' in the case of packets with cleartext sequence numbers. To
+solve this problem, we leverage the power sum quACK from \Cref{sec:quack}. The
+{\bf quACK} is a mathematical tool that concisely represents a selective
+acknowledgment of encrypted packets when there is a practical bound on the
+maximum number of ``holes'' among the packets being ACKed.
 
 A second challenge is how the end host should use information from a Sidekick
-connection to obtain a performance benefit for its base connection. Since the
+proxy to obtain a performance benefit for its base connection. Since the
 performance benefit comes from changing behavior at the end host rather than
 the middlebox, transport protocols need to incorporate this information into
 their existing algorithms for, e.g., loss detection and retransmission, which
 have gotten increasingly complex over time. To explore this, we designed a
-Sidekick protocol and integrated it into client implementations in three scenarios:
+Sidekick protocol and integrated it into client implementations with path-aware
+modifications in three scenarios:
 \begin{itemize}[noitemsep,topsep=2pt]
-\item A low-latency audio stream over an Internet path that includes a Wi-Fi
-  path segment (low latency with loss), followed by a WAN path segment (higher
-  latency with low loss). Can the Sidekick PEP reduce the de-jitter buffer delay
-  by triggering earlier retransmissions on loss?
+\item A low-latency audio stream over an Internet path that includes a lossy,
+  low-latency Wi-Fi path segment, followed by a reliable, higher-latency WAN
+  path segment. Can using the Sidekick protocol reduce the de-jitter buffer
+  delay by triggering earlier retransmissions on loss?
 
 \item An upload over the same path. Can a secure transport protocol like QUIC,
-  aided by a Sidekick PEP at the point between these two path segments, match
+  aided by a Sidekick proxy at the point between these two path segments, match
   the throughput of TCP over a connection-splitting PEP?
 
-\item A battery-powered receiver, downloading data from the Internet over Wi-Fi.
-  If the Wi-Fi access point sends Sidekick quACKs on behalf of the receiver,
+\item A battery-powered receiver downloading data from the Internet over Wi-Fi.
+  If the Wi-Fi access point sends quACKs over a Sidekick connection on behalf of
+  the receiver,
   can it reduce the number of times the receiver's radio needs to wake up
   to send an end-to-end ACK?
 \end{itemize}
@@ -117,6 +122,7 @@ Sidekick protocol and integrated it into client implementations in three scenari
 A third technical challenge is how knowledge about \emph{where}
 loss occurs along a path should influence a congestion-control scheme.
 The challenge in any such scheme is how to maximize the congestion window
+to achieve high throughput
 while sharing the network fairly with competing flows.
 We present a path-aware modification to the CUBIC congestion-control
 algorithm~\cite{ha2008cubic}, which we call \mbox{\textbf{PACUBIC}},
@@ -125,42 +131,40 @@ CUBIC connection while making its decisions entirely on the host.
 
 \paragraph{Summary of results.}
 
-We implemented the Sidekick protocol in a low-latency media client
-based on the WebRTC standard, and an HTTP/3 client using the Cloudflare
-implementation of QUIC~\cite{quiche} and the \texttt{libcurl}~\cite{libcurl}
-implementation of HTTP/3. We evaluated the three scenarios in
-real-world and emulation experiments.
+We evaluated the three scenarios above, integrating the Sidekick protocol with a
+media client based on the WebRTC standard and an HTTP/3 client using
+\texttt{libcurl} and the Cloudflare implementation of QUIC~\cite{quiche}.
 In real-world experiments using an unmodified local Wi-Fi network to access our
-nearest AWS datacenter, the Sidekick PEP was able to trigger early retransmissions
+nearest AWS datacenter, the Sidekick proxy was able to trigger early retransmissions
 to fill in gaps in the audio of a latency-sensitive audio stream, reducing the
 receiver's de-jitter delay from 2.3~seconds to 204~ms---about a 91\% reduction
-(\Cref{fig:sidekick:real-world}). The Sidekick PEP was also able to improve the
+(\Cref{fig:sidekick:real-world}). The Sidekick proxy was also able to improve the
 speed of an HTTP/3 (QUIC) upload by about 50\%.
 
 In emulation experiments of the ``battery-powered receiver'' scenario,
-the Sidekick PEP was able to reduce the need for the receiver to send ACKs
+the Sidekick proxy was able to reduce the need for the receiver to send ACKs
 by sending proxy acknowledgments on its behalf---ACKs the sender used
 to advance its flow-control and congestion-control windows. The
 receiver only needed to wake up its radio to send occasional
 end-to-end ACKs, which the sender used to discard data from its
 buffer (\Cref{fig:sidekick:main-results:ack-reduction}).
 
-Also in an emulation experiment, we confirmed that PACUBIC's
-performance approximates a split CUBIC connection (two TCP CUBIC
-connections separated by a PEP), responding to loss events on the
-different path segments similarly to how the individual CUBIC flows would
-(\Cref{fig:sidekick:fairness-line}). The results indicate that the Sidekick
-protocol's gains do not come at the
-expense of congestion-control fairness relative to a split CUBIC connection.
+Also in an emulation experiment, we confirmed that PACUBIC's achieved throughput
+approximates that of a split CUBIC connection (two TCP CUBIC
+connections separated by a PEP), responding to loss events proportionally to
+the delay of the path segment on which the loss occurs
+(\Cref{fig:sidekick:fairness-line}). The results indicate that the gains from
+using the Sidekick protocol do not come at the
+expense of congestion-control fairness relative to a split CUBIC connection.\\
 
-\smallskip
-
-The rest of this chapter discusses three motivating scenarios for Sidekick
-protocols
-(\Cref{sec:sidekick:motivating}), describes the concrete Sidekick protocol we
-built around power sum quACKs (\Cref{sec:sidekick:design}) and
-its implementation in two base protocols (\Cref{sec:sidekick:implementation}),
-and then evaluates the protocol (\Cref{sec:sidekick:methodology}) in real-world
+\noindent
+The rest of this chapter discusses the three motivating scenarios for Sidekick
+protocols in more detail (\Cref{sec:sidekick:motivating}). We describe the
+concrete Sidekick protocol and path-aware sender modifications we built around
+power sum quACKs (\Cref{sec:sidekick:design}), including path-aware CUBIC
+congestion control (\Cref{sec:sidekick:pacubic}) and its integrations with two
+base protocols (\Cref{sec:sidekick:implementation}). We evaluate
+(\Cref{sec:sidekick:methodology}) the use of the protocol in real-world
 (\Cref{sec:sidekick:real-world}) and emulation experiments
 (\Cref{sec:sidekick:emulation}). Finally, we discuss limitations to our approach
 (\Cref{sec:sidekick:limitations}) and conclude (\Cref{sec:sidekick:summary}).

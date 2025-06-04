@@ -12,7 +12,7 @@ or even multipath QUIC~\cite{de2017multipath}.
 To begin thinking about this question, we would have a more complex model of the
 network: multiple PEPs along a single path, multiple paths each with varying
 numbers of PEPs, and so on. The proxy can include additional information in the
-sidekick-reply packet to indicate which path the PEP assistance is on, and the
+\texttt{sidekick-reply} packet to indicate which path the PEP assistance is on, and the
 sender can infer from the RTT how far along a path each PEP is relative to
 others. New path-aware algorithms that come from this model could diagnose
 troublesome paths, or better allocate network traffic in a multipath
@@ -20,7 +20,7 @@ connection. Existing algorithms could be applied to individual paths as if they
 were single-path connections.
 
 \subsubsection{Even more diverse network scenarios.}
-The three scenarios we explored all consisted of a lossy Wi-Fi link and a
+Two of the three scenarios we explored consisted of a lossy Wi-Fi link and a
 high-latency WAN link. Not all scenarios will be favorable to the
 Sidekick protocol we designed.
 If the ``lossy'' section of a network path were on the far path segment from the
@@ -42,7 +42,7 @@ whenever capacity intermittently becomes available.
 The implementation of the Sidekick protocol exists as a research system that has
 been evaluated in emulation and a limited set of real-world scenarios. Since
 Sidekick protocols require the cooperation of middleboxes and client
-applications, more work will be needed to standardize the discovery protocol
+applications, more work will be needed to standardize the discovery mechanism
 and wire format of Sidekick messages described in
 \Cref{sec:sidekick:design:messages}, ideally with interest from the IETF. The
 standards will need to establish several design choices such as how identifiers
@@ -56,28 +56,27 @@ Sidekick protocols.
 To migrate existing client applications, one needs to modify the code to
 discover a PEP and use information in a quACK to inform the base protocol.
 To migrate middleboxes, they would need to be modified to listen for
-sidekick-request markers, then accumulate and send quACKs for participating
+\texttt{sidekick-request} markers, then accumulate and send quACKs for participating
 connections.
 
 \subsubsection{Deeper analysis of path-aware congestion control.}
 
 The correspondence between endpoint-driven PACUBIC and ``split CUBIC'' is good,
-and both are better than end-to-end CUBIC in \Cref{fig:sidekick:fairness-line}),
+and both are better than end-to-end CUBIC in \Cref{fig:sidekick:fairness-line},
 but not exact. The appropriateness of the PACUBIC heuristic, and in general the
-idea of path-aware congestion control, needs to be further explored. We discuss
-this more in \Cref{sec:sidekick:pacubic:analysis}.
+idea of path-aware congestion control, needs to be further explored.
 
 \section{Summary}
 \label{sec:sidekick:summary}
 
 We presented \textit{Sidekick protocols}: an alternate approach to PEPs that
 leaves the underlying protocol opaque and unmodified on the wire. We leveraged
-a mathematical technique called a \textit{quACK} that enables proxies to refer
+the power sum quACK (\Cref{sec:quack}) to enable proxies to refer
 to packets of the underlying connection without the ability to observe
 cleartext sequence numbers. We augmented a streaming protocol and a production
-QUIC implementation (Cloudflare quiche) to make use of information arriving
+QUIC implementation to make use of information arriving
 from a proxy on a Sidekick connection, including a path-aware congestion control
 mechanism called \textit{PACUBIC}. In emulation and a real-world evaluation,
-the Sidekick protocol was able to improve the performance---tail latency,
-throughput, or energy usage---of these end-to-end base protocols without
+using the Sidekick protocol was able to improve the performance---tail latency,
+throughput, energy usage---of these end-to-end base protocols without
 modifying the wire format or security properties.
