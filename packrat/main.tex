@@ -44,8 +44,8 @@ Snoop paper outlined three plausible solutions:
 
 \item \textbf{Link-level acknowledgment and
   retransmission}~\cite{palplus}. Wireless NICs add their own
-  encapsulation (with their own sequence numbers or packet
-  identifiers) to each packet, reply to incoming packets with
+  encapsulation (with their own sequence numbers)
+  to each packet, reply to incoming packets with
   link-layer acknowledgments, detect apparent losses from the absence
   of an ACK, and retransmit lost packets before the end-to-end
   transport protocol concludes they were lost.
@@ -60,17 +60,16 @@ Snoop paper outlined three plausible solutions:
 In the intervening years, the first two approaches were widely
 deployed. At the boundary between the wired Internet and a lossy
 wide-area subpath (e.g.~a satellite or cellular network), network
-operators used connection-splitting performance-enhancing proxies
+operators use connection-splitting performance-enhancing proxies
 (PEPs) to accelerate TCP connections crossing their networks. For
 lossy \emph{local}-area subpaths, Wi-Fi and cellular networks use
-link-layer sequence numbers, selective ``block'' acknowledgments,
-link-layer retransmissions, and receiving NICs that sometimes hold
-back received packets to wait for retransmissions of earlier packets
-so that hosts receive packets in the original order to avoid
-triggering a transport-layer end-to-end retransmission~\cite{rfc3366,
-  rfc8985, ieee802.1ac, 5Greorder}. Because of the practical success of
-the first two approaches, Snoop's ``network-originated
-retransmissions'' didn't seem to be needed in practice.
+link-layer sequence numbers, selective ``block'' acknowledgments, and
+link-layer retransmissions~\cite{rfc3366,rfc8985,ieee802.1ac}.
+To avoid triggering a transport-layer end-to-end retransmission, some receiving
+NICs hold back received packets to wait for retransmissions of earlier packets
+so that hosts receive packets in the original order ~\cite{5Greorder}.
+Because of the practical success of the first two approaches, Snoop's
+``network-originated retransmissions'' didn't seem to be needed in practice.
 
 Until, we propose, maybe now. Post-TCP transport protocols,
 especially QUIC~\cite{rfc9000}, encrypt and authenticate their
@@ -97,26 +96,28 @@ in-network \emph{acknowledgments} of encrypted transport protocols
 (for hosts to interpret and perhaps trigger retransmission), not
 in-network \emph{retransmissions} based on the encrypted traffic of
 hosts.
-
 Given all this, what really happens today, at least some
 of the time, is that satellite and other nontraditional network
 operators block QUIC traffic, forcing hosts to fall back to TCP that
-can be split as before. We think it may be possible to do better by drawing on ``Snoop-style''
+can be split as before.
+
+We think it may be possible to do better by drawing on ``Snoop-style''
 ideas. In this chapter, we describe and evaluate Packrat\footnote{For
 ``packet rateless retransmission''---and because the Packrat proxy keeps
 a small cache of recent packets-in-flight for possible retransmission.}
-protocols: a technique for network-originated retransmissions for encrypted
+proxies: a technique that enables network-originated retransmissions for encrypted
 end-to-end transport connections, yielding performance benefits in lossy
 settings. We adapt the set reconciliation techniques from \Cref{sec:quack} to
-let the receiver efficiently acknowledge encrypted packets (in a ``quACK'') to
-a network function, without modifying the sender or the underlying wire format.
-Compared to the power sum quACKs used by Sidekick protocols
-in \Cref{sec:sidekick}, IBLT quACKs are faster to decode. This makes them more
+let the receiver efficiently acknowledge encrypted packets (in an ``IBLT quACK'') to
+a network function, without modifying the data sender or the wire format.
+The data receiver sends quACKs to the Packrat proxy using the Sidekick
+protocol of \Cref{sec:sidekick}. IBLT quACKs are faster to decode,
+making them
 appropriate for a deployment where network functions are the ones interpreting
-acknowledgments over encrypted sequence numbers from many connections in
-parallel and triggering retransmissions as a result.
+acknowledgments from many connections in parallel.
+% over encrypted sequence numbers and triggering retransmissions as a result.
 
-We integrate the Packrat proxy with several applications built on encrypted
+We integrate the Packrat proxy with several applications built on secure
 transport protocols, and show that it can enable a variety of performance
 enhancements in settings with a lossy path segment near the data receiver,
 compared to end-to-end loss recovery schemes:
@@ -129,7 +130,7 @@ compared to end-to-end loss recovery schemes:
 
 \input{packrat/figures_tex/packrat-scope.tex}
 
-\noindent \Cref{fig:packrat:packrat-scope} shows the scope of Packrat compared
+\noindent \Cref{fig:packrat:packrat-scope} shows the scope of the Packrat proxy compared
 to other methods of in-network retransmissions over lossy path segments.
 Unlike link-layer retransmissions, the assistance from a Packrat can be
 deployed anywhere along the network path and tailored to the performance
@@ -141,8 +142,8 @@ ossification.
 To summarize, we show that it is possible to provide per-connection in-network
 retransmissions to secure transport protocols along an adjacent connection
 using Packrat proxies, without involving the data sender nor modifying the
-wire format of the underlying connection. We start with a brief history of loss
-recovery in the network (\Cref{sec:packrat:background}), then describe our
+wire format of the underlying connection. We start with a brief history of other loss
+recovery mechanisms in the network (\Cref{sec:packrat:background}), then describe our
 contributions:
 
 \begin{itemize}[noitemsep]
@@ -151,35 +152,38 @@ contributions:
      (\Cref{sec:packrat:problem}).
     \item The use of Packrat proxies with an adjacent Sidekick connection, and
      optimizations to improve compute scalability based on the co-location of
-     the endpoint and quACK sender(\Cref{sec:packrat:design}).
+     the endpoint and quACK sender (\Cref{sec:packrat:design}).
     \item An implementation of the Packrat proxy and integrations with three
-     applications that use encrypted transport (\Cref{sec:packrat:implementation}).
+     applications that use secure transport protocols (\Cref{sec:packrat:implementation}).
     \item An emulation study of the performance enhancements, as well as the CPU,
      memory, and link overheads of using a Packrat proxy.
      (\Cref{sec:packrat:methodology,sec:packrat:emulation}).
 \end{itemize}
 
 \noindent Finally, we conclude (\Cref{sec:packrat:summary}).
+With these tools,
+endpoints can receive in-network retransmissions tailored to their applications
+without an additional layer of encapsulation, tunnel, or link-layer retransmissions.
+Sidekick and Packrat together enable protocol-agnostic proxy
+assistance in both directions, effectively serving as a secure
+replacement for a variety of traditional PEPs.
 
 \section{Background: In-network retransmissions}
 \label{sec:packrat:background}
 
-We provide a brief history of loss recovery mechanisms in the network to
+We provide a brief summary of loss recovery mechanisms in the network to
 motivate the need for lightweight, non-ossifying, in-network retransmissions
 for secure transport protocols.
 
 \subsubsection{End-to-end loss recovery.}
 
-In end-to-end loss recovery,
-congestion control algorithms were traditionally designed to treat all loss as an indicator of
-congestion~\cite{rfc5681tcp,rfc2001tcp}.
-
+Congestion-control schemes, implemented at the endpoints, were traditionally
+designed to treat all loss as an indicator of congestion~\cite{rfc5681tcp,rfc2001tcp}.
 With modern wireless networks and higher bit-error rates, recent developments
-such as the BBR congestion control
-% (Bottleneck Bandwidth and Round-trip propagation time)
-algorithm have de-prioritized packet loss as a congestion
+such as the BBR (Bottleneck Bandwidth and Round-trip propagation time)
+congestion-control algorithm have de-prioritized packet loss as a congestion
 signal~\cite{cardwell2017bbr}. This change enables higher throughput but has
-raised concerns regarding TCP fairness~\cite
+raised concerns regarding TCP friendliness~\cite
 {ware2019modeling,philip2024prudentia}. In response, the performance of newer
 versions of BBR has regressed in lossy environments, suggesting a lasting trend
 in the treatment of loss as a congestion signal regardless of its source~\cite
@@ -188,37 +192,36 @@ in the treatment of loss as a congestion signal regardless of its source~\cite
 \subsubsection{Link-layer loss recovery.}
 
 Loss recovery at the link layer~\cite{3gpp5gstandard,le2022link,ieee80211e} can
-mitigate some of the dramatic reactions of CCAs by hiding random loss from
-endpoints.
+mitigate some of the dramatic reactions of congestion-control algorithms by
+hiding the existence of random loss from the endpoints.
 Applications and transport protocols are oblivious to this
-functionality, and there is a tradeoff to this reliability~\cite{klingler2018impact,kliazovich2012arqproxy}.
-Retransmitting more often increases the chance
-of success but increases the time needed, and may also introduce
-jitter and reordering~\cite{leung2007overview}.
-Low-latency applications may prefer to transmit new data instead, but
-retransmitting less often means more loss.
-There is no ideal configuration for all connections that share the link.
+functionality, and there is a tradeoff to reliability~\cite{klingler2018impact,kliazovich2012arqproxy}.
+More frequent link-layer retransmissions increase the chance of successfully
+recovering from a loss, but retrying frequently takes more time and may also
+introduce jitter and reordering between packets~\cite{leung2007overview}.
+Low-latency applications may prefer to transmit new data instead of retrying,
+but less frequent link-layer retransmissions also means more loss for other
+applications.
+There is no ideal configuration for all the connections that share a link.
 
 \subsubsection{Transport-specific mechanisms.}
 
-Some transport-layer proxies split a connection into two or more segments
+Some transport-layer proxies transparently split a connection into two or more segments
 and optimize the connection for each segment. In addition to
 TCP connection splitters~\cite{rfc3135,honda2011still,hayes2019mmwave},
 selective forwarding units (SFUs) are
 used for media streams where low-latency is critical, so retransmissions occur
-closer to the data receiver~\cite{rfc7667,andre2018comparative}.
+closer to the data receiver~\cite{rfc7667,andre2018comparative}. As mentioned
+before, these types of PEPs cause protocol ossification. By making reliability
+guarantees to the endpoint, connection-splitting PEPs also fate share with the
+connection.
 
-With Snoop~\cite{balakrishnan1995snoop}, it is clear
-that complexities emerge in how the proxy interprets
-and modifies plaintext sequence numbers on the wire, which also ossifies TCP.
-This chapter aims to explore how such a proxy can send helpful in-network
-retransmissions to a variety of encrypted protocols while preserving
-end-to-end semantics, without access to such information.
-
-These types of approaches make unwarranted assumptions about
-transport headers ossify the protocol~\cite{papastergiou2017deossifying}.
-By making reliability guarantees to the endpoint, the connection-splitting
-proxies also fate share with the connection.
+Snoop preserves end-to-end semantics by transparently snooping on TCP
+acknowledgments to generate retransmissions~\cite{balakrishnan1995snoop}.
+However, Snoop modifies transport headers on the wire to prevent spurious
+retransmissions, which ossifies TCP. Packrat proxies adapt some ideas about
+in-network retransmissions from Snoop but use mechanisms at the endpoint to
+preserve end-to-end semantics.
 
 \subsubsection{Protocol-agnostic transport assistance.}
 
@@ -261,17 +264,16 @@ reordering from in-network transmissions is directly related to the RTT to
 the proxy on the order of tens of milliseconds.
 We call this the \textit{reordering problem}.
 
-Consider an example using selective ACKs, where a gap is considered a missing
-packet (\Cref{fig:packrat:reordering:unmodified}): The server sends 1250-byte packets at 10 Mbit/s,
+Consider the example in \Cref{fig:packrat:reordering:unmodified} using selective end-to-end ACKs, where a gap is considered a missing
+packet: The server sends 1250-byte packets at 10 Mbit/s,
 which is 1 packet every ms. The client drops packet \#2 but
-receives \#1, \#3, \#4, etc. If the RTT between the client and proxy is 10 ms,
-by the time the client receives the in-network retransmission of \#2 (from
-quACKing \#1 and \#3), it could
-have already ACKed $10$ more packets with higher sequence
+receives \#1, \#3, \#4, etc. The RTT between the client and proxy is 10 ms,
+and by the time the client receives the in-network retransmission of \#2 (from
+quACKing \#1 and \#3), it has already ACKed $10$ more packets with higher sequence
 numbers up to \#12. The server unnecessarily retransmits \#2 and treats the
 loss as a congestion signal.
-Spurious retransmissions take up valuable bandwidth and confuse congestion
-control algorithms~\cite{leung2007overview}.
+Spurious retransmissions take up valuable bandwidth and often cause strange
+behavior in congestion control algorithms~\cite{leung2007overview}.
 
 \subsection{How to solve this problem for TCP}
 \label{sec:packrat:problem:tcp}
@@ -291,25 +293,25 @@ forward packets as intended.
 
 Another option may be for the client to \textit{delay} sending an ACK until it
 has allowed one proxy RTT for the proxy to retransmit the packet first~\cite{rfc3168}.
-In the
-previous example, the client may wait 10 ms from detecting the gap in
-packet \#2 before sending an ACK, at which point it would have received the
-retransmission for \#2 and be able to ACK the full range from \#1-13. This
-seems promising at first, but in the time the client was waiting,
-another loss could have occurred (\#12)
-and the new ACK would have the same problem (\Cref{fig:packrat:reordering:delayed-ack}).
+In \Cref{fig:packrat:reordering:delayed-ack},
+the client may wait the proxy RTT of 10 ms from detecting the gap in
+packet \#2 before sending an end-to-end ACK, at which point it would have received the
+retransmission for \#2 and become able to ACK the full range from \#1-13. This
+seems promising at first, but in the time the client was waiting, another
+loss occurred of packet \#12, causing the new ACK to have the same problem
+as an unmodified end-to-end ACK.
 
 Various other solutions exist, such as changing a server configuration for the
 reordering delay threshold, but it
 is also undesirable to require certain features in all data senders as they
-should not have to participate in the adjacent connection for in-network
-assistance.
+should not have to participate in the Sidekick protocol between the proxy and
+the data receiver.
 % Various other na\"ive solutions exist, such as informing the server to increase
 % its reordering threshold, but this requires it to be a configurable parameter
 % in the base protocol. It is also undesirable to require certain features in all
 %  data senders, as they should not have to participate in the Packrat protocol.
 
-\subsection{Packrat solution}
+\subsection{Packrat solution with a reorder delay}
 \label{sec:packrat:problem:packrat}
 
 Our solution is for the end-to-end ACKs constructed by the client to
@@ -325,49 +327,50 @@ cumulative sequence number, but then only the ranges for packets that have been
 received for at least the time it takes for the proxy to retransmit. This
 \textit{reorder delay} includes the RTT to the proxy
 as well as any delay in sending the quACK.
-In the example, 10 ms after detecting the gap in \#2, the ACK consists
-of packets \#1-2 and any cumulative sequence numbers beyond \#2 (up to \#11)
-(\Cref{fig:packrat:reordering:packrat}).
+In \Cref{fig:packrat:reordering:packrat}, 10 ms after detecting the gap in \#2, the ACK consists
+of packets \#1-2 and any cumulative sequence numbers beyond \#2 (up to \#11).
 We assume
 that most loss is near the client, and that the RTT to the proxy is less than
 the end-to-end loss detection timeout.
 
 Different protocols use different acknowledgment schemes with similar flavors.
 The modification for negative acknowledgments of missing packets is to delay
-sending the NACK for at least one proxy RTT before deciding whether the NACK is
+sending the NACK for the reorder delay of at least one proxy RTT before deciding whether the NACK is
 still needed. TCP relies on duplicate ACKs, which need a different
 modification. Abstractly, packets are held and ordered in a jitter buffer for a
-certain delay before they can be referenced in the client's underlying
+certain reorder delay before they can be referenced in the client's underlying
 acknowledgments.
 
 \section{Design}
 \label{sec:packrat:design}
 
 The Sidekick protocol in \Cref{sec:sidekick} is spoken between a client and an
-on-path proxy, but in setting with a Packrat proxy, the
-client is a data \textit{receiver}. We imagine the proxy to exist near the data
-receiver on the other side of a lossy path segment. This could be as close as
-directly behind a Wi-Fi access point, at a cellular base station, or on the
-first extraterrestrial node of a satellite network path. This is on the order
-of 1s to 10s of milliseconds.
-
-As an overview, once the client and proxy have established an adjacent
+on-path Sidekick proxy, but in settings using a Packrat proxy, the
+client is a data \textit{receiver}.
+In this direction, once the client and proxy have established an adjacent
 connection for a specific base connection identified by a UDP 4-tuple
 (\Cref{sec:sidekick:design:discovery}), the
 proxy is ready to send in-network retransmissions. The client sends
 acknowledgements of which encrypted packets it has received, and the proxy retransmits missing
 packets it previously forwarded on that base connection.
-But in-network retransmissions were not just that simple.
+
+% We imagine the proxy to exist near the data
+% receiver on the other side of a lossy path segment. This could be as close as
+% directly behind a Wi-Fi access point, at a cellular base station, or on the
+% first extraterrestrial node of a satellite network path. This is on the order
+% of 1s to 10s of milliseconds.
+
+% But in-network retransmissions were not just that simple.
+ % (\Cref{fig:packrat:payloads})
 
 We previously described the \textit{reordering problem} with in-network
 retransmissions, and a mechanism at the \textit{client} to address the issue
 (\Cref{sec:packrat:problem}).
-In the rest of this section, we describe the Sidekick protocol messages
+Now we describe the modified Sidekick protocol messages
 exchanged between the client and Packrat proxy to establish the adjacent connection
-and generate in-network retransmissions (\Cref{fig:packrat:payloads}),
-and the behavior of each party in both the Packrat and base
-connections. We assume each message is transmitted in an unreliable UDP
-datagram.
+and generate in-network retransmissions. We also discuss the behavior of each
+party in the underlying and adjacent connections. Each message
+is transmitted in an unreliable UDP datagram.
 
 \subsection{Sidekick protocol messages with a Packrat proxy}
 \label{sec:packrat:design:messages}
@@ -378,25 +381,22 @@ Packrats are distinguished from other types of proxies such as VPNs and
 transparent PEPs in that the proxy is on the path and the client is knowingly
 receiving in-network retransmissions.
 As described in \Cref{sec:sidekick:design:discovery}, in order to discover
-proxies on the path, the client sends a magic discovery packet along the base
-connection 4-tuple, after it has established that connection. Proxies respond by
-announcing that they support Packrat and their supported configurations, and the
-server discards the invalid magic packet. Clients can choose to accept
+proxies on the path, the client sends a magic \texttt{sidekick-request} packet
+along the base connection 4-tuple, after it has established that connection.
+Proxies respond with their supported Sidekick configurations as well as their
+support for Packrat. Clients can choose to accept
 assistance from a proxy by replying with an \texttt{Init} and their
 configuration request. The proxy completes the handshake with an \texttt
-{InitACK} and a new UDP address specific to this base connection.
+{InitACK}, and is ready to cache packets and retransmit.
+On receiving an \texttt{InitACK}, the client is free to send quACKs.
 
 The client configuration in \texttt{Init} includes several parameters (\Cref
-{fig:packrat:payloads:client}). This includes: the type of encoding used for the quACK,
-the number of symbols to use in the encoding, and the byte offset in the randomly
-encrypted payload at which to parse the 4-byte identifier. In addition, the size
-of the requested cache is a unique parameter for the Packrat proxy compared
-to a Sidekick proxy. The client may dynamically adjust these configurations
+{fig:packrat:payloads:client}). Similar to the message when initializing a
+Sidekick connection as the data sender, this includes: the type of quACK,
+the number of symbols, and how to parse the identifier from the payload.
+In addition, a configuration unique to the data receiver is the requested size
+of the Packrat cache. The client may dynamically adjust these configurations
 with new \texttt{Init} packets as it learns more about the network path.
-
-The proxy accepts or rejects these configurations with an \texttt{InitACK},
-and is ready to cache packets and retransmit. On receiving an \texttt{InitACK},
-the client is free to send quACKs.
 
 \subsection{Proxy retransmissions enabled by the quACK}
 \label{sec:packrat:design:proxy}
@@ -420,7 +420,9 @@ these missing packets, moving them to the top of the cache.
 
 The retransmission is simply a duplicate of the original packet on the wire.
 However, the proxy can also explicitly indicate that the retransmission comes
-from the Packrat by encapsulating the UDP payload in a \texttt{Retransmit}. The
+from the Packrat by encapsulating the UDP payload in a \texttt{Retransmit}. This
+encapsulation could also include the number of attempts the proxy has made to
+retransmit this particular packet. The
 packet would be received by the client on the Packrat socket, which can then forward
 the payload to the base connection.
 
@@ -463,19 +465,24 @@ changes network paths.
 
 In addition to modifying end-to-end acknowledgments to avoid sending excessive
 reordering signals to the server, the primary behavior of the client is
-to \texttt{quACK} at a specified frequency, e.g., every 10 ms or every 16
-packets. This frequency is typically the same as that of the underlying
-acknowledgment scheme. The quACKs are cumulative representations of all the
-packets ever received since sending the last \texttt{Init}.
+to \texttt{quACK} at a specified interval. This interval is specified in terms
+of time or in number of packets, e.g., every 10 ms or every 16 packets.
+This frequency is typically the same as that of the underlying acknowledgment
+scheme.
+% Recall that when the quACK sender is at the proxy, the proxy lacks
+% visibility into the underlying acknowledgment scheme, so the quACK interval
+% must be configured by the endpoint.
+% The quACKs are cumulative representations of all the
+% packets ever received since sending the last \texttt{Init}.
 
 However, an on-path proxy handles many tens to hundreds of thousands of
-concurrent connections at once. Any per-packet overhead incurred by the Packrat
+concurrent connections at once. Any per-packet overhead incurred by the Sidekick
 protocol at the proxy must be extremely small. The Packrat proxy already encodes
 every packet in the base connection and, unlike the Sidekick proxy, also decodes
-every acknowledgment. Using the power sum quACK, decoding a quACK can be
+every quACK. Using the power sum quACK, decoding a quACK can be
 $600\!\times$ more expensive than encoding a packet
-(\Cref{tab:quack:practical}). In this chapter, we leverage the IBLT
-quACK because it is faster to decode (\Cref{sec:quack:constructions:iblt}).
+(\Cref{tab:quack:practical}). To mitigate this issue, we leverage the IBLT
+construction of the quACK because it is faster to decode.
 
 Another way to reduce the impact of decoding at the proxy is simply to send
 smaller and fewer quACKs. When the quACK sender is at the proxy, such as in the
@@ -523,7 +530,7 @@ these are likely to be received or the client would have NACKed.
 \section{Implementation}
 \label{sec:packrat:implementation}
 
-We now describe our implementation of the Sidekick protocol with Packrat proxies, which includes
+We now describe our implementation of Packrat with the Sidekick protocol, which includes
 a \texttt{packrat} library used for three client integrations
 and a Packrat proxy. We also describe the implementations of the
 applications and baselines we use to evaluate Packrat.
@@ -531,7 +538,7 @@ applications and baselines we use to evaluate Packrat.
 \subsection{End-to-end applications}
 \label{sec:packrat:implementation:applications}
 
-We evaluate the Packrat proxy in three applications with different performance
+We evaluate Packrat in three applications with different performance
 metrics to explore the versatility of in-network retransmissions:
 a high-throughput HTTP/3 file download, a low-latency media stream with forward
 error correction, and a reliable multicast stream whose server has limited
@@ -549,7 +556,7 @@ The goodput is measured by dividing the connection time by the requested data
 size, excluding headers.
 The connection time is measured as when the client sends the first
 byte of its request to when it receives all requested bytes.
-We use 25 MB which is large enough such that the goodput is stable.
+We use 25 MB which is large enough to achieve stable goodput.
 
 \subsubsection{Low-latency media with FEC.}
 
@@ -598,7 +605,7 @@ $7$ times, the default limit in Wi-Fi, and takes care to avoid duplicates. We
 also implement an option for the receiver to order packets before releasing
 them to the application, behavior that we believe is unspecified in the Wi-Fi
 standard but can dramatically impact application performance. We refer to these
-variants as ordered and unordered tunnels.
+variants as ``ordered tunnels'' and ``unordered tunnels''.
 
 \subsection{Split QUIC connection baseline}
 \label{sec:packrat:implementation:split-quic}
@@ -608,29 +615,29 @@ variants as ordered and unordered tunnels.
 We implement a \texttt{picoquic} connection splitter that decrypts
 and re-encrypts packets in two separate QUIC connections from one endpoint to
 another. We emphasize that these connection-splitters do not actually exist. To
-be deployed, the proxy would need to be credentialed with access to underlying
+be deployed, the proxy would need to be credentialed with access to the underlying
 sequence numbers, the antithesis of the transport purists who encrypted these
-headers in the first place~\cite{rfc9369}. Since TCP splitters \textit
+headers in the first place~\cite{rfc9369,quicbit2018}. Since TCP connection-splitters \textit
 {are} commonly deployed~\cite{honda2011still,rfc3135}, our goal is to
 understand how much QUIC is ``losing out'' by not splitting its connection, and
-how closely Packrat can help QUIC achieve the same performance benefits without
-ossification.
+how closely Packrat can help QUIC emulate the same performance benefits of a
+split connection without ossification.
 
 \subsection{Client integrations with Packrat}
 \label{sec:packrat:implementation:client-integrations}
 
 \input{packrat/listings/quacker-interface.tex}
 
-Clients participate in the Sidekick protocol by knowingly opting in to proxy
-assistance and sending quACKs. Clients share much of the same functionality,
-such as initializing the Packrat connection, maintaining a cumulative quACK of
-received packets, and determining when to quACK based on a set frequency. We
+Clients must knowingly opt in to receiving assistance from a Packrat proxy, and
+are also responsible for sending quACKs. Regardless of the base protocol, clients share much of the same functionality:
+establishing the adjacent connection, maintaining a cumulative quACK of
+received packets, and determining when to quACK based on a set interval. We
 implement a library for this shared functionality (\Cref{lst:packrat:quacker-interface})
-and integrate it into our three clients.
+and integrate it into the three clients of our end-to-end applications.
 The library uses $\approx\!700$ lines of Rust and includes C bindings.
 % quacker$ cloc .
 
-The library can serialize and deserialize messages in the Packrat connection,
+The library can also serialize and deserialize messages in the adjacent connection,
 but the client is responsible for reading and writing to the actual socket.
 Each application uses a packet loop to interact with a socket for the base
 connection. We incorporate the Packrat socket into the same loop, which allows
@@ -646,12 +653,11 @@ and write packets between two interfaces. The proxy needs to
 be on-path and intercept the packets, as opposed to sniffing them, so
 its \texttt{InitACK} and \texttt{Reset} messages can be ordered along with the
 data packets.
-
-The proxy inspects each packet for magic discovery packets, which includes
-those that match the 4-tuples of the base connections it is helping, and also
-quACKs. It handles each packet as described in \Cref{sec:packrat:design:proxy}.
+The proxy inspects each packet for discovery packets, quACKs, and
+those that match the 4-tuples of the base connections it is helping.
+It handles each packet as described in \Cref{sec:packrat:design:proxy}.
 We use our \texttt{quack} library to encode and decode quACKs
-(\Cref{sec:quack:implementation}). The proxy use $\approx\!1000$ lines of Rust.
+(\Cref{sec:quack:implementation}). The proxy uses $\approx\!1000$ lines of Rust.
 
 \subsubsection{Multicast proxy.}
 
@@ -662,7 +668,7 @@ each client, the proxy maintains a quACK and a \textit{virtual cache}. The
 virtual cache contains (1) a global index in the base cache of the client's
 first unacknowledged packet and (2) pairs of global indexes that indicate which
 packet to insert and where to insert it because it was retransmitted to the
-client. This allows the proxy to maintain state proportional only to the number
+client. This allows the proxy to maintain state proportional in size only to the number
 of outstanding retransmissions per client.
 
 \section{Evaluation methodology}
