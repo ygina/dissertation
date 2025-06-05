@@ -13,7 +13,7 @@
         \includegraphics[width=\linewidth,trim={0 0 2cm 0.7cm},clip]
         {splitting/figures/heatmaps/heatmap_quic_bbr3_10mbps.pdf}
         \captionsetup{skip=4pt}
-        \caption{Google \texttt{quiche}, BBRv3}
+        \caption{Google, BBRv3}
         \label{fig:splitting:quic:google-bbr3}
     \end{subfigure}
     \begin{subfigure}[b]{0.22\linewidth}
@@ -21,7 +21,7 @@
         \includegraphics[width=\linewidth,trim={0 0 2cm 0.7cm},clip]
         {splitting/figures/heatmaps/heatmap_quiche_bbr2_10mbps.pdf}
         \captionsetup{skip=4pt}
-        \caption{Cloudflare \texttt{quiche}, BBRv2}
+        \caption{Cloudflare, BBRv2}
         \label{fig:splitting:quic:cloudflare-bbr2}
     \end{subfigure}
     \begin{subfigure}[b]{0.22\linewidth}
@@ -32,10 +32,10 @@
         \caption{\texttt{picoquic}, BBRv3}
         \label{fig:splitting:quic:picoquic-bbr3}
     \end{subfigure}
-    \begin{subfigure}[b]{1cm}
-        \includegraphics[width=1cm,trim={8cm 0 0 0},clip]
+    \begin{subfigure}[b]{0.9cm}
+        \includegraphics[width=0.9cm,trim={8cm 0 0 0},clip]
         {splitting/figures/heatmaps/heatmap_tcp_bbr3_10mbps.pdf}
-        \vspace*{0.2cm}
+        \vspace{0.08cm}
     \end{subfigure}
     
     \begin{subfigure}[b]{0.22\linewidth}
@@ -51,7 +51,7 @@
         \includegraphics[width=\linewidth,trim={0 0 2cm 0.7cm},clip]
         {splitting/figures/heatmaps/heatmap_quic_bbr1_10mbps.pdf}
         \captionsetup{skip=4pt}
-        \caption{Google \texttt{quiche}, BBRv1}
+        \caption{Google, BBRv1}
         \label{fig:splitting:quic:google-bbr1}
     \end{subfigure}
     \begin{subfigure}[b]{0.22\linewidth}
@@ -59,7 +59,7 @@
         \includegraphics[width=\linewidth,trim={0 0 2cm 0.7cm},clip]
         {splitting/figures/heatmaps/heatmap_quiche_bbr1_10mbps.pdf}
         \captionsetup{skip=4pt}
-        \caption{Cloudflare \texttt{quiche}, BBRv1}
+        \caption{Cloudflare, BBRv1}
         \label{fig:splitting:quic:cloudflare-bbr1}
     \end{subfigure}
     \begin{subfigure}[b]{0.22\linewidth}
@@ -70,10 +70,10 @@
         \caption{\texttt{picoquic}, BBRv1}
         \label{fig:splitting:quic:picoquic-bbr1}
     \end{subfigure}
-    \begin{subfigure}[b]{1cm}
-        \includegraphics[width=1cm,trim={8cm 0 0 0},clip]
+    \begin{subfigure}[b]{0.9cm}
+        \includegraphics[width=0.9cm,trim={8cm 0 0 0},clip]
         {splitting/figures/heatmaps/heatmap_tcp_bbr1_10mbps.pdf}
-        \vspace*{0.2cm}
+        \vspace{0.08cm}
     \end{subfigure}
 
     \begin{subfigure}[b]{0.22\linewidth}
@@ -89,7 +89,7 @@
         \includegraphics[width=\linewidth,trim={0 0 2cm 0.7cm},clip]
         {splitting/figures/heatmaps/heatmap_quic_cubic_10mbps.pdf}
         \captionsetup{skip=4pt}
-        \caption{Google \texttt{quiche}, CUBIC}
+        \caption{Google, CUBIC}
         \label{fig:splitting:quic:google-cubic}
     \end{subfigure}
     \begin{subfigure}[b]{0.22\linewidth}
@@ -97,7 +97,7 @@
         \includegraphics[width=\linewidth,trim={0 0 2cm 0.7cm},clip]
         {splitting/figures/heatmaps/heatmap_quiche_cubic_10mbps.pdf}
         \captionsetup{skip=4pt}
-        \caption{Cloudflare \texttt{quiche}, CUBIC}
+        \caption{Cloudflare, CUBIC}
         \label{fig:splitting:quic:cloudflare-cubic}
     \end{subfigure}
     \begin{subfigure}[b]{0.22\linewidth}
@@ -108,10 +108,10 @@
         \caption{\texttt{picoquic}, CUBIC}
         \label{fig:splitting:quic:picoquic-cubic}
     \end{subfigure}
-    \begin{subfigure}[b]{1cm}
-        \includegraphics[width=1cm,trim={8cm 0 0 0},clip]
+    \begin{subfigure}[b]{0.9cm}
+        \includegraphics[width=0.9cm,trim={8cm 0 0 0},clip]
         {splitting/figures/heatmaps/heatmap_tcp_cubic_10mbps.pdf}
-        \vspace*{0.2cm}
+        \vspace{0.08cm}
     \end{subfigure}
 
     \caption{Heatmaps for three QUIC implementations of BBRv3 (or BBRv2), BBRv1,
@@ -120,7 +120,7 @@
      shown at various loss rates and one-way delays with a fixed link rate of
      10 Mbit/s. User-space QUIC is not CPU-limited, achieving high utilizations
      at 1 ms delay and 0\% loss. The QUIC implementations are Google \texttt
-     {quiche}, Cloudflare \texttt{quiche}, and a minimalist implementation
+     {quiche}, Cloudflare, and a minimalist implementation
      based on the IETF spec called \texttt{picoquic}. Median of $n=20$
      trials.}
     \label{fig:splitting:quic}

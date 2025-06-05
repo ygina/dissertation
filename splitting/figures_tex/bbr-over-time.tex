@@ -1,24 +1,28 @@
 \begin{figure}[t!]
     \centering
-    \begin{subfigure}[b]{\linewidth}
+    \begin{subfigure}[b]{0.49\linewidth}
         \centering
-        \includegraphics[width=0.5\linewidth]
+        \includegraphics[width=\linewidth]
          {splitting/figures/bbr_over_time_network_20_20_100_1_None_None_0_4.pdf}
         \captionsetup{skip=0pt}
         \caption{Asymmetric, lossy last-mile.}
         \label{fig:splitting:bbr-over-time:class1}
     \end{subfigure}
-    \begin{subfigure}[b]{\linewidth}
+    \begin{subfigure}[b]{0.49\linewidth}
         \centering
-        \includegraphics[width=0.5\linewidth]
+        \includegraphics[width=\linewidth, trim=0 155 0 0]
+         {splitting/figures/bbr_over_time_network_20_20_100_1_None_None_0_4.pdf}
+        \includegraphics[width=\linewidth]
          {splitting/figures/bbr_over_time_network_20_20_100_1_None_None_2_2.pdf}
         \captionsetup{skip=0pt}
         \caption{Asymmetric, both path segments are lossy.}
         \label{fig:splitting:bbr-over-time:class2}
     \end{subfigure}
-    \begin{subfigure}[b]{\linewidth}
+    \begin{subfigure}[b]{0.49\linewidth}
         \centering
-        \includegraphics[width=0.5\linewidth]
+        \includegraphics[width=\linewidth, trim=0 155 0 0]
+         {splitting/figures/bbr_over_time_network_20_20_100_1_None_None_0_4.pdf}
+        \includegraphics[width=\linewidth]
          {splitting/figures/bbr_over_time_network_40_40_40_40_None_None_2_2.pdf}
         \captionsetup{skip=0pt}
         \caption{Symmetric, both path segments are lossy.}

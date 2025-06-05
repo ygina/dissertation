@@ -3,9 +3,12 @@
 
 Much of this dissertation is based off the premise that traditional
 connection-splitting PEPs still help endpoints achieve performance benefits
-that we'd like to emulate for secure transport protocols. While this may have
+that we'd like to emulate for secure transport protocols
+(see PACUBIC in \Cref{sec:sidekick:pacubic} and the split QUIC connection
+baseline in \Cref{sec:packrat:implementation}). While this may have
 been true when PEPs were first deployed in the 1990s, two recent developments
 first announced in the late 2010s have cast doubts on their relevance: the BBR
+(Bottleneck Bandwidth and Round-trip propagation time)
 congestion-control algorithm, which de-emphasizes loss as a congestion signal,
 and the QUIC transport protocol, which prevents transparent
 connection-splitting yet empirically matches or exceeds TCP's performance in
@@ -21,7 +24,7 @@ dramatically and further differ from those of Linux TCP---frustrating
 head-to-head comparisons.
 Notwithstanding their controversial nature, our results suggest
 that PEPs remain relevant to Internet performance for the foreseeable future.
-We hope these findings motivate the development for solutions such as the ones
+We hope these findings motivate the development of solutions such as the ones
 in \Cref{sec:quack,sec:sidekick,sec:packrat} that balance the performance
 benefits of traditional PEPs with the freedom to evolve transport over time.
 
