@@ -13,8 +13,8 @@
         \label{fig:packrat:spurious:media}
     \end{subfigure}
     \caption{The unordered tunnel and Packrat without modifying the end-to-end
-     reorder signal cause the client to receive spurious retransmissions.
-     Modifying the end-to-end signal with Packrat significantly reduces them.}
+     reorder delay cause the client to receive spurious retransmissions.
+     Adding a reorder delay with Packrat significantly reduces them.}
     \label{fig:packrat:spurious}
 \end{minipage}%
 \hfill
@@ -50,10 +50,10 @@
     
     \caption{The number of bytes (left) and packets (right) sent between the
      client, proxy, and server. The statistics are captured directly from the
-     network interface. The link overheads from quACKs in the Packrat protocol are
+     network interface. The link overheads from quACKs using the Packrat proxy are
      comparable to those of the underlying acknowledgment scheme. The client
-     sends fewer bytes with rateless quACKs, and fewer packets when it
-     selectively quACKs. The tunnel aggressively ACKs and retransmits.}
+     sends fewer bytes with rateless quACKs, and fewer packets with sparse
+     quACKing. The tunnel aggressively ACKs and retransmits.}
     \label{fig:packrat:link-overheads}
 \end{minipage}
 \end{figure*}

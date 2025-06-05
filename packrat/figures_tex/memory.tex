@@ -1,6 +1,6 @@
 \begin{figure}[t]
     \centering
-    \begin{subfigure}[b]{0.8\linewidth}
+    \begin{subfigure}[b]{0.49\linewidth}
         \centering
         \includegraphics[width=\linewidth]{packrat/figures/cache_http.pdf}
         \caption{HTTP/3 file download.
@@ -8,7 +8,7 @@
         }
         \label{fig:packrat:memory:http}
     \end{subfigure}
-    \begin{subfigure}[b]{0.8\linewidth}
+    \begin{subfigure}[b]{0.49\linewidth}
         \centering
         \includegraphics[width=\linewidth]{packrat/figures/cache_media.pdf}
         \caption{Low-latency media with FEC.}
@@ -23,11 +23,11 @@
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=0.8\linewidth]{packrat/figures/cache_multicast.pdf}
+    \includegraphics[width=0.6\linewidth]{packrat/figures/cache_multicast.pdf}
     \caption{The sum of the virtual cache sizes of all $16$ clients in
      the multicast application. Each client uses $\approx\!$12 bytes each for a
      single insertion pair. The variations are due to individuals having
-     slightly more or less than one insertion pair. Without selective quACKing
+     slightly more or less than one insertion pair. Without sparse quACKing
      (``no nack''), clients more often have empty virtual buffers. The base
      connection's packet cache (not pictured) is always 64 KB.}
     \label{fig:packrat:memory:multicast}
