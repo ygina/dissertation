@@ -19,14 +19,14 @@ of packet switching where data is broken down into smaller packets and
 transmitted indepedently over wired links. Once the packets reach their
 destination, they are reassembled into a message understandable by the
 endpoint. Two computers communicated with each other for the first time in
-1969~\cite{arpanet2019}. The first data transmitted over the network were the letters ``lo'' for
+1969~\cite{arpanet2019}. The data transmitted over the network were the letters ``lo'' for
 ``login'', though the system crashed before the researchers could finish.
 
 TCP/IP was introduced in the 1970s to provide a cleaner separation of
 responsibilities between endpoints and in-network nodes as more and more
 research institutions joined ARPANET~\cite{rfc675}. In this canonical model of
 the Internet,
-routers and other network components forward IP datagrams without regard to
+routers and other network components forwarded IP datagrams without regard to
 their payloads, while TCP transport was end-to-end and implemented only in
 hosts~\cite{saltzer1984endtoend,clark1988darpa}. The principles of packet
 switching and TCP/IP are still present in how we use the network today.
@@ -35,17 +35,17 @@ In the 1980s, the early Internet was growing rapidly and the sheer amount of
 traffic started to overwhelm the links. Network congestion caused packet loss,
 which subsequently caused retransmissions and even more congestion, which led
 to congestion collapse and a severe degradation in performance~\cite{rfc896}.
-In response,
-the first feedback control mechanisms for ``congestion control'' such as the
-Van Jacobson algorithms for TCP/IP were invented~\cite{vjk}. Implemented at
-hosts, these
+In response, the first feedback control mechanisms for ``congestion control''
+in TCP/IP such as additive-increase/multiplicative-decrease (AIMD), slow start,
+and congestion windows were invented~\cite{vjk,chiu1989analysis}. Implemented
+at hosts, these
 ``loss-based'' congestion control algorithms interpreted packet loss as
 congestion to significantly decrease the congestion window.
 
-The 1990s marked the beginning of the mainstream Internet, with the first
-transatlantic links and the invention of the World Wide Web~\cite{www2025}. The
+The 1990s marked the beginning of the mainstream Internet with
+the invention of the World Wide Web~\cite{www2025}. The
 Internet was no longer just a research proposal, but a global commercial
-project. Wi-Fi, which was
+project. Wi-Fi,
 standardized in 1999, enabled people to move freely inside their homes and
 workspaces~\cite{wifi2023}, while the iPhone and Android phones of the late
 2000s along with the growth of cellular networks increased our mobility
@@ -195,7 +195,7 @@ rigid and resistant to change over time~\cite{papastergiou2017deossifying, edeli
 Protocol ossification has derailed the deployment of many otherwise promising
 extensions to TCP. Despite making it as far as the IETF, ideas like
 extended TCP options, Multipath TCP, ECN++, and tcpcrypt now lie in a graveyard
-of unrealized proposals~\cite{mandalari2018ecnplusplus,honda2011still,raiciu2012multipathtcp,rfc8548}.
+of unrealized and under-realized proposals~\cite{mandalari2018ecnplusplus,honda2011still,raiciu2012multipathtcp,rfc8548}.
 Even innocuously simple fields like the TCP sequence
 number are not immune to ossification. For example, QUIC uses two sequence
 number spaces, referring separately to packets and the bytes in the underlying
@@ -228,8 +228,8 @@ The information about the underlying connection is called a \textbf
 efficiently refer to encrypted packets without plaintext sequence numbers.
 I will show that \textcolor{black!50!blue}{\textbf{the Sidekick protocol
 approach to in-network assistance for secure transport protocols achieves
-performance benefits similar to those of traditional TCP PEPs without protocol
-ossification}}.
+performance benefits similar to those of traditional TCP PEPs without
+the possibility of protocol ossification}}.
 
 The rest of this work will go as follows:
 I will start \Cref{sec:quack} with quACKs, a tool for efficiently
