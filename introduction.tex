@@ -240,11 +240,15 @@ response to quACKs to emulate the performance benefits of traditional PEPs.
 \Cref{sec:packrat} will describe how endpoints send quACKs to Packrat
 proxies to receive in-network retransmissions, also achieving improved
 performance for a variety of secure transport protocols.
-Finally, \Cref{sec:splitting} will take a step back and analyze why recent
+
+Finally, \Cref{sec:splitting} will take a step back and analyze why the performance
+benefits of connection-splitting are still relevant today despite recent
 developments such as the ``model-based'' BBR congestion control algorithm and
-the QUIC transport protocol may have cast doubts on the relevance of
-connection-splitting, then offer a counterpoint.
-\Cref{sec:conclusion} will describe future research directions and conclude.
+the QUIC transport protocol, motivating the need for protocol-agnostic solutions
+such as the Sidekick approach for helping secure transport protocols.
+\Cref{sec:conclusion} will discuss considerations for the practical deployment of
+the Sidekick protocol and future research directions, including the immediate
+impact on congestion control research, then conclude.
 
 \input{slides/figures_tex/overview.tex}
 
